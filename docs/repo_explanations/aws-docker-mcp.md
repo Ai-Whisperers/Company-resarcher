@@ -1,6 +1,6 @@
 # aws-docker-mcp
 
-**Description:** 
+**Description:**
 **URL:** https://github.com/Ai-Whisperers/aws-docker-mcp
 **Visibility:** PRIVATE
 
@@ -17,24 +17,28 @@ The MCP Development Hub provides a unified platform for running both Docker and 
 ## Features
 
 ### Docker Integration
+
 - **MCP Gateway**: Central hub for all Docker MCP servers
 - **Pre-configured Services**: PostgreSQL, Redis, MinIO, LocalStack
 - **Docker Hub Integration**: Direct access to Docker Hub repositories
 - **Container Management**: Full control over Docker containers via MCP
 
 ### AWS Integration
+
 - **45+ AWS MCP Servers**: Complete suite of AWS service integrations
 - **LocalStack Support**: Test AWS services locally without cloud costs
 - **Hybrid Mode**: Seamlessly switch between local and cloud AWS resources
 - **SSO Support**: Secure authentication with AWS SSO
 
 ### Development Services
+
 - **PostgreSQL**: Relational database with MCP server integration
 - **Redis**: In-memory cache and message broker
 - **MinIO**: S3-compatible object storage for local development
 - **LocalStack**: Complete AWS cloud stack running locally
 
 ### Monitoring (Optional)
+
 - **Grafana**: Visualization and dashboards
 - **Prometheus**: Metrics collection and alerting
 
@@ -61,6 +65,7 @@ chmod +x scripts/*.sh
 ```
 
 For Windows users with Git Bash:
+
 ```bash
 bash scripts/setup.sh
 ```
@@ -102,11 +107,13 @@ MINIO_ROOT_PASSWORD=secure_password
 The setup script can automatically configure Claude Desktop. To manually configure:
 
 **Windows:**
+
 ```
 %APPDATA%\Claude\claude_desktop_config.json
 ```
 
 **macOS:**
+
 ```
 ~/Library/Application Support/Claude/claude_desktop_config.json
 ```
@@ -115,46 +122,56 @@ Copy the contents from `config/claude_desktop_config.json` to the appropriate lo
 
 ## Service Access Points
 
-| Service | URL/Port | Default Credentials |
-|---------|----------|-------------------|
-| MCP Gateway UI | http://localhost:8080 | - |
-| MCP API | http://localhost:9000 | - |
-| PostgreSQL | localhost:5432 | mcp_user / (see .env) |
-| Redis | localhost:6379 | - |
-| MinIO Console | http://localhost:9001 | mcp_admin / (see .env) |
-| MinIO API | http://localhost:9002 | mcp_admin / (see .env) |
-| LocalStack | http://localhost:4566 | - |
-| Grafana | http://localhost:3000 | admin / admin |
-| Prometheus | http://localhost:9090 | - |
+| Service        | URL/Port              | Default Credentials    |
+| -------------- | --------------------- | ---------------------- |
+| MCP Gateway UI | http://localhost:8080 | -                      |
+| MCP API        | http://localhost:9000 | -                      |
+| PostgreSQL     | localhost:5432        | mcp_user / (see .env)  |
+| Redis          | localhost:6379        | -                      |
+| MinIO Console  | http://localhost:9001 | mcp_admin / (see .env) |
+| MinIO API      | http://localhost:9002 | mcp_admin / (see .env) |
+| LocalStack     | http://localhost:4566 | -                      |
+| Grafana        | http://localhost:3000 | admin / admin          |
+| Prometheus     | http://localhost:9090 | -                      |
 
 ## Management Scripts
 
 ### setup.sh
+
 Initial setup and configuration wizard
+
 ```bash
 ./scripts/setup.sh
 ```
 
 ### start.sh
+
 Start all services
+
 ```bash
 ./scripts/start.sh [--monitoring|--all]
 ```
 
 ### stop.sh
+
 Stop all services
+
 ```bash
 ./scripts/stop.sh [--volumes]  # --volumes removes all data
 ```
 
 ### status.sh
+
 Check service health and status
+
 ```bash
 ./scripts/status.sh
 ```
 
 ### logs.sh
+
 View service logs
+
 ```bash
 ./scripts/logs.sh [service] [-f] [-t 100]
 
@@ -198,6 +215,7 @@ aws --endpoint-url=http://localhost:4566 --profile localstack s3 ls
 ### Available MCP Servers
 
 The Docker MCP Gateway provides access to:
+
 - Docker Hub repositories
 - Container management
 - Image operations
@@ -208,6 +226,7 @@ The Docker MCP Gateway provides access to:
 ### Security Configuration
 
 Edit `docker/docker-mcp-settings.yaml` to configure:
+
 - Allowed mount paths
 - Read-only restrictions
 - Resource limits
@@ -218,6 +237,7 @@ Edit `docker/docker-mcp-settings.yaml` to configure:
 ### Common Issues
 
 #### Docker daemon not running
+
 ```bash
 # Start Docker Desktop manually
 # Windows/macOS: Open Docker Desktop application
@@ -225,6 +245,7 @@ Edit `docker/docker-mcp-settings.yaml` to configure:
 ```
 
 #### AWS credentials not configured
+
 ```bash
 # Configure AWS CLI
 aws configure
@@ -234,6 +255,7 @@ aws sso configure
 ```
 
 #### Port conflicts
+
 ```bash
 # Check what's using a port
 netstat -ano | findstr :8080  # Windows
@@ -243,6 +265,7 @@ lsof -i :8080                  # macOS/Linux
 ```
 
 #### Services not starting
+
 ```bash
 # Check logs
 ./scripts/logs.sh [service-name]
@@ -336,6 +359,7 @@ This project is provided as-is for development purposes. Ensure you comply with 
 ## Support
 
 For issues specific to:
+
 - **Docker MCP**: Check [Docker MCP documentation](https://docs.docker.com/mcp)
 - **AWS MCP**: See [AWS MCP documentation](https://awslabs.github.io/mcp/)
 - **Claude Desktop**: Visit [Claude documentation](https://docs.anthropic.com/claude)
@@ -343,6 +367,7 @@ For issues specific to:
 ## Acknowledgments
 
 Built using:
+
 - Docker and Docker Compose
 - AWS MCP Servers by AWS Labs
 - LocalStack for AWS emulation
