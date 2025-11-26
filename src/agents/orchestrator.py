@@ -1,92 +1,41 @@
 import asyncio
-from datetime import datetime
-from typing import List, Dict, Any
-from ..core.types import CompanyProfile, ResearchPhaseResult
-from ..core.logger import setup_logger
-from ..core.research_phases import RESEARCH_PHASES
-from ..tools.file_manager import FileManager
-from .base_agent import BaseAgent
+from typing import Dict, Any, List
+from src.core.logger import setup_logger
+from src.graph.graph_builder import build_graph
+from src.graph.state import ResearchState
 
-# from .specialists import MarketAnalyst, BrandAuditor, CompetitorScout # Deprecated
-
-logger = setup_logger("orchestrator")
+logger = setup_logger(__name__)
 
 
 class ResearchOrchestrator:
-    """
-    Orchestrates the entire research process using specialized agents
-    and the defined research phases.
-    """
-
     def __init__(self):
-        self.file_manager = FileManager()
-        self.agents = {}
+        self.graph = build_graph()
 
-        # Initialize agents for all phases
-        from .generic_agent import GenericResearchAgent
-
-        for phase_id, config in RESEARCH_PHASES.items():
-            self.agents[phase_id] = GenericResearchAgent(phase_id, config)
-
-    async def run_research(self, company_name: str, industry: str) -> None:
+    async def conduct_research(self, company_name: str, url: str) -> Dict[str, Any]:
         """
-        Run the full research pipeline for a company.
+        Main entry point for the research process.
+        Initializes the state and runs the LangGraph workflow.
         """
-        start_time = datetime.now()
-        logger.info(f"Starting research for {company_name} ({industry})")
+        logger.info(f"Starting research for {company_name} ({url})")
 
-        # 1. Setup Company Profile
-        company = CompanyProfile(
-            name=company_name,
-            industry=industry,
-            target_audience=f"{industry} consumers",  # Default
-            country="Global",  # Default
-        )
+        # Initialize State
+        initial_state = ResearchState(company_name=company_name, website=url)
 
-        # 2. Initialize Output Structure
-        self.file_manager.setup_company_folder(company_name)
+        # Run Graph
+        try:
+            # ainvoke returns the final state dict
+            final_state_dict = await self.graph.ainvoke(initial_state.model_dump())
 
-        # 3. Execute Research Phases
-        # We iterate through the defined phases in order
-        sorted_phases = sorted(RESEARCH_PHASES.items(), key=lambda x: x[1]["priority"])
+            # Convert back to Pydantic model for type safety (optional, but good practice)
+            final_state = ResearchState(**final_state_dict)
 
-        results = []
+            logger.info("Research process completed successfully.")
+            return final_state.model_dump()
 
-        for phase_id, phase_config in sorted_phases:
-            logger.info(f"Starting Phase: {phase_config['name']}")
+        except Exception as e:
+            logger.error(f"Error during research execution: {str(e)}")
+            raise e
 
-            # Determine which agent to use
-            agent = self.agents.get(phase_id)
 
-            if agent:
-                try:
-                    # We inject the specific queries from the phase config into the agent
-                    # This requires updating the agent interface or passing it here
-                    # For now, let's assume the specialist agents have their own logic,
-                    # BUT we should ideally pass the 'query_templates' to them.
-
-                    # Let's update the agent's research method to accept phase_config if possible
-                    # Or we can just let the specialized agents do their thing for now
-                    # and eventually migrate them to be fully data-driven.
-
-                    # To make it truly data-driven as per the reference repo:
-                    # We should probably have a 'GenericResearchAgent' that takes the queries.
-                    # But since we have specific classes, let's stick to them for the main 3,
-                    # and maybe skip the others for this MVP or implement a generic fallback.
-
-                    result = await agent.research(company)
-
-                    # Save Result
-                    await self.file_manager.save_report(company_name, result)
-                    results.append(result)
-
-                except Exception as e:
-                    logger.error(f"Error in phase {phase_id}: {e}")
-            else:
-                logger.warning(f"No agent assigned for phase {phase_id}, skipping.")
-
-        # 4. Generate Executive Summary (Final Synthesis)
-        # TODO: Implement this using the collected results
-
-        duration = datetime.now() - start_time
-        logger.info(f"Research completed in {duration}")
+# Singleton instance (optional, but useful if we want to cache the graph build)
+orchestrator = ResearchOrchestrator()

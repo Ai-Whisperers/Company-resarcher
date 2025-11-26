@@ -1,0 +1,128 @@
+# =============================================================================
+# Environment Configuration
+# =============================================================================
+# Current Environment: development | production
+ENVIRONMENT=development
+
+# =============================================================================
+# API Configuration
+# =============================================================================
+API_HOST=0.0.0.0
+API_PORT=8000
+API_KEY=dev-api-key
+# Production API Key:
+# API_KEY=vE7QyUpt20TSmIuww8kdqEZax7pNPDJmUb_yST-0Q1g
+
+# Python API URL (for n8n to call)
+PYTHON_API_URL=http://localhost:8000
+
+# =============================================================================
+# Database Configuration (PostgreSQL)
+# =============================================================================
+# Format: postgresql+asyncpg://user:password@host:port/database
+# Dev: localhost, Prod: postgres
+DATABASE_URL=postgresql+asyncpg://maga_user:maga_password@localhost:5432/maga_dev
+# Production URL:
+# DATABASE_URL=postgresql+asyncpg://maga_user:maga_secure_password_2024@postgres:5432/maga_prod
+
+# PostgreSQL password (used by docker-compose)
+# POSTGRES_PASSWORD=maga_secure_password_2024
+
+# =============================================================================
+# Redis Configuration
+# =============================================================================
+# Dev: localhost, Prod: redis
+REDIS_URL=redis://localhost:6379/0
+REDIS_ENABLED=true
+REDIS_TTL=3600
+
+# =============================================================================
+# Celery Configuration
+# =============================================================================
+# Dev: localhost, Prod: redis
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# =============================================================================
+# AI Service API Keys
+# =============================================================================
+# OpenAI (required for GPT models)
+OPENAI_API_KEY=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
+# Production OpenAI Key:
+# OPENAI_API_KEY=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
+
+# Anthropic (required for Claude models)
+ANTHROPIC_API_KEY=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
+
+# Google (required for Gemini models)
+GEMINI_API_KEY=AIzaSyBNGhkKlX0NWNiJgse_CqYcxYyQK0Zg5PY
+
+# Tavily (required for GPT Researcher)
+TAVILY_API_KEY=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
+
+# =============================================================================
+# Langfuse Configuration (Observability)
+# =============================================================================
+LANGFUSE_PUBLIC_KEY=pk-lf-796b9234-2405-46e2-9ba3-29c52d3ccf0d
+LANGFUSE_SECRET_KEY=sk-lf-da4f9198-989f-4b92-888c-4029ecc82b02
+LANGFUSE_HOST=https://cloud.langfuse.com
+
+# =============================================================================
+# LangSmith Observability (Optional)
+# =============================================================================
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=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
+LANGCHAIN_PROJECT=maga-campaign-generator
+
+# =============================================================================
+# File Storage
+# =============================================================================
+# Dev: ./data/projects, Prod: /app/data/projects
+PROJECTS_DIR=./data/projects
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+LOG_LEVEL=DEBUG
+LOG_FORMAT=text
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
+CORS_ENABLED=true
+RATE_LIMIT_ENABLED=false
+
+# =============================================================================
+# n8n Configuration
+# =============================================================================
+N8N_BASIC_AUTH_ACTIVE=true
+N8N_BASIC_AUTH_USER=weissvanderpol.ivan@gmail.com
+N8N_BASIC_AUTH_PASSWORD=Polivan123Gmail!
+GENERIC_TIMEZONE=America/Asuncion
+
+# =============================================================================
+# Google Drive (Optional - for cloud exports)
+# =============================================================================
+GDRIVE_CAMPAIGNS_FOLDER_ID=1BWhTTuUXFBFJ8k90vB3xu1XIIpgbf5UX
+
+# =============================================================================
+# Google Cloud (For Veo 3 Video Generation)
+# =============================================================================
+GOOGLE_CLOUD_PROJECT=daring-diode-454123-n8
+GOOGLE_CLIENT_ID=407201441242-bgglevndlt9lai9lh0k0b3pcbti366oq.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+GOOGLE_APPLICATION_CREDENTIALS_JSON='{"type": "service_account", "project_id": "daring-diode-454123-n8", "private_key_id": "4a5ec56241fb593c552d7559c4873e881625355c", "private_key": "-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDNBQT5lD/MzSHR\\niJkmkKm8DL1hR+lmBbz3Qjv31DM0K05VrqiuGr1dQLRe2ZFIZ7e3+x1p3DcpvUQR\\nqUTP51KYxqh7fyl5EV9fAP870ja0048RGl6PeZBwgkDdyT/z3TYUN3YoRgTu0GT0\\n6Z3UHSOVk4Tz9aWz+iiA1BvitnyhD4b0i3U/zSYWQOjhB1sr5wOM+J/OFemntZO2\\nD0os6+KpNLaYfd7GsNhgrxRrZpQqeoM45/FL41rw0AP8QAEMocIN06WaDldBSu/P\\nwtO7wVblKScLmjNYGuiO/kM3Ey2Q4+F/tlFqRmGq+xRa3PIMGa2TpDOtQVx3RFMO\\ni5S9p7yNAgMBAAECggEAG/n2XtRTDHBlkAEy3OdashWO9ipo+AoKajc4la34OsM6\\nEkkeLXvqoUIGGvdXcujsUgfLULnDMUfpdPuDL1eilsRtE0Ub9LBhMkahjZk269/+\\notfVVYDCLAgqL9mZh36FNacH0aEUZT48uIr0hZBgXbXeq6e2r+OQCVxoXbyHLzb/\\nWJTOhMKgz9EBFiPL1xUtRfkKYensZ0hDt4ti2TFNXDDI8BJx6Mgl5ER81MwKmqMy\\nc6mwGtI6m3/EF2PHyivuw0+LYnXIBi/J0nHRBCanYsiuk32g/pzf2G8arUSLAwxc\\nRFWhp8e8JLmmzem+VucXMBBlRdlQ6+iEvdnudUenZQKBgQD+C5COhpDHD42yvv2P\\nM8NMPV9uVAzfcsx9VvX37Gn0GL3tzEDBKPJSf+x5FrLijz189eyN1HZMnMg9TYBE\\nsmEXtIWFKBTUrnLhscNyioarA7JihZlGaUhDWe5KezKDxaE1MLnAkg98CM6OtpAX\\n/wYmfKdiUVgozQXsekBy+CLVowKBgQDOmOGB4zJr88igVJDpK8elPmn6sDcPnG5B\\nHXxa6LVFSUSDjmVr2AZMCsWcESYZcO9q4phZoiBE+4mbBh5PYC+ijkEGXfXjrEww\\nhMY6v7V9NU6Jx0sGDzPJuZKHy3GWXmoq5noXB8Ao3Lgr/5nDC83vmRMqNNHoM33Y\\nacsqfxFoDwKBgFgv74hqUgun7IpmHmL9lwf6LgyAhM90bGP+MfhUSxt/Ez9fLgNf\\nkW7uFUqbhJF9I90jCXDalg5WRnRxWNuACJBQDCGDHmgN/rc2HCDA0aq/58anleOJ\\nXJp0t3GHfqubiTCLr4+XpGRsMjf8S9zonFvz3a8VicLwGORUM9c1J/J9AoGAPaan\\nnOAUutw74YR63eofoLMYYyPUuobe6/WFl4dcGLn9hRioMV98uZJ5V9JSQUNPXuER\\nv6W+5Xb+oFFaGCvG60ZyJxlA+FkBP3VPxlZRLXUL49eiDsPYm3kSPg267rlsCzNN\\n+bNpZ4g+OXsEAo1yPe67Jlwuy5EaG8uuQhc7NYcCgYEAmlL+Cwsk0GLhG6AaZ/M5\\nTVT25/Jz6gxbMZpW+G04+CAIq5cqE/qt79xPpMpS1erWRBWwlYHOMcfP3oEnWBHQ\\nqbTruJYq0/mVYrdtaxn0WbxXEvno785xXQSRIEACb4TVNH9Li5P1Lrg1a3FBSnzz\\n+DqgRp89CfoWwTqb2KnVEWs=\\n-----END PRIVATE KEY-----\\n", "client_email": "customer-feedback@daring-diode-454123-n8.iam.gserviceaccount.com", "client_id": "104181579778134861948", "auth_uri": "https://accounts.google.com/o/oauth2/auth", "token_uri": "https://oauth2.googleapis.com/token", "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs", "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/customer-feedback%40daring-diode-454123-n8.iam.gserviceaccount.com", "universe_domain": "googleapis.com"}'
+
+# =============================================================================
+# Feature Flags
+# =============================================================================
+USE_LANGGRAPH_V2=true
+ENABLE_PARALLEL_RESEARCH=true
+DEBUG=true
+
+AI_PRIMARY_PROVIDER=groq
+AI_FALLBACK_PROVIDER=openai
+
+# Groq API Key
+GROQ_API_KEY=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
