@@ -1,6 +1,6 @@
 import asyncio
 import argparse
-import os
+from datetime import datetime
 from src.agents.orchestrator import ResearchOrchestrator
 from src.core.logger import setup_logger
 from src.core.output_manager import OutputManager
@@ -55,7 +55,7 @@ async def main():
         await vault.store_report(
             company_name=company_name,
             report_content=full_report_content,
-            metadata={"source": "Company Researcher", "date": "2024-05-22"},
+            metadata={"source": "Company Researcher", "date": datetime.now().isoformat()},
         )
         logger.info("Report stored in Vault.")
     except ImportError:

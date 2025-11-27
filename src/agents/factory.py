@@ -60,8 +60,7 @@ class AgentFactory:
         # 1. Smart routing (innermost - selects model)
         if enable_smart_routing:
             logger.info("✓ Enabling smart model routing")
-            # SmartRouter wraps the base client to route between cheap/expensive models
-            api_key = getattr(base_client, "api_key", None)
+            # SmartRouter uses cheap client for simple tasks, expensive for complex
 
             if self.use_local_tools:
                 # Local Mode: Use Ollama for cheap tasks, Base Client (Manager) for expensive
@@ -74,9 +73,9 @@ class AgentFactory:
                 )
                 logger.info("  - Cheap: Ollama (llama3)")
                 logger.info(f"  - Expensive: {base_client.get_provider_name()}")
-            elif api_key:
-                optimized_client = SmartAIRouter(api_key=api_key)
             else:
+                # Use base client for both cheap and expensive to avoid API key exposure
+                # SmartAIRouter should read API keys from environment internally if needed
                 optimized_client = SmartAIRouter(
                     cheap_client=base_client, expensive_client=base_client
                 )
@@ -115,36 +114,31 @@ class AgentFactory:
             else get_shared_search_tool()
         )
 
-        # Initialize new tools
-        from src.tools.youtube_tool import YouTubeTool
-        from src.tools.sec_tool import SECTool
-        from src.tools.app_store_tool import AppStoreTool
-        from src.tools.tech_stack_tool import TechStackTool
+        # Initialize tools with graceful degradation
+        sec_tool = None
+        tech_stack_tool = None
 
-        youtube_tool = YouTubeTool()
-        sec_tool = SECTool()
-        app_store_tool = AppStoreTool()
-        tech_stack_tool = TechStackTool()
+        try:
+            from src.tools.sec_tool import SECTool
+            sec_tool = SECTool()
+        except ImportError as e:
+            logger.warning(f"SECTool unavailable: {e}", exc_info=True)
+
+        try:
+            from src.tools.tech_stack_tool import TechStackTool
+            tech_stack_tool = TechStackTool()
+        except ImportError as e:
+            logger.warning(f"TechStackTool unavailable: {e}", exc_info=True)
 
         return {
             "financial": FinancialAgent(
                 self.ai_client, search_tool=search_tool, sec_tool=sec_tool
             ),
-            "market": MarketAnalyst(
-                self.ai_client,
-                search_tool=search_tool,
-                youtube_tool=youtube_tool,
-                app_store_tool=app_store_tool,
-            ),
+            "market": MarketAnalyst(self.ai_client, search_tool=search_tool),
             "competitor": CompetitorScout(
                 self.ai_client, search_tool=search_tool, tech_stack_tool=tech_stack_tool
             ),
-            "brand": BrandAuditor(
-                self.ai_client,
-                search_tool=search_tool,
-                youtube_tool=youtube_tool,
-                app_store_tool=app_store_tool,
-            ),
+            "brand": BrandAuditor(self.ai_client, search_tool=search_tool),
             "sales": SalesAgent(self.ai_client, search_tool=search_tool),
         }
 

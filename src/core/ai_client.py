@@ -1,11 +1,12 @@
 import json
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 import httpx
 import google.generativeai as genai
-from anthropic import Anthropic, APIError, RateLimitError as AnthropicRateLimitError
+from anthropic import AsyncAnthropic, APIError, RateLimitError as AnthropicRateLimitError
 from openai import (
-    OpenAI,
+    AsyncOpenAI,
     APIError as OpenAIAPIError,
     RateLimitError as OpenAIRateLimitError,
 )
@@ -54,7 +55,7 @@ class BaseAIClient(ABC):
 
 class AnthropicClient(BaseAIClient):
     def __init__(self, api_key: str, model: str = "claude-3-opus-20240229"):
-        self.client = Anthropic(api_key=api_key)
+        self.client = AsyncAnthropic(api_key=api_key)
         self.model = model
         logger.info(f"Initialized Anthropic client with model: {model}")
 
@@ -77,15 +78,15 @@ class AnthropicClient(BaseAIClient):
             if system:
                 kwargs["system"] = system
 
-            response = self.client.messages.create(**kwargs)
+            response = await self.client.messages.create(**kwargs)
             return response.content[0].text
 
         except AnthropicRateLimitError as e:
-            raise AIRateLimitError("anthropic")
+            raise AIRateLimitError("anthropic") from e
         except APIError as e:
-            raise AIProviderError(str(e), "anthropic")
+            raise AIProviderError(str(e), "anthropic") from e
         except Exception as e:
-            raise AIProviderError(str(e), "anthropic")
+            raise AIProviderError(str(e), "anthropic") from e
 
     def get_provider_name(self) -> str:
         return "anthropic"
@@ -98,7 +99,7 @@ class AnthropicClient(BaseAIClient):
 
 class OpenAIClient(BaseAIClient):
     def __init__(self, api_key: str, model: str = "gpt-4-turbo-preview"):
-        self.client = OpenAI(api_key=api_key)
+        self.client = AsyncOpenAI(api_key=api_key)
         self.model = model
         logger.info(f"Initialized OpenAI client with model: {model}")
 
@@ -125,15 +126,15 @@ class OpenAIClient(BaseAIClient):
             if response_format == "json":
                 kwargs["response_format"] = {"type": "json_object"}
 
-            response = self.client.chat.completions.create(**kwargs)
+            response = await self.client.chat.completions.create(**kwargs)
             return response.choices[0].message.content
 
-        except OpenAIRateLimitError:
-            raise AIRateLimitError("openai")
+        except OpenAIRateLimitError as e:
+            raise AIRateLimitError("openai") from e
         except OpenAIAPIError as e:
-            raise AIProviderError(str(e), "openai")
+            raise AIProviderError(str(e), "openai") from e
         except Exception as e:
-            raise AIProviderError(str(e), "openai")
+            raise AIProviderError(str(e), "openai") from e
 
     def get_provider_name(self) -> str:
         return "openai"
@@ -224,11 +225,26 @@ class GroqClient(BaseAIClient):
 
 
 class OllamaClient(BaseAIClient):
-    def __init__(self, model: str = "llama3.1:8b"):
-        import ollama
+    """
+    Ollama client using the async API for better performance.
+    Falls back to sync client via to_thread if async client unavailable.
+    """
 
-        self.client = ollama
+    def __init__(self, model: str = "llama3.1:8b"):
         self.model = model
+        self._async_client = None
+        self._sync_client = None
+
+        # Try to use async client for better performance
+        try:
+            from ollama import AsyncClient
+            self._async_client = AsyncClient()
+            logger.info(f"Initialized Ollama async client with model: {model}")
+        except ImportError:
+            # Fall back to sync client
+            import ollama
+            self._sync_client = ollama
+            logger.warning(f"Ollama AsyncClient not available, using sync client with model: {model}")
 
     async def generate(
         self,
@@ -244,14 +260,28 @@ class OllamaClient(BaseAIClient):
                 messages.append({"role": "system", "content": system})
             messages.append({"role": "user", "content": prompt})
 
-            response = self.client.chat(
-                model=self.model,
-                messages=messages,
-                options={"temperature": temperature, "num_predict": max_tokens},
-            )
+            options = {"temperature": temperature, "num_predict": max_tokens}
+
+            if self._async_client:
+                # Use native async client for better performance
+                response = await self._async_client.chat(
+                    model=self.model,
+                    messages=messages,
+                    options=options,
+                )
+            else:
+                # Fall back to sync client in thread pool
+                # Note: This blocks a thread pool thread, use sparingly under high load
+                response = await asyncio.to_thread(
+                    self._sync_client.chat,
+                    model=self.model,
+                    messages=messages,
+                    options=options,
+                )
+
             return response["message"]["content"]
         except Exception as e:
-            raise AIProviderError(str(e), "ollama")
+            raise AIProviderError(str(e), "ollama") from e
 
     def get_provider_name(self) -> str:
         return "ollama"
@@ -431,11 +461,18 @@ class AIClientManager:
         return "Manager<None>"
 
 
-_ai_manager = None
+import threading
+
+_ai_manager: Optional[AIClientManager] = None
+_ai_manager_lock = threading.Lock()
 
 
 def get_ai_manager() -> AIClientManager:
+    """Thread-safe singleton access for AIClientManager."""
     global _ai_manager
     if _ai_manager is None:
-        _ai_manager = AIClientManager()
+        with _ai_manager_lock:
+            # Double-checked locking pattern
+            if _ai_manager is None:
+                _ai_manager = AIClientManager()
     return _ai_manager

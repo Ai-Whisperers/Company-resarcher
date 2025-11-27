@@ -36,6 +36,8 @@ class ResearchPhaseResult(BaseModel):
     sources: List[ResearchSource]
     key_findings: List[str] = Field(default_factory=list)
     missing_info: List[str] = Field(default_factory=list)
+    errors: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
 
 
 class FullCompanyResearch(BaseModel):

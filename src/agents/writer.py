@@ -37,7 +37,7 @@ class ReportWriter(BaseAgent):
             f"# Executive Summary for {company.name}\n\n{insights.get('executive_summary', 'N/A')}\n"
         )
         drafts["00-Strategic-Context/01-Company-Overview.md"] = (
-            f"# Company Overview: {company.name}\n\nWebsite: {company.url}\n"
+            f"# Company Overview: {company.name}\n\nWebsite: {company.website}\n"
         )
 
         # --- 01-Market-Intelligence ---

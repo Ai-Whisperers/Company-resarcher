@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, List
+from typing import Optional, List, Dict
 from playwright.async_api import async_playwright, Page, Browser
 from bs4 import BeautifulSoup
 from ..core.logger import setup_logger
@@ -12,11 +12,30 @@ class BrowserTool:
     """
     Tool for fetching and parsing web content using Playwright.
     Handles dynamic content and basic anti-bot measures.
+    Supports context manager for proper resource cleanup.
     """
 
-    def __init__(self):
+    def __init__(self, max_concurrent: int = 5):
         self.browser: Optional[Browser] = None
         self.playwright = None
+        self.max_concurrent = max_concurrent
+        # Initialize semaphore immediately to avoid race condition
+        self._semaphore: asyncio.Semaphore = asyncio.Semaphore(max_concurrent)
+        self._cleanup_registered = False
+
+    @property
+    def semaphore(self) -> asyncio.Semaphore:
+        """Returns the semaphore for rate limiting."""
+        return self._semaphore
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        await self.start()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - ensures cleanup."""
+        await self.stop()
 
     async def start(self):
         """Initialize the browser instance"""
@@ -29,8 +48,10 @@ class BrowserTool:
         """Close the browser instance"""
         if self.browser:
             await self.browser.close()
+            self.browser = None
         if self.playwright:
             await self.playwright.stop()
+            self.playwright = None
         logger.info("Browser stopped")
 
     async def fetch_page(
@@ -42,17 +63,22 @@ class BrowserTool:
         if not self.browser:
             await self.start()
 
-        page = await self.browser.new_page()
+        page = None
         try:
+            page = await self.browser.new_page()
             logger.info(f"Navigating to: {url}")
             await page.goto(url, timeout=30000, wait_until="domcontentloaded")
 
             # Wait for content to load
             try:
                 await page.wait_for_selector(wait_for_selector, timeout=5000)
-            except Exception:
+            except asyncio.TimeoutError:
                 logger.warning(
                     f"Timeout waiting for selector '{wait_for_selector}' on {url}"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Error waiting for selector '{wait_for_selector}' on {url}: {e}"
                 )
 
             # Get content
@@ -125,10 +151,14 @@ class BrowserTool:
                 category="error",
             )
         finally:
-            if page:
-                await page.close()
+            # Ensure page is always closed to prevent resource leaks
+            if page is not None:
+                try:
+                    await page.close()
+                except Exception as close_error:
+                    logger.warning(f"Error closing page for {url}: {close_error}")
 
-    def _extract_metadata(self, soup: BeautifulSoup) -> dict[str, str]:
+    def _extract_metadata(self, soup: BeautifulSoup) -> Dict[str, str]:
         """Extract metadata from HTML."""
         metadata = {}
 
@@ -198,11 +228,17 @@ class BrowserTool:
 
         return "web"
 
+    async def _fetch_with_semaphore(self, url: str) -> ResearchSource:
+        """Fetch a page with rate limiting via semaphore."""
+        async with self.semaphore:
+            return await self.fetch_page(url)
+
     async def fetch_multiple(self, urls: List[str]) -> List[ResearchSource]:
         """
-        Fetch multiple URLs concurrently.
+        Fetch multiple URLs concurrently with rate limiting.
+        Uses semaphore to limit concurrent requests (default: 5).
         """
-        tasks = [self.fetch_page(url) for url in urls]
+        tasks = [self._fetch_with_semaphore(url) for url in urls]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         sources = []
@@ -211,20 +247,8 @@ class BrowserTool:
                 logger.error(f"Failed to fetch {url}: {result}")
                 continue
 
-            if result:
-                # Classify source type
-                source_type = self.classify_source_type(
-                    url, result.content
-                )  # Access content via .content attribute
-
-                sources.append(
-                    ResearchSource(
-                        url=url,
-                        title=result.title,  # Access title via .title attribute
-                        content=result.content,  # Access content via .content attribute
-                        source_type=source_type,  # Use source_type instead of type
-                        category="general",  # Will be updated by agent
-                    )
-                )
+            # result is already a ResearchSource from fetch_page
+            if result and result.source_type != "error":
+                sources.append(result)
 
         return sources

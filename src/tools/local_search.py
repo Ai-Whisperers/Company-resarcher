@@ -1,63 +1,62 @@
-"""
-Local Search Tool - Uses DuckDuckGo for free web searching.
-"""
-
 from typing import List, Dict, Any
-from duckduckgo_search import DDGS
 from ..core.logger import setup_logger
+from ..core.indexer import DocumentIndexer
 
 logger = setup_logger("local_search")
 
 
 class LocalSearchTool:
     """
-    Executes searches using DuckDuckGo (free, no API key required).
-    Acts as a drop-in replacement for SearchTool.
+    Executes searches against a local document index (Vector Store).
     """
 
-    def __init__(self):
-        self.ddgs = DDGS()
+    def __init__(self, persist_directory: str = "data/vector_store"):
+        self.indexer = DocumentIndexer(persist_directory=persist_directory)
 
     async def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
         """
-        Execute a search query using DuckDuckGo.
+        Execute a semantic search query against local documents.
 
         Args:
             query: The search query string
             max_results: Maximum number of results to return
 
         Returns:
-            List of dictionaries containing 'url', 'content', and 'title'
+            List of dictionaries containing 'content', 'metadata', and 'score'
         """
         if not query or not query.strip():
             logger.warning("Empty query provided to LocalSearchTool")
             return []
 
-        # Cap max_results to avoid excessive requests
-        max_results = min(max(1, max_results), 20)
-
-        logger.info(f"Searching DuckDuckGo for: {query} (max={max_results})")
+        logger.info(f"Searching Local Index for: {query} (max={max_results})")
 
         try:
-            # DDGS.text() is synchronous, but we can run it directly since it's fast enough
-            # or wrap it in run_in_executor if needed. For now, direct call.
-            results = self.ddgs.text(query, max_results=max_results)
+            # DocumentIndexer.search is synchronous (ChromaDB is sync)
+            # We can wrap in asyncio.to_thread if needed for high load,
+            # but for now direct call is fine as it's local I/O.
+            results = self.indexer.search(query, n_results=max_results)
 
-            # Normalize to match SearchTool output format
+            # Normalize to match standard tool output format
             normalized_results = []
             for r in results:
                 normalized_results.append(
                     {
-                        "url": r.get("href", ""),
-                        "title": r.get("title", ""),
-                        "content": r.get("body", ""),
-                        "score": 1.0,  # DDG doesn't provide score, default to 1.0
+                        "url": r.get("metadata", {}).get("source", "local_doc"),
+                        "title": f"Local Document Chunk (Index {r.get('metadata', {}).get('chunk_index', '?')})",
+                        "content": r.get("content", ""),
+                        "score": r.get(
+                            "distance", 0.0
+                        ),  # Chroma returns distance, lower is better usually, but we keep as is
                     }
                 )
 
-            logger.info(f"Found {len(normalized_results)} results")
+            logger.info(f"Found {len(normalized_results)} local results")
             return normalized_results
 
         except Exception as e:
-            logger.error(f"DuckDuckGo search failed: {e}")
+            logger.error(f"Local search failed: {e}")
             return []
+
+    def index_file(self, file_path: str) -> bool:
+        """Helper to index a file directly via the tool."""
+        return self.indexer.index_file(file_path)

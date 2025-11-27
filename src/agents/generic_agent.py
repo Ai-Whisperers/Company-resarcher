@@ -97,6 +97,9 @@ class GenericResearchAgent(BaseAgent):
         import json
         from ..services.json_parser_helper import robust_json_parse
 
+        # Initialize before try block to avoid NameError in exception handler
+        content_json_str = ""
+
         try:
             content_json_str = await self.ai.generate(prompt, response_format="json")
             data = robust_json_parse(content_json_str)

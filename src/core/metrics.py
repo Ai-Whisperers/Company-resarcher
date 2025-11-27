@@ -1,7 +1,7 @@
 """
 Prometheus metrics for monitoring AI agent performance.
 """
-
+import threading
 from prometheus_client import Counter, Histogram, start_http_server
 from .logger import setup_logger
 
@@ -40,22 +40,29 @@ TOKEN_USAGE = Counter(
 class MetricsManager:
     """
     Manages Prometheus metrics collection.
+    Thread-safe singleton implementation.
     """
 
     _instance = None
+    _lock = threading.Lock()
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(MetricsManager, cls).__new__(cls)
-            cls._instance._initialized = False
+            with cls._lock:
+                # Double-checked locking for thread safety
+                if cls._instance is None:
+                    cls._instance = super(MetricsManager, cls).__new__(cls)
+                    cls._instance._initialized = False
         return cls._instance
 
     def __init__(self):
         if self._initialized:
             return
 
-        self._initialized = True
-        self.server_started = False
+        with self._lock:
+            if not self._initialized:
+                self._initialized = True
+                self.server_started = False
 
     def start_server(self, port: int = 8000):
         """Start Prometheus metrics server."""

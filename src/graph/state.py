@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from langchain_core.messages import BaseMessage
 
 
@@ -16,6 +16,8 @@ class ResearchState(BaseModel):
     The global state (Blackboard) for the research process.
     Passed between all agents in the LangGraph.
     """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # Input
     company_name: str
@@ -48,6 +50,3 @@ class ResearchState(BaseModel):
     # Feedback Loop
     critique_feedback: Optional[str] = None
     feedback_loop_count: int = 0
-
-    class Config:
-        arbitrary_types_allowed = True

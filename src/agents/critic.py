@@ -42,10 +42,12 @@ class LogicCritic(BaseAgent):
 
         Return a JSON object with the following structure:
         {{
-            "status": "APPROVE" or "REJECT",
-            "feedback": "Detailed feedback on what to fix (if REJECT)",
-            "score": 0-10 (Quality Score)
+            "status": "APPROVE",
+            "feedback": "Detailed feedback on what to fix (if status is REJECT)",
+            "score": 8
         }}
+
+        Note: status must be exactly "APPROVE" or "REJECT" (string value).
 
         Data:
         {context}
@@ -70,8 +72,6 @@ class LogicCritic(BaseAgent):
                 "feedback": "Error during critique, passing by default.",
                 "score": 5,
             }
-        except KeyboardInterrupt:
-            raise
         except Exception as e:
             logger.error(f"Unexpected error in critic: {e}", exc_info=True)
             data = {

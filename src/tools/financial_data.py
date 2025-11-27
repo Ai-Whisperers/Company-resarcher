@@ -117,6 +117,34 @@ class FinancialDataTool:
             logger.error(f"Failed to fetch financial statements for {ticker}: {str(e)}")
             return {"ticker": ticker, "error": str(e)}
 
+    async def get_historical_data(self, ticker: str, period: str = "2y") -> Any:
+        """
+        Get historical OHLCV data for backtesting.
+
+        Args:
+            ticker: Stock ticker symbol
+            period: Data period (e.g., '1y', '2y', '5y', 'max')
+
+        Returns:
+            pandas.DataFrame with columns ['Open', 'High', 'Low', 'Close', 'Volume']
+        """
+        try:
+            stock = await asyncio.to_thread(yf.Ticker, ticker)
+            hist = await asyncio.to_thread(lambda: stock.history(period=period))
+
+            if hist.empty:
+                logger.warning(f"No historical data found for {ticker}")
+                return None
+
+            # Ensure index is DatetimeIndex
+            # yfinance returns DatetimeIndex by default
+
+            return hist
+
+        except Exception as e:
+            logger.error(f"Failed to fetch historical data for {ticker}: {str(e)}")
+            return None
+
     def guess_ticker_from_name(self, company_name: str) -> Optional[str]:
         """
         Attempt to guess ticker symbol from company name.

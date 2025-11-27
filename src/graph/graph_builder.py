@@ -3,11 +3,14 @@ from langgraph.graph import StateGraph, END
 from langchain_core.messages import HumanMessage
 from .state import ResearchState
 from ..core.types import CompanyProfile
+from ..core.logger import setup_logger
 from ..agents.base_agent import BaseAgent
 from ..agents.insight_generator import InsightGenerator
 from ..agents.writer import ReportWriter
 from ..agents.critic import LogicCritic
 from src.core.constants import UNKNOWN_VALUE
+
+logger = setup_logger("graph_builder")
 
 
 class ResearchGraph:
@@ -31,14 +34,14 @@ class ResearchGraph:
         self._build_workflow()
 
     async def orchestrator_node(self, state: ResearchState):
-        print("--- ORCHESTRATOR ---")
+        logger.info("=== ORCHESTRATOR ===")
         return {}
 
     async def _run_specialist(
         self, agent_key: str, state: ResearchState, output_key: str
     ):
         """Helper to run a specialist agent."""
-        print(f"--- {agent_key.upper().replace('_', ' ')} ---")
+        logger.info(f"=== {agent_key.upper().replace('_', ' ')} ===")
         agent = self.agents[agent_key]
 
         profile = CompanyProfile(
@@ -66,7 +69,7 @@ class ResearchGraph:
         return await self._run_specialist("brand", state, "brand_data")
 
     async def insight_generator_node(self, state: ResearchState):
-        print("--- INSIGHT GENERATOR ---")
+        logger.info("=== INSIGHT GENERATOR ===")
 
         profile = CompanyProfile(
             name=state.company_name,
@@ -85,7 +88,7 @@ class ResearchGraph:
         return {"drafts": {"insights": result.markdown_content}}
 
     async def report_writer_node(self, state: ResearchState):
-        print("--- REPORT WRITER ---")
+        logger.info("=== REPORT WRITER ===")
 
         profile = CompanyProfile(
             name=state.company_name,
@@ -108,7 +111,7 @@ class ResearchGraph:
         return {"drafts": drafts}
 
     async def critic_node(self, state: ResearchState):
-        print("--- LOGIC CRITIC ---")
+        logger.info("=== LOGIC CRITIC ===")
 
         profile = CompanyProfile(
             name=state.company_name,
@@ -126,8 +129,8 @@ class ResearchGraph:
         feedback = critique.get("feedback", "No feedback")
         status = critique.get("status", "APPROVE")
 
-        print(f"Critic Status: {status}")
-        print(f"Critic Feedback: {feedback}")
+        logger.info(f"Critic Status: {status}")
+        logger.debug(f"Critic Feedback: {feedback}")
 
         return {
             "critique_feedback": feedback,
@@ -139,18 +142,18 @@ class ResearchGraph:
         feedback = state.critique_feedback or ""
 
         if state.feedback_loop_count > 2:
-            print("--- MAX LOOPS REACHED ---")
+            logger.warning("Max feedback loops reached (2), ending workflow")
             return "end"
 
         if "REJECT" in feedback.upper() or "FIX" in feedback.upper():
-            print(f"--- DECISION: LOOP BACK ---")
+            logger.info("Decision: Loop back for revisions")
             return "continue"
 
-        print("--- DECISION: END (Approved) ---")
+        logger.info("Decision: End workflow (Approved)")
         return "end"
 
     async def source_reviewer_node(self, state: ResearchState):
-        print("--- SOURCE REVIEWER ---")
+        logger.info("=== SOURCE REVIEWER ===")
         return {"messages": [HumanMessage(content="Review complete")]}
 
     def _build_workflow(self):

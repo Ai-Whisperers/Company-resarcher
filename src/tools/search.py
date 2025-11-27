@@ -1,4 +1,5 @@
 import asyncio
+import os
 from typing import List, Dict, Any
 from tavily import TavilyClient
 from ..core.config import get_settings
@@ -7,6 +8,9 @@ from ..core.types import ResearchSource
 
 logger = setup_logger("search_tool")
 settings = get_settings()
+
+# Configurable search timeout (default 30 seconds)
+SEARCH_TIMEOUT_SECONDS = int(os.getenv("SEARCH_TIMEOUT_SECONDS", "30"))
 
 
 class SearchTool:
@@ -21,8 +25,9 @@ class SearchTool:
         """
         Execute a search query.
         """
-        if not query or not query.strip():
-            logger.warning("Empty search query provided")
+        # Handle None and empty string safely
+        if not query or not isinstance(query, str) or not query.strip():
+            logger.warning("Empty or invalid search query provided")
             return []
 
         if max_results < 1 or max_results > 20:
@@ -30,22 +35,26 @@ class SearchTool:
             max_results = max(1, min(20, max_results))
 
         try:
-            # Run in executor because Tavily client is synchronous
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None,
-                lambda: self.client.search(
+            # Run in thread because Tavily client is synchronous
+            # Add timeout to prevent indefinite hangs
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    self.client.search,
                     query=query,
                     search_depth="advanced",
                     max_results=max_results,
                     include_raw_content=False,
                 ),
+                timeout=SEARCH_TIMEOUT_SECONDS
             )
 
             results = response.get("results", [])
             logger.info(f"Found {len(results)} results for '{query}'")
             return results
 
+        except asyncio.TimeoutError:
+            logger.error(f"Search timed out after {SEARCH_TIMEOUT_SECONDS}s for '{query}'")
+            return []
         except Exception as e:
             logger.error(f"Search failed for '{query}': {str(e)}")
             return []

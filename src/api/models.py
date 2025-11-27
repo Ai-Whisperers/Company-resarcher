@@ -1,12 +1,47 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator, HttpUrl
 from typing import Optional, Dict, Any
 
 
 class ResearchRequest(BaseModel):
-    company_name: str
-    url: Optional[str] = None
-    industry: Optional[str] = None
-    country: Optional[str] = "USA"
+    """Request model for starting a research task."""
+
+    company_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="Name of the company to research",
+    )
+    url: Optional[HttpUrl] = Field(
+        None,
+        description="Company website URL",
+    )
+    industry: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Industry sector of the company",
+    )
+    country: Optional[str] = Field(
+        "USA",
+        max_length=100,
+        description="Country where the company is headquartered",
+    )
+
+    @field_validator("company_name")
+    @classmethod
+    def company_name_must_not_be_empty(cls, v: str) -> str:
+        """Validate that company name is not empty or whitespace."""
+        v = v.strip()
+        if not v:
+            raise ValueError("Company name cannot be empty or whitespace only")
+        return v
+
+    @field_validator("industry", "country")
+    @classmethod
+    def strip_whitespace(cls, v: Optional[str]) -> Optional[str]:
+        """Strip whitespace from optional string fields."""
+        if v is not None:
+            return v.strip() or None
+        return v
 
 
 class ResearchResponse(BaseModel):
@@ -18,7 +53,8 @@ class ResearchResponse(BaseModel):
 class TaskStatusResponse(BaseModel):
     task_id: str
     status: str
-    result: Optional[Dict[str, Any]] = None
+    result: Optional[Dict[str, Any]] = Field(default=None, description="Research result data")
+    error: Optional[str] = Field(default=None, description="Error message if task failed")
 
 
 # SQLAlchemy Models

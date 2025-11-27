@@ -1,10 +1,14 @@
 from typing import List, Dict, Any, Optional
 import os
 import json
+import asyncio
 from datetime import datetime
 from ..core.logger import setup_logger
 
 logger = setup_logger("vault")
+
+# Timeout for file operations (configurable via environment)
+FILE_OPERATION_TIMEOUT = int(os.getenv("VAULT_FILE_TIMEOUT_SECONDS", "30"))
 
 
 class VaultManager:
@@ -62,7 +66,7 @@ class VaultManager:
             # Placeholder for Pinecone implementation
             pass
         else:
-            # Local Fallback: Save as JSON
+            # Local Fallback: Save as JSON with timeout
             filename = f"{self.local_storage_path}/vectors.json"
             entry = {
                 "company": company_name,
@@ -71,38 +75,69 @@ class VaultManager:
                 "timestamp": datetime.now().isoformat(),
             }
 
-            data = []
-            if os.path.exists(filename):
-                with open(filename, "r") as f:
-                    try:
-                        data = json.load(f)
-                    except:
-                        pass
+            try:
+                data = []
+                if os.path.exists(filename):
+                    # Run blocking I/O in thread with timeout
+                    data = await asyncio.wait_for(
+                        asyncio.to_thread(self._read_json_file, filename),
+                        timeout=FILE_OPERATION_TIMEOUT
+                    )
 
-            data.append(entry)
-            with open(filename, "w") as f:
-                json.dump(data, f, indent=2)
+                data.append(entry)
+                await asyncio.wait_for(
+                    asyncio.to_thread(self._write_json_file, filename, data),
+                    timeout=FILE_OPERATION_TIMEOUT
+                )
+            except asyncio.TimeoutError:
+                logger.error(f"Vault vector store timed out after {FILE_OPERATION_TIMEOUT}s")
+                raise
+            except Exception as e:
+                logger.error(f"Error storing vector data: {e}")
+                raise
+
+    def _read_json_file(self, filename: str) -> List[Dict[str, Any]]:
+        """Read JSON file synchronously (for use with asyncio.to_thread)."""
+        try:
+            with open(filename, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Invalid JSON in {filename}: {e}")
+            return []
+
+    def _write_json_file(self, filename: str, data: List[Dict[str, Any]]) -> None:
+        """Write JSON file synchronously (for use with asyncio.to_thread)."""
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=2)
 
     async def _store_graph(self, company_name: str, metadata: Dict[str, Any]):
         if self.use_neo4j:
             # Placeholder for Neo4j implementation
             pass
         else:
-            # Local Fallback: Save as JSON
+            # Local Fallback: Save as JSON with timeout
             filename = f"{self.local_storage_path}/graph.json"
             entry = {"node": company_name, "type": "Company", "properties": metadata}
 
-            data = []
-            if os.path.exists(filename):
-                with open(filename, "r") as f:
-                    try:
-                        data = json.load(f)
-                    except:
-                        pass
+            try:
+                data = []
+                if os.path.exists(filename):
+                    data = await asyncio.wait_for(
+                        asyncio.to_thread(self._read_json_file, filename),
+                        timeout=FILE_OPERATION_TIMEOUT
+                    )
 
-            data.append(entry)
-            with open(filename, "w") as f:
-                json.dump(data, f, indent=2)
+                data.append(entry)
+                await asyncio.wait_for(
+                    asyncio.to_thread(self._write_json_file, filename, data),
+                    timeout=FILE_OPERATION_TIMEOUT
+                )
+            except asyncio.TimeoutError:
+                logger.error(f"Vault graph store timed out after {FILE_OPERATION_TIMEOUT}s")
+                raise
+            except Exception as e:
+                logger.error(f"Error storing graph data: {e}")
+                raise
 
     async def _search_pinecone(self, query: str):
         return []
@@ -113,11 +148,17 @@ class VaultManager:
         if not os.path.exists(filename):
             return []
 
-        with open(filename, "r") as f:
-            try:
-                data = json.load(f)
-            except:
-                return []
+        try:
+            data = await asyncio.wait_for(
+                asyncio.to_thread(self._read_json_file, filename),
+                timeout=FILE_OPERATION_TIMEOUT
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Vault search timed out after {FILE_OPERATION_TIMEOUT}s")
+            return []
+        except Exception as e:
+            logger.error(f"Error reading vault data: {e}")
+            return []
 
         query = query.lower()
         results = []

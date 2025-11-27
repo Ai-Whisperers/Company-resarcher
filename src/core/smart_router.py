@@ -2,11 +2,15 @@
 Smart AI Router - Routes requests to appropriate models based on complexity.
 Dramatic cost savings by using cheaper models for simple tasks.
 """
-
+import os
+import time
 from .ai_client import BaseAIClient, OpenAIClient
 from .logger import setup_logger
 
 logger = setup_logger("smart_router")
+
+# Counter reset interval in seconds (default: 1 hour)
+COUNTER_RESET_INTERVAL = int(os.getenv("ROUTER_COUNTER_RESET_SECONDS", "3600"))
 
 
 class SmartAIRouter(BaseAIClient):
@@ -51,6 +55,16 @@ class SmartAIRouter(BaseAIClient):
 
         self.cheap_requests = 0
         self.expensive_requests = 0
+        self._counter_reset_time = time.time()
+
+    def _maybe_reset_counters(self):
+        """Reset counters periodically to prevent unbounded growth."""
+        now = time.time()
+        if now - self._counter_reset_time >= COUNTER_RESET_INTERVAL:
+            logger.info(f"Resetting router counters (cheap={self.cheap_requests}, expensive={self.expensive_requests})")
+            self.cheap_requests = 0
+            self.expensive_requests = 0
+            self._counter_reset_time = now
 
     def _estimate_complexity(self, prompt: str, system: str = None) -> str:
         """
@@ -119,6 +133,9 @@ class SmartAIRouter(BaseAIClient):
         Args:
             force_model: Override auto-detection ("cheap" or "expensive")
         """
+        # Periodically reset counters to prevent unbounded memory growth
+        self._maybe_reset_counters()
+
         if force_model == "cheap":
             complexity = "simple"
         elif force_model == "expensive":

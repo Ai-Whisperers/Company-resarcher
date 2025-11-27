@@ -90,8 +90,11 @@ class InsightGenerator(BaseAgent):
             markdown_content = (
                 f"# Error Generating Insights\n\n{e}\n\nRaw Output:\n{content_json_str}"
             )
-        except KeyboardInterrupt:
-            raise
+        except AttributeError as e:
+            logger.error(f"Missing method or attribute in insight generator: {e}", exc_info=True)
+            markdown_content = (
+                f"# Error Generating Insights\n\nAttributeError: {e}\n\nRaw Output:\n{content_json_str}"
+            )
         except Exception as e:
             logger.error(f"Unexpected error in insight generator: {e}", exc_info=True)
             markdown_content = (

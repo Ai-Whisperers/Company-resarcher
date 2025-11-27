@@ -1,9 +1,21 @@
 import logging
+import os
+import re
 import sys
+from pathlib import Path
 from colorama import Fore, Style, init
 
 # Initialize colorama
 init(autoreset=True)
+
+# Pre-compiled regex patterns for API key sanitization (performance optimization)
+_API_KEY_PATTERNS = [
+    re.compile(r'(api[_-]?key["\s:=]+)([a-zA-Z0-9-_]{20,})', re.I),
+    re.compile(r"(sk-[a-zA-Z0-9]{20,})"),
+    re.compile(r"(AIza[a-zA-Z0-9-_]{20,})"),
+    re.compile(r"(xoxb-[a-zA-Z0-9-]+)"),  # Slack tokens
+    re.compile(r"(ghp_[a-zA-Z0-9]{36})"),  # GitHub tokens
+]
 
 
 class ColoredFormatter(logging.Formatter):
@@ -29,19 +41,10 @@ class ColoredFormatter(logging.Formatter):
     }
 
     def sanitize_message(self, message: str) -> str:
-        """Redact sensitive information like API keys."""
-        import re
-
-        # Pattern for common API key formats (sk-..., AIza..., etc.)
-        patterns = [
-            r'(api[_-]?key["\s:=]+)([a-zA-Z0-9-_]{20,})',
-            r"(sk-[a-zA-Z0-9]{20,})",
-            r"(AIza[a-zA-Z0-9-_]{20,})",
-        ]
-
+        """Redact sensitive information like API keys using pre-compiled patterns."""
         sanitized = message
-        for pattern in patterns:
-            sanitized = re.sub(pattern, r"\1***REDACTED***", sanitized, flags=re.I)
+        for pattern in _API_KEY_PATTERNS:
+            sanitized = pattern.sub(r"\1***REDACTED***", sanitized)
         return sanitized
 
     def format(self, record):
@@ -55,7 +58,7 @@ class ColoredFormatter(logging.Formatter):
 
 
 def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
-    """Get a configured logger instance"""
+    """Get a configured logger instance with security-validated log path."""
     logger = logging.getLogger(name)
 
     # Prevent duplicate handlers
@@ -69,8 +72,24 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     console_handler.setFormatter(ColoredFormatter())
     logger.addHandler(console_handler)
 
-    # File Handler
-    file_handler = logging.FileHandler("research.log")
+    # File Handler with validated path
+    log_dir = Path(os.getenv("LOG_DIR", ".")).resolve()
+    log_file = log_dir / "research.log"
+
+    # Security: ensure log file is within log directory (prevent symlink attacks)
+    try:
+        resolved_log = log_file.resolve()
+        # Check that resolved path is under log_dir
+        resolved_log.relative_to(log_dir)
+    except ValueError:
+        # Path traversal attempt - fall back to current directory
+        logger.warning(f"Invalid log path detected, using current directory")
+        log_file = Path("research.log").resolve()
+
+    # Create directory if needed
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(
         logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )

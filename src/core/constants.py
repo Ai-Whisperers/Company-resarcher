@@ -1,18 +1,19 @@
 """
 Centralized Constants for the Company Researcher System.
 """
+import os
 
-# Default Values
-DEFAULT_MODEL = "gpt-4o"
-DEFAULT_TEMPERATURE = 0.0
-DEFAULT_MAX_TOKENS = 4000
-DEFAULT_REGION = "USA"
+# Default Values - configurable via environment variables
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4o")
+DEFAULT_TEMPERATURE = float(os.getenv("DEFAULT_TEMPERATURE", "0.0"))
+DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "4000"))
+DEFAULT_REGION = os.getenv("DEFAULT_REGION", "USA")
 UNKNOWN_VALUE = "Unknown"
 
-# File Paths
-PROMPTS_DIR = "src/prompts"
-OUTPUT_DIR = "outputs"
-DB_PATH = "tasks.db"
+# File Paths - configurable via environment variables
+PROMPTS_DIR = os.getenv("PROMPTS_DIR", "src/prompts")
+OUTPUT_DIR = os.getenv("OUTPUT_DIR", "outputs")
+DB_PATH = os.getenv("DB_PATH", "tasks.db")
 
 # Task Statuses
 STATUS_PENDING = "pending"

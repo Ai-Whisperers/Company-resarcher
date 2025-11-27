@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import Optional
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import TextFormatter
 from ..core.logger import setup_logger
@@ -9,80 +9,119 @@ logger = setup_logger("youtube_tool")
 class YouTubeTool:
     """
     Tool for analyzing YouTube videos.
+    Extracts transcripts for analysis.
     """
 
     def __init__(self):
-        pass
+        """Initialize YouTubeTool with formatter."""
+        self.formatter = TextFormatter()
+        logger.info("YouTubeTool initialized")
 
     def get_video_id(self, url: str) -> Optional[str]:
-        """Extracts video ID from a YouTube URL."""
+        """
+        Extracts video ID from a YouTube URL.
+
+        Supports formats:
+        - https://www.youtube.com/watch?v=VIDEO_ID
+        - https://youtu.be/VIDEO_ID
+        - https://youtube.com/embed/VIDEO_ID
+
+        Args:
+            url: YouTube video URL
+
+        Returns:
+            Video ID string or None if not extractable
+        """
+        if not url or not isinstance(url, str):
+            return None
+
+        # Standard watch URL
         if "v=" in url:
-            return url.split("v=")[1].split("&")[0]
+            return url.split("v=")[1].split("&")[0].split("#")[0]
+        # Short URL
         elif "youtu.be/" in url:
-            return url.split("youtu.be/")[1].split("?")[0]
+            return url.split("youtu.be/")[1].split("?")[0].split("#")[0]
+        # Embed URL
+        elif "/embed/" in url:
+            return url.split("/embed/")[1].split("?")[0].split("#")[0]
         return None
 
-    def get_transcript(self, video_id: str) -> str:
-        """Fetches the transcript for a given video ID."""
+    def _fetch_transcript_list(self, video_id: str) -> list:
+        """
+        Fetch transcript using list_transcripts API.
+
+        Args:
+            video_id: YouTube video ID
+
+        Returns:
+            List of transcript segments
+
+        Raises:
+            Exception if transcript cannot be fetched
+        """
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+
+        # Try manual English transcript first
         try:
-            # Try standard static method
+            return transcript_list.find_transcript(["en"]).fetch()
+        except Exception:
+            pass
+
+        # Try auto-generated English transcript
+        try:
+            return transcript_list.find_generated_transcript(["en"]).fetch()
+        except Exception:
+            pass
+
+        # Fallback to first available transcript
+        first_transcript = next(iter(transcript_list), None)
+        if first_transcript:
+            return first_transcript.fetch()
+
+        raise ValueError(f"No transcripts available for video {video_id}")
+
+    def get_transcript(self, video_id: str) -> str:
+        """
+        Fetches the transcript for a given video ID.
+
+        Args:
+            video_id: YouTube video ID
+
+        Returns:
+            Formatted transcript text or empty string on failure
+        """
+        if not video_id or not isinstance(video_id, str):
+            logger.warning("Invalid video_id provided")
+            return ""
+
+        try:
+            # Primary method: get_transcript (most common API)
             if hasattr(YouTubeTranscriptApi, "get_transcript"):
                 transcript = YouTubeTranscriptApi.get_transcript(video_id)
-            # Try list_transcripts (newer API)
+            # Fallback: list_transcripts for more control
             elif hasattr(YouTubeTranscriptApi, "list_transcripts"):
-                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-                # Get English or first available
-                try:
-                    transcript = transcript_list.find_transcript(["en"]).fetch()
-                except:
-                    transcript = transcript_list.find_generated_transcript(
-                        ["en"]
-                    ).fetch()
-            # Try 'list' method (seen in dir) - Instance based
-            elif hasattr(YouTubeTranscriptApi, "list"):
-                try:
-                    api = YouTubeTranscriptApi()
-                    transcript_list = api.list(video_id)
-
-                    # transcript_list is a TranscriptList object
-                    # We need to find a transcript and fetch it
-                    try:
-                        # Try to find manually created English transcript
-                        transcript_obj = transcript_list.find_transcript(["en"])
-                    except:
-                        try:
-                            # Try generated English transcript
-                            transcript_obj = transcript_list.find_generated_transcript(
-                                ["en"]
-                            )
-                        except:
-                            # Fallback to first available
-                            transcript_obj = next(iter(transcript_list))
-
-                    transcript = transcript_obj.fetch()
-                except Exception as e:
-                    logger.error(f"Instance list/fetch failed: {e}")
-                    raise e
+                transcript = self._fetch_transcript_list(video_id)
             else:
-                # Fallback to fetch if available (Instance based)
-                if hasattr(YouTubeTranscriptApi, "fetch"):
-                    api = YouTubeTranscriptApi()
-                    transcript = api.fetch(video_id)
-                else:
-                    raise AttributeError(
-                        "No suitable method found in YouTubeTranscriptApi"
-                    )
+                raise AttributeError("YouTubeTranscriptApi has no suitable method")
 
-            formatter = TextFormatter()
-            return formatter.format_transcript(transcript)
+            return self.formatter.format_transcript(transcript)
+
         except Exception as e:
             logger.error(f"Failed to get transcript for {video_id}: {e}")
             return ""
+
+    def get_transcript_from_url(self, url: str) -> str:
         """
-        Searches for videos (Mock implementation as we don't have YouTube Data API key).
-        In a real scenario, this would use the YouTube Data API or a scraper.
-        For now, we will rely on the main search tool to find video URLs,
-        and this tool will only process them.
+        Convenience method to get transcript directly from URL.
+
+        Args:
+            url: YouTube video URL
+
+        Returns:
+            Transcript text or empty string on failure
         """
-        # This is a placeholder. The agent should find URLs via DuckDuckGo/Google first.
-        return []
+        video_id = self.get_video_id(url)
+        if not video_id:
+            logger.warning(f"Could not extract video ID from URL: {url}")
+            return ""
+        return self.get_transcript(video_id)

@@ -64,6 +64,7 @@ class DeepResearchAgent(BaseAgent):
         ai_client: BaseAIClient,
         browser_tool: BrowserTool,
         search_tool: SearchTool,
+        local_search_tool: Optional[Any] = None,
         breadth: int = 4,
         depth: int = 2,
         concurrency_limit: int = 2,
@@ -72,6 +73,7 @@ class DeepResearchAgent(BaseAgent):
         super().__init__(ai_client, name="Deep Research Agent")
         self.browser_tool = browser_tool
         self.search_tool = search_tool
+        self.local_search_tool = local_search_tool
         self.breadth = breadth
         self.depth = depth
         self.concurrency_limit = concurrency_limit
@@ -201,17 +203,33 @@ Format each question on a new line starting with 'Question: '"""
         }
 
     async def _perform_search_and_scrape(self, query: str) -> str:
-        """Helper to perform search and scrape content using SearchTool and BrowserTool"""
+        """Helper to perform search and scrape content using SearchTool, LocalSearchTool, and BrowserTool"""
         try:
-            # 1. Search
-            logger.info(f"Searching for: {query}")
+            combined_content = []
+
+            # 0. Local Search (if available)
+            if self.local_search_tool:
+                try:
+                    logger.info(f"Searching local docs for: {query}")
+                    local_results = await self.local_search_tool.search(
+                        query, max_results=3
+                    )
+                    if local_results:
+                        for res in local_results:
+                            combined_content.append(
+                                f"Source: {res.get('url', 'local')}\nTitle: {res.get('title', 'Local Doc')}\nContent:\n{res.get('content', '')}"
+                            )
+                except Exception as e:
+                    logger.warning(f"Local search failed: {e}")
+
+            # 1. Web Search
+            logger.info(f"Searching web for: {query}")
             search_results = await self.search_tool.search(query, max_results=3)
 
-            if not search_results:
+            if not search_results and not combined_content:
                 return f"No search results found for: {query}"
 
-            # 2. Scrape top results
-            scraped_content = []
+            # 2. Scrape top web results
             for result in search_results:
                 url = result.get("url")
                 if not url or url in self.visited_urls:
@@ -222,16 +240,16 @@ Format each question on a new line starting with 'Question: '"""
                     logger.info(f"Scraping: {url}")
                     content = await self.browser_tool.fetch_page(url)
                     if content:
-                        scraped_content.append(
+                        combined_content.append(
                             f"Source: {url}\nTitle: {result.get('title', 'Unknown')}\nContent:\n{content[:5000]}..."
                         )  # Limit per source
                 except Exception as e:
                     logger.warning(f"Failed to scrape {url}: {e}")
-                    scraped_content.append(
+                    combined_content.append(
                         f"Source: {url}\nTitle: {result.get('title', 'Unknown')}\nSnippet:\n{result.get('content', '')}"
                     )
 
-            return "\n\n".join(scraped_content)
+            return "\n\n".join(combined_content)
         except Exception as e:
             logger.error(f"Error in search and scrape: {e}")
             return f"Error performing research: {str(e)}"
