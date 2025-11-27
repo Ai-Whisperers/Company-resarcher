@@ -37,14 +37,29 @@ wheels/
 *.log
 research.log
 
-# Output
+# Output & Data
 output/
+outputs_test/
+data/outputs/
+data/cache/
 *.md.backup
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Temporary
+# Temporary & Cache
 .cache/
-outputs_test/
+temp_repos/
+temp_deep_research/
+
+# Database
+*.db
+*.sqlite3
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/

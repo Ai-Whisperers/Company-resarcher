@@ -115,11 +115,36 @@ class AgentFactory:
             else get_shared_search_tool()
         )
 
+        # Initialize new tools
+        from src.tools.youtube_tool import YouTubeTool
+        from src.tools.sec_tool import SECTool
+        from src.tools.app_store_tool import AppStoreTool
+        from src.tools.tech_stack_tool import TechStackTool
+
+        youtube_tool = YouTubeTool()
+        sec_tool = SECTool()
+        app_store_tool = AppStoreTool()
+        tech_stack_tool = TechStackTool()
+
         return {
-            "financial": FinancialAgent(self.ai_client, search_tool=search_tool),
-            "market": MarketAnalyst(self.ai_client, search_tool=search_tool),
-            "competitor": CompetitorScout(self.ai_client, search_tool=search_tool),
-            "brand": BrandAuditor(self.ai_client, search_tool=search_tool),
+            "financial": FinancialAgent(
+                self.ai_client, search_tool=search_tool, sec_tool=sec_tool
+            ),
+            "market": MarketAnalyst(
+                self.ai_client,
+                search_tool=search_tool,
+                youtube_tool=youtube_tool,
+                app_store_tool=app_store_tool,
+            ),
+            "competitor": CompetitorScout(
+                self.ai_client, search_tool=search_tool, tech_stack_tool=tech_stack_tool
+            ),
+            "brand": BrandAuditor(
+                self.ai_client,
+                search_tool=search_tool,
+                youtube_tool=youtube_tool,
+                app_store_tool=app_store_tool,
+            ),
             "sales": SalesAgent(self.ai_client, search_tool=search_tool),
         }
 

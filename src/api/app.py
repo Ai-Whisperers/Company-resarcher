@@ -1,9 +1,10 @@
-from fastapi import FastAPI, BackgroundTasks, HTTPException
-from .models import ResearchRequest, ResearchResponse, TaskStatusResponse
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends
+from sqlalchemy.orm import Session
+from .models import ResearchRequest, ResearchResponse, TaskStatusResponse, Task
+from .database import get_db, engine, Base, SessionLocal
 from ..agents.orchestrator import ResearchOrchestrator
 from ..core.types import CompanyProfile
 from src.core.constants import (
-    DB_PATH,
     STATUS_PENDING,
     STATUS_IN_PROGRESS,
     STATUS_COMPLETED,
@@ -12,143 +13,68 @@ from src.core.constants import (
     DEFAULT_REGION,
 )
 import uuid
-import sqlite3
 import json
-from typing import Dict, Any
 from contextlib import asynccontextmanager
-
-
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS tasks (
-            task_id TEXT PRIMARY KEY,
-            status TEXT,
-            request TEXT,
-            result TEXT,
-            error TEXT
-        )
-        """
-    )
-    conn.commit()
-    conn.close()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    init_db()
+    # Startup: Create tables
+    Base.metadata.create_all(bind=engine)
     yield
-    # Shutdown (nothing to do for sqlite)
+    # Shutdown
 
 
 app = FastAPI(title="Company Researcher API", version="1.0.0", lifespan=lifespan)
 
 
 def save_task(
+    db: Session,
     task_id: str,
     status: str,
     request: dict = None,
     result: dict = None,
     error: str = None,
 ):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    task = db.query(Task).filter(Task.task_id == task_id).first()
+    if not task:
+        task = Task(task_id=task_id)
+        db.add(task)
 
-    # Check if exists
-    cursor.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,))
-    exists = cursor.fetchone()
+    if status:
+        task.status = status
+    if request:
+        task.request = json.dumps(request)
+    if result:
+        task.result = json.dumps(result)
+    if error:
+        task.error = error
 
-    if exists:
-        updates = []
-        params = []
-        if status:
-            updates.append("status = ?")
-            params.append(status)
-        if result:
-            updates.append("result = ?")
-            params.append(json.dumps(result))
-        if error:
-            updates.append("error = ?")
-            params.append(error)
-
-        params.append(task_id)
-        cursor.execute(
-            f"UPDATE tasks SET {', '.join(updates)} WHERE task_id = ?", params
-        )
-    else:
-        cursor.execute(
-            "INSERT INTO tasks (task_id, status, request, result, error) VALUES (?, ?, ?, ?, ?)",
-            (
-                task_id,
-                status,
-                json.dumps(request) if request else None,
-                json.dumps(result) if result else None,
-                error,
-            ),
-        )
-
-    conn.commit()
-    conn.close()
+    db.commit()
+    db.refresh(task)
+    return task
 
 
-def get_task(task_id: str):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT task_id, status, request, result, error FROM tasks WHERE task_id = ?",
-        (task_id,),
-    )
-    row = cursor.fetchone()
-    conn.close()
-
-    if row:
+def get_task(db: Session, task_id: str):
+    task = db.query(Task).filter(Task.task_id == task_id).first()
+    if task:
         return {
-            "task_id": row[0],
-            "status": row[1],
-            "request": json.loads(row[2]) if row[2] else None,
-            "result": json.loads(row[3]) if row[3] else None,
-            "error": row[4],
+            "task_id": task.task_id,
+            "status": task.status,
+            "request": json.loads(task.request) if task.request else None,
+            "result": json.loads(task.result) if task.result else None,
+            "error": task.error,
         }
     return None
-
-
-async def run_research_task(task_id: str, request: ResearchRequest):
-    """
-    Background task to run the research process.
-    """
-    save_task(task_id, status=STATUS_IN_PROGRESS)
-
-    try:
-        orchestrator = ResearchOrchestrator()
-
-        # Create CompanyProfile from request
-        company = CompanyProfile(
-            name=request.company_name,
-            website=request.url or "",
-            industry=request.industry or UNKNOWN_VALUE,
-            country=request.country or DEFAULT_REGION,
-        )
-
-        # Run the graph
-        final_state = await orchestrator.conduct_research(company)
-
-        # Store result
-        save_task(task_id, status=STATUS_COMPLETED, result=final_state)
-
-    except Exception as e:
-        save_task(task_id, status=STATUS_FAILED, error=str(e))
-
-
-@app.post("/api/v1/research", response_model=ResearchResponse)
-async def start_research(request: ResearchRequest, background_tasks: BackgroundTasks):
+    request: ResearchRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """
     Start a new research task.
     """
     task_id = str(uuid.uuid4())
-    save_task(task_id, status=STATUS_PENDING, request=request.dict())
+    save_task(db, task_id, status=STATUS_PENDING, request=request.dict())
 
     background_tasks.add_task(run_research_task, task_id, request)
 
@@ -160,11 +86,11 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
 
 
 @app.get("/api/v1/research/{task_id}", response_model=TaskStatusResponse)
-async def get_task_status(task_id: str):
+async def get_task_status(task_id: str, db: Session = Depends(get_db)):
     """
     Get the status of a research task.
     """
-    task = get_task(task_id)
+    task = get_task(db, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 

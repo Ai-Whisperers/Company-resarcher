@@ -17,13 +17,14 @@ logger = setup_logger("specialists")
 class FinancialAgent(BaseAgent):
     """Specialist for financial analysis."""
 
-    def __init__(self, client: BaseAIClient = None, **kwargs):
+    def __init__(self, client: BaseAIClient = None, sec_tool=None, **kwargs):
         super().__init__(
             client=client,
             name=AGENT_FINANCIAL,
             prompt_template="financial_analysis.txt",
             **kwargs,
         )
+        self.sec_tool = sec_tool
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
         queries = [
@@ -32,24 +33,46 @@ class FinancialAgent(BaseAgent):
             f"{company.name} revenue growth",
             f"{company.name} stock price analysis",
         ]
+        # Fetch SEC data if available
+        sec_data = ""
+        if self.sec_tool:
+            try:
+                # Try to get 10-K content
+                sec_content = self.sec_tool.get_latest_10k_content(
+                    company.name
+                )  # Naive ticker usage, might need search
+                if sec_content:
+                    sec_data = f"SEC 10-K Excerpt:\n{sec_content[:5000]}..."
+            except Exception as e:
+                logger.error(f"Error fetching SEC data: {e}")
+
         return await self.execute_research_cycle(
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
             output_template="01-Financials.md",
+            extra_context={"sec_data": sec_data},
         )
 
 
 class MarketAnalyst(BaseAgent):
     """Specialist for market research."""
 
-    def __init__(self, client: BaseAIClient = None, **kwargs):
+    def __init__(
+        self,
+        client: BaseAIClient = None,
+        youtube_tool=None,
+        app_store_tool=None,
+        **kwargs,
+    ):
         super().__init__(
             client=client,
             name=AGENT_MARKET,
             prompt_template="market_intelligence.txt",
             **kwargs,
         )
+        self.youtube_tool = youtube_tool
+        self.app_store_tool = app_store_tool
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
         queries = [
@@ -69,13 +92,14 @@ class MarketAnalyst(BaseAgent):
 class CompetitorScout(BaseAgent):
     """Specialist for competitor analysis."""
 
-    def __init__(self, client: BaseAIClient = None, **kwargs):
+    def __init__(self, client: BaseAIClient = None, tech_stack_tool=None, **kwargs):
         super().__init__(
             client=client,
             name=AGENT_COMPETITOR,
             prompt_template="competitive_landscape.txt",
             **kwargs,
         )
+        self.tech_stack_tool = tech_stack_tool
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
         queries = [
@@ -84,24 +108,38 @@ class CompetitorScout(BaseAgent):
             f"{company.name} competitive advantage",
             f"{company.industry} key players",
         ]
+        # Analyze Tech Stack
+        tech_stack_data = {}
+        if self.tech_stack_tool and company.website:
+            tech_stack_data = self.tech_stack_tool.analyze_url(company.website)
+
         return await self.execute_research_cycle(
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
             output_template="01-Competitor-List.md",
+            extra_context={"tech_stack": tech_stack_data},
         )
 
 
 class BrandAuditor(BaseAgent):
     """Specialist for brand analysis."""
 
-    def __init__(self, client: BaseAIClient = None, **kwargs):
+    def __init__(
+        self,
+        client: BaseAIClient = None,
+        youtube_tool=None,
+        app_store_tool=None,
+        **kwargs,
+    ):
         super().__init__(
             client=client,
             name=AGENT_BRAND,
             prompt_template="brand_strategy.txt",
             **kwargs,
         )
+        self.youtube_tool = youtube_tool
+        self.app_store_tool = app_store_tool
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
         queries = [
