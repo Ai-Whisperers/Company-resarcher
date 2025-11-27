@@ -1,0 +1,17 @@
+Analyze the brand identity of {{ company.name }}.
+
+Return a JSON object with the following structure:
+{
+    "positioning_statement": "Core positioning statement",
+    "usp": "Unique Selling Proposition",
+    "brand_archetype": "Brand Archetype (e.g., Hero, Sage)",
+    "messaging_pillars": [
+        {"name": "Pillar Name", "description": "Description"}
+    ],
+    "tone_of_voice": "Description of tone",
+    "taglines": "List of known taglines",
+    "executive_summary": "Brief summary of brand strategy"
+}
+
+Data:
+{{ context }}

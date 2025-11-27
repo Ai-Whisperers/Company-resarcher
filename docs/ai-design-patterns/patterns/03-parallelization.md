@@ -203,6 +203,50 @@ Track these metrics:
 - **Throughput**: Tasks per second
 - **Latency**: Time per task
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Rate Limits**: Launching 100 parallel API calls will trigger 429 errors.
+    - _Fix_: Use a `Semaphore` to limit concurrency (e.g., max 5 active requests).
+2.  **Order of Results**: `asyncio.gather` returns results in order, but `as_completed` does not.
+    - _Fix_: If order matters, use `gather`. If speed matters (processing first result first), use `as_completed`.
+3.  **Shared State**: Modifying a global variable from parallel tasks causes race conditions.
+    - _Fix_: Keep tasks stateless or use locks (though locks reduce parallelism).
+
+### Edge Cases
+
+- **Partial Failure**: 9/10 tasks succeed, 1 fails.
+- **Zombie Tasks**: A task hangs indefinitely, blocking the entire batch. (Use `timeout`).
+
+## 🧪 Testing Strategy
+
+### 1. Mock Latency
+
+Simulate slow tasks to verify parallel execution speedup.
+
+```python
+async def mock_task(id, delay):
+    await asyncio.sleep(delay)
+    return id
+
+# Test: 3 tasks of 1s should take ~1s total, not 3s.
+```
+
+### 2. Race Condition Check
+
+Run the parallel logic with a shared counter (without locks) to see if it breaks (it shouldn't if designed correctly).
+
+### 3. Eval Metrics
+
+- **Speedup Factor**: `Sequential Time / Parallel Time`.
+- **Throughput**: Tasks completed per second.
+
+## 💻 Runnable Example
+
+View a working example of Parallelization with Semaphores:
+[03_parallelization.py](../examples/03_parallelization.py)
+
 ---
 
 **Pattern Type**: Core Execution  

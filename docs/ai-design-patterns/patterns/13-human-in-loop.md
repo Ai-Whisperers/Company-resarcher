@@ -283,6 +283,52 @@ app.invoke(Command(resume="approved"), thread)
 3. **Idea Selection**: Human picks best ideas to proceed
 4. **Final Polish**: Human edits markdown before "completion"
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **User Fatigue**: Asking for approval on every tiny step.
+    - _Fix_: Only interrupt for high-stakes or low-confidence actions.
+2.  **Bottlenecks**: The system halts for days waiting for a user who is on vacation.
+    - _Fix_: Implement timeouts with default actions (e.g., "Auto-approve after 24h" or "Fail safe").
+3.  **Context Loss**: The user is asked to approve "Action X" without knowing _why_.
+    - _Fix_: Provide a summary of the reasoning and data leading to the decision.
+
+### Edge Cases
+
+- **Concurrent Edits**: User A approves while User B rejects.
+- **State Invalidation**: The world changes while waiting for approval (e.g., stock price changes).
+
+## 🧪 Testing Strategy
+
+### 1. Mock User Input
+
+Simulate the human response programmatically.
+
+```python
+def test_approval_flow():
+    # Run until interrupt
+    state = workflow.run_until_interrupt()
+
+    # Simulate "Approve"
+    final_state = workflow.resume(state, input="Approve")
+    assert final_state.status == "Published"
+```
+
+### 2. Timeout Handling
+
+Verify that the system takes the default action if no input is received.
+
+### 3. Eval Metrics
+
+- **Intervention Rate**: % of tasks requiring human fix.
+- **Wait Time**: Average time the system spends blocked.
+
+## 💻 Runnable Example
+
+View a working example of Human-in-the-Loop:
+[13_human_in_loop.py](../examples/13_human_in_loop.py)
+
 ---
 
 **Status**: ❌ Not Implemented  

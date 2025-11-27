@@ -240,6 +240,49 @@ class LLMJudge:
 3. **Feedback Loop**: Use low scores to trigger "Learning" pattern
 4. **Cost Monitoring**: Alert on budget spikes
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Metric Gaming**: Optimizing for the metric instead of the user (e.g., making answers longer to increase "helpfulness" score).
+    - _Fix_: Use a balanced scorecard of conflicting metrics (Conciseness vs Detail).
+2.  **Judge Bias**: The LLM judge prefers its own style of writing.
+    - _Fix_: Use "Pairwise Comparison" (A vs B) instead of absolute scoring.
+3.  **Eval Cost**: Running GPT-4 to judge every request triples the cost.
+    - _Fix_: Sample 1-5% of traffic for evaluation.
+
+### Edge Cases
+
+- **Subjectivity**: "Write a funny joke." (Hard to score objectively).
+- **Data Contamination**: The test set was in the training data.
+
+## 🧪 Testing Strategy
+
+### 1. Golden Set Regression
+
+Run the agent on 50 immutable examples and ensure scores don't drop.
+
+```python
+def test_regression():
+    current_score = run_eval_suite(agent_v2)
+    baseline_score = load_baseline()
+    assert current_score >= baseline_score * 0.95
+```
+
+### 2. Judge Calibration
+
+Verify the LLM judge agrees with human labelers.
+
+### 3. Eval Metrics
+
+- **Correlation**: Pearson correlation between Auto-Eval and Human-Eval.
+- **Pass@K**: % of times the correct answer is in the top K generations.
+
+## 💻 Runnable Example
+
+View a working example of Evaluation (LLM-as-a-Judge):
+[19_evaluation.py](../examples/19_evaluation.py)
+
 ---
 
 **Status**: 🟡 Partial  

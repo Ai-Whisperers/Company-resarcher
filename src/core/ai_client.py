@@ -425,6 +425,11 @@ class AIClientManager:
 
         return response
 
+    def get_provider_name(self) -> str:
+        if self.primary_client:
+            return f"Manager<{self.primary_client.get_provider_name()}>"
+        return "Manager<None>"
+
 
 _ai_manager = None
 

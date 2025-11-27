@@ -12,47 +12,34 @@ settings = get_settings()
 class SearchTool:
     """
     Wrapper for the Tavily Search API.
-    Provides optimized search results for LLM agents.
     """
 
     def __init__(self):
-        if not settings.TAVILY_API_KEY:
-            logger.warning(
-                "TAVILY_API_KEY not found in settings. Search functionality will be limited."
-            )
-            self.client = None
-        else:
-            self.client = TavilyClient(api_key=settings.TAVILY_API_KEY)
+        self.client = TavilyClient(api_key=settings.TAVILY_API_KEY)
 
-    async def search(
-        self, query: str, max_results: int = 5, search_depth: str = "advanced"
-    ) -> List[Dict[str, Any]]:
+    async def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
         """
         Execute a search query.
-
-        Args:
-            query: The search query string
-            max_results: Number of results to return
-            search_depth: "basic" or "advanced"
-
-        Returns:
-            List of search result dictionaries
         """
-        if not self.client:
-            logger.error("Search attempted without valid API key")
+        if not query or not query.strip():
+            logger.warning("Empty search query provided")
             return []
 
-        try:
-            logger.info(f"Searching for: '{query}'")
+        if max_results < 1 or max_results > 20:
+            logger.warning(f"Invalid max_results: {max_results}. Clamping to 1-20.")
+            max_results = max(1, min(20, max_results))
 
-            # Tavily client is synchronous, so we wrap it in a thread for async usage
-            response = await asyncio.to_thread(
-                self.client.search,
-                query=query,
-                search_depth=search_depth,
-                max_results=max_results,
-                include_answer=True,
-                include_raw_content=False,
+        try:
+            # Run in executor because Tavily client is synchronous
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.client.search(
+                    query=query,
+                    search_depth="advanced",
+                    max_results=max_results,
+                    include_raw_content=False,
+                ),
             )
 
             results = response.get("results", [])
@@ -78,7 +65,6 @@ class SearchTool:
                 title=result.get("title", "No Title"),
                 content=result.get("content", ""),
                 source_type="web",
-                reliability_score=result.get("score", 0.0),
             )
             sources.append(source)
 

@@ -264,6 +264,50 @@ else:
 - **Success rate**: Task completion
 - **Provider distribution**: Usage breakdown
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Quality Degradation**: The cheap model is _too_ cheap and produces garbage.
+    - _Fix_: Implement a "Quality Guardrail" (if score < X, retry with better model).
+2.  **Fallback Loops**: Model A fails -> Model B fails -> Model A fails...
+    - _Fix_: Strict linear fallback chain (A -> B -> C -> Fail).
+3.  **Hidden Costs**: The "cheap" model requires 10x more tokens to get the right answer.
+    - _Fix_: Measure "Cost per Successful Task", not just "Cost per Token".
+
+### Edge Cases
+
+- **Spike Traffic**: Cheap provider hits rate limit. (Need overflow to expensive provider).
+- **New Model Release**: A new model changes the cost/performance calculus. (Need dynamic config).
+
+## 🧪 Testing Strategy
+
+### 1. Cost Simulation
+
+Replay production logs against the router to estimate costs.
+
+```python
+def test_cost_savings():
+    tasks = load_logs("yesterday.json")
+    cost_optimized = simulate(router, tasks)
+    cost_baseline = simulate(gpt4_only, tasks)
+    assert cost_optimized < 0.1 * cost_baseline
+```
+
+### 2. Quality Regression
+
+Ensure the optimized router doesn't drop quality below a threshold.
+
+### 3. Eval Metrics
+
+- **Savings %**: (Baseline - Actual) / Baseline.
+- **Success Rate**: % of tasks completed without error.
+
+## 💻 Runnable Example
+
+View a working example of Resource Optimization:
+[16_resource_optimization.py](../examples/16_resource_optimization.py)
+
 ---
 
 **Pattern Type**: Optimization  

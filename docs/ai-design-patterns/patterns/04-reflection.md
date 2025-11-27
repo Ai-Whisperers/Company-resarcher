@@ -289,6 +289,47 @@ Track these metrics to measure reflection effectiveness:
 - **Time to Quality**: Time to reach acceptable score
 - **Critique Accuracy**: How well critique predicts human judgment
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Infinite Loops**: The model keeps critiquing and "improving" without getting better.
+    - _Fix_: Set a hard limit on iterations (e.g., `max_iterations=3`).
+2.  **Sycophancy**: The critic agrees with the generator even if the output is bad.
+    - _Fix_: Use a different system prompt or a separate "Critic Persona" for the reflection step.
+3.  **Regression**: The "improved" version is actually worse than the original.
+    - _Fix_: Keep the best version based on the score, not necessarily the last one.
+
+### Edge Cases
+
+- **Perfect Initial Output**: The critic forces changes on an already perfect answer.
+- **Unfixable Error**: The model lacks the knowledge to fix the error identified.
+
+## 🧪 Testing Strategy
+
+### 1. Improvement Metric
+
+Measure the delta between the initial score and the final score.
+
+```python
+delta = final_score - initial_score
+assert delta >= 0  # Should not get worse
+```
+
+### 2. Regression Test
+
+Ensure that fixing one bug doesn't introduce another (e.g., fixing code style breaks logic).
+
+### 3. Eval Metrics
+
+- **Pass@k**: Probability of success after k iterations.
+- **Critique Validity**: Does a human agree with the AI's critique?
+
+## 💻 Runnable Example
+
+View a working example of the Reflection Loop:
+[04_reflection.py](../examples/04_reflection.py)
+
 ---
 
 **Pattern Type**: Core (Andrew Ng)  

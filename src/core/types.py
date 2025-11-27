@@ -10,8 +10,10 @@ class ResearchSource(BaseModel):
     title: str
     content: str
     source_type: str = "web"  # web, pdf, news, etc.
+    category: Optional[str] = None  # news, financial, etc.
     accessed_at: datetime = Field(default_factory=datetime.utcnow)
     reliability_score: float = 0.0  # 0.0 to 1.0
+    metadata: Dict[str, Any] = Field(default_factory=dict)  # Additional data
 
 
 class CompanyProfile(BaseModel):

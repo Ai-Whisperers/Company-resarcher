@@ -296,6 +296,52 @@ class FewShotLearner:
 - **Cross-Agent Knowledge Transfer**: Sharing learnings between agents
 - **Curriculum Learning**: Automatically increasing task difficulty
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Overfitting**: The agent learns a rule from one specific case that doesn't apply generally.
+    - _Fix_: Require multiple confirmations (e.g., 3 similar feedbacks) before adopting a new rule.
+2.  **Data Poisoning**: Malicious users provide bad feedback to teach the agent wrong behaviors.
+    - _Fix_: Implement a review process or "Trusted User" tier for learning.
+3.  **Feedback Loops**: The agent learns to optimize for a proxy metric (e.g., length) instead of quality.
+    - _Fix_: Use a balanced scorecard of metrics.
+
+### Edge Cases
+
+- **Conflicting Feedback**: User A says "Be funny", User B says "Be serious". (Need user-specific profiles).
+- **Concept Drift**: Old learnings become irrelevant as the world changes.
+
+## 🧪 Testing Strategy
+
+### 1. Learning Rate Test
+
+Feed the agent a specific correction 5 times. Verify it adopts the new behavior.
+
+```python
+async def test_learning():
+    # Teach: "Always end with 'Over and out.'"
+    for _ in range(5):
+        await agent.feedback("End with 'Over and out.'")
+
+    response = await agent.run("Hello")
+    assert "Over and out" in response
+```
+
+### 2. Regression Testing
+
+Ensure new learnings don't break core functionality.
+
+### 3. Eval Metrics
+
+- **Adaptation Speed**: How many examples needed to learn a new rule?
+- **Retention**: Does it remember the rule after 100 other interactions?
+
+## 💻 Runnable Example
+
+View a working example of a Learning Loop:
+[09_learning.py](../examples/09_learning.py)
+
 ---
 
 **Status**: ❌ Not Implemented  

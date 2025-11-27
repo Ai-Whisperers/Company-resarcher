@@ -101,9 +101,10 @@ The system will:
 
 ## 📚 Documentation
 
-- [**Agentic Workflow Strategy**](./agentic_workflow_strategy.md): Detailed breakdown of our AI design patterns.
-- [**Repository Explanations**](./repo_explanations/): In-depth guide to all 44 repos in our ecosystem.
-- [**Research Schema Design**](./research_schema_design.md): The blueprint for our data structure.
+- [**Agentic Workflow Strategy**](./docs/plans/agentic_workflow_strategy.md): Detailed breakdown of our AI design patterns.
+- [**Repository Explanations**](./docs/repo_explanations/): In-depth guide to all 44 repos in our ecosystem.
+- [**Research Schema Design**](./docs/plans/research_schema_design.md): The blueprint for our data structure.
+- [**Quick Start Tools**](./docs/guides/QUICK_START_TOOLS.md): Guide for new tools.
 
 ## 🤝 Contributing
 

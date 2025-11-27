@@ -1,0 +1,44 @@
+[
+  {
+    "company": "Anthropic",
+    "content_snippet": "# Executive Summary for Anthropic\n\n# Error Generating Insights\n\nExpecting value: line 1 column 1 (char 0)\n\nRaw Output:\nThis is a mock response from the AI client.\n\n\n\n## Financial Overview\n| Metric | V",
+    "metadata": {
+      "source": "Company Researcher",
+      "date": "2024-05-22"
+    },
+    "timestamp": "2025-11-26T18:54:16.116876"
+  },
+  {
+    "company": "Company A",
+    "content_snippet": "Company A is a leader in AI.",
+    "metadata": {
+      "industry": "AI"
+    },
+    "timestamp": "2025-11-26T18:58:53.532326"
+  },
+  {
+    "company": "Company B",
+    "content_snippet": "Company B focuses on AI hardware.",
+    "metadata": {
+      "industry": "AI"
+    },
+    "timestamp": "2025-11-26T18:58:53.533306"
+  },
+  {
+    "company": "Company C",
+    "content_snippet": "Company C sells coffee.",
+    "metadata": {
+      "industry": "Food"
+    },
+    "timestamp": "2025-11-26T18:58:53.549407"
+  },
+  {
+    "company": "Personal Paraguay",
+    "content_snippet": "# Executive Summary for Personal Paraguay\n\n# Error Generating Insights\n\nname 'response' is not defined\n\nRaw Output:\n\n\n\n\n## Financial Overview\n| Metric | Value |\n| :--- | :--- |\n| Revenue | N/A |\n| Pro",
+    "metadata": {
+      "source": "Company Researcher",
+      "date": "2024-05-22"
+    },
+    "timestamp": "2025-11-26T23:27:28.287218"
+  }
+]

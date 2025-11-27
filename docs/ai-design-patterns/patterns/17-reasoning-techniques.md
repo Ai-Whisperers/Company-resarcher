@@ -285,6 +285,49 @@ async def generate_with_reasoning(prompt, model):
 2. **Debate Mode**: Multi-agent critique for high-stakes campaigns
 3. **Self-Consistency**: Run ideation 3x and pick best
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Reasoning Loops**: The model gets stuck in a "Let me think... Let me think..." loop.
+    - _Fix_: Set a maximum token limit or step count.
+2.  **Hallucinated Logic**: The reasoning sounds plausible but is mathematically wrong.
+    - _Fix_: Use external tools (calculators) for hard logic.
+3.  **Premature Conclusion**: The model stops reasoning halfway through.
+    - _Fix_: Force a specific output format (e.g., "Step 1, Step 2, ... Final Answer").
+
+### Edge Cases
+
+- **Trivial Tasks**: Applying CoT to "What is 2+2?" wastes tokens. (Need adaptive reasoning).
+- **Ambiguous Questions**: The model reasons down the wrong path because the question was unclear.
+
+## 🧪 Testing Strategy
+
+### 1. Logic Verification
+
+Test the model on known logic puzzles (e.g., GSM8K dataset).
+
+```python
+def test_math_logic():
+    prompt = "If I have 3 apples and buy 2 more, how many?"
+    response = agent.run(prompt, strategy="cot")
+    assert "3 + 2 = 5" in response
+```
+
+### 2. Step-by-Step Eval
+
+Have a human (or stronger model) grade the _reasoning steps_, not just the final answer.
+
+### 3. Eval Metrics
+
+- **Reasoning Accuracy**: % of steps that are logically sound.
+- **Self-Correction Rate**: How often the model catches its own errors.
+
+## 💻 Runnable Example
+
+View a working example of Reasoning Techniques:
+[17_reasoning.py](../examples/17_reasoning.py)
+
 ---
 
 **Status**: 🟡 Partial (Implicit)  

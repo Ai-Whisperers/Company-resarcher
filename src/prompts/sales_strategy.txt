@@ -1,0 +1,28 @@
+Analyze the strategic priorities and pain points of {{ company.name }}.
+Then, acting as a B2B Sales Representative, suggest relevant solutions from OUR PRODUCT PORTFOLIO.
+
+OUR PRODUCT PORTFOLIO:
+{{ products_str }}
+
+Return a JSON object with the following structure:
+{
+    "pain_points": [
+        "Pain point 1",
+        "Pain point 2"
+    ],
+    "priorities": [
+        "Priority 1",
+        "Priority 2"
+    ],
+    "recommended_solutions": [
+        {
+            "product": "One of our Product Names",
+            "rationale": "Why this fits their needs",
+            "pitch_angle": "How to position it"
+        }
+    ],
+    "executive_summary": "Brief sales opportunity summary"
+}
+
+Data:
+{{ context }}

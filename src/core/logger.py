@@ -28,7 +28,27 @@ class ColoredFormatter(logging.Formatter):
         + Style.RESET_ALL,
     }
 
+    def sanitize_message(self, message: str) -> str:
+        """Redact sensitive information like API keys."""
+        import re
+
+        # Pattern for common API key formats (sk-..., AIza..., etc.)
+        patterns = [
+            r'(api[_-]?key["\s:=]+)([a-zA-Z0-9-_]{20,})',
+            r"(sk-[a-zA-Z0-9]{20,})",
+            r"(AIza[a-zA-Z0-9-_]{20,})",
+        ]
+
+        sanitized = message
+        for pattern in patterns:
+            sanitized = re.sub(pattern, r"\1***REDACTED***", sanitized, flags=re.I)
+        return sanitized
+
     def format(self, record):
+        # Sanitize the message before formatting
+        if isinstance(record.msg, str):
+            record.msg = self.sanitize_message(record.msg)
+
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt, datefmt="%H:%M:%S")
         return formatter.format(record)

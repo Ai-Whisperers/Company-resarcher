@@ -31,6 +31,8 @@ class ResearchState(BaseModel):
     financial_data: Dict[str, Any] = Field(default_factory=dict)
     market_data: Dict[str, Any] = Field(default_factory=dict)
     sales_data: Dict[str, Any] = Field(default_factory=dict)
+    competitor_data: Dict[str, Any] = Field(default_factory=dict)
+    brand_data: Dict[str, Any] = Field(default_factory=dict)
 
     # Wave 3: Drafting
     # Key = Section Name (e.g., "01-Executive-Summary"), Value = Markdown Content
@@ -42,6 +44,10 @@ class ResearchState(BaseModel):
         default_factory=list
     )  # For chat history/agent comms
     errors: List[str] = Field(default_factory=list)
+
+    # Feedback Loop
+    critique_feedback: Optional[str] = None
+    feedback_loop_count: int = 0
 
     class Config:
         arbitrary_types_allowed = True

@@ -275,6 +275,49 @@ else:
 - **Index size**: Number of documents
 - **Embedding cost**: API usage
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Stale Index**: The vector store is out of sync with the source data.
+    - _Fix_: Implement a robust sync pipeline (CDC or scheduled).
+2.  **Hallucinated Citations**: The model cites a document that doesn't contain the fact.
+    - _Fix_: Use "Citation Verification" (ask the model to quote the exact text).
+3.  **Lost in Middle**: The model ignores context in the middle of a long prompt.
+    - _Fix_: Re-rank documents to put the most relevant ones at the start and end.
+
+### Edge Cases
+
+- **Zero Results**: The query matches nothing in the database. (Need fallback to general knowledge).
+- **Conflicting Documents**: Doc A says "X", Doc B says "Not X". (Need timestamp-based resolution).
+
+## 🧪 Testing Strategy
+
+### 1. Retrieval Precision (Recall@K)
+
+Measure how often the correct document is in the top-K results.
+
+```python
+def test_retrieval():
+    query = "What is the capital of France?"
+    results = retriever.search(query, k=1)
+    assert "Paris" in results[0].content
+```
+
+### 2. End-to-End RAG Test
+
+Verify the final answer is correct and grounded in the retrieved docs.
+
+### 3. Eval Metrics
+
+- **Faithfulness**: Is the answer derived _only_ from the context?
+- **Relevance**: Is the retrieved context actually useful?
+
+## 💻 Runnable Example
+
+View a working example of a Simple RAG System:
+[14_rag.py](../examples/14_rag.py)
+
 ---
 
 **Pattern Type**: Data  

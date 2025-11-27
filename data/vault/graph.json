@@ -1,0 +1,39 @@
+[
+  {
+    "node": "Anthropic",
+    "type": "Company",
+    "properties": {
+      "source": "Company Researcher",
+      "date": "2024-05-22"
+    }
+  },
+  {
+    "node": "Company A",
+    "type": "Company",
+    "properties": {
+      "industry": "AI"
+    }
+  },
+  {
+    "node": "Company B",
+    "type": "Company",
+    "properties": {
+      "industry": "AI"
+    }
+  },
+  {
+    "node": "Company C",
+    "type": "Company",
+    "properties": {
+      "industry": "Food"
+    }
+  },
+  {
+    "node": "Personal Paraguay",
+    "type": "Company",
+    "properties": {
+      "source": "Company Researcher",
+      "date": "2024-05-22"
+    }
+  }
+]

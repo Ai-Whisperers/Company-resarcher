@@ -130,6 +130,49 @@ class CircuitBreaker:
         self.state = "closed"
 ```
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Cascading Failures**: One service failing causes all others to fail (e.g., Database down -> API down -> Frontend down).
+    - _Fix_: Implement Circuit Breakers to stop the bleeding.
+2.  **Error Swallowing**: Catching `Exception` and doing nothing, hiding bugs.
+    - _Fix_: Always log the error, even if you handle it gracefully.
+3.  **Retry Storms**: Thousands of clients retrying at the exact same time.
+    - _Fix_: Add "Jitter" (randomness) to the backoff delay.
+
+### Edge Cases
+
+- **Partial Failure**: The batch job processed 50/100 items. (Need to track individual item status).
+- **Zombie Processes**: A task hangs forever without failing. (Need timeouts).
+
+## 🧪 Testing Strategy
+
+### 1. Fault Injection
+
+Intentionally break dependencies (e.g., disconnect DB) to verify recovery.
+
+```python
+def test_db_failure():
+    with mock.patch("db.connect", side_effect=ConnectionError):
+        response = service.get_user(1)
+        assert response.status == "degraded"
+```
+
+### 2. Chaos Engineering
+
+Randomly kill services in staging to test resilience.
+
+### 3. Eval Metrics
+
+- **MTTR (Mean Time To Recovery)**: How fast does it bounce back?
+- **Availability**: % of successful requests.
+
+## 💻 Runnable Example
+
+View a working example of Exception Handling:
+[12_exception_handling.py](../examples/12_exception_handling.py)
+
 ---
 
 **Status**: 🟡 Partial (basic fallback)  

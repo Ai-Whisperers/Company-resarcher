@@ -1,0 +1,20 @@
+Identify and analyze the top competitors for {{ company.name }} in {{ company.country }}.
+
+Return a JSON object with the following structure:
+{
+    "competitors": [
+        {
+            "name": "Competitor Name",
+            "overview": "Brief overview",
+            "strengths": "Key strengths",
+            "weaknesses": "Key weaknesses",
+            "pricing": "Pricing model/tiers"
+        }
+    ],
+    "feature_comparison_matrix": "Markdown table comparing key features",
+    "market_share_analysis": "Analysis of market share distribution",
+    "executive_summary": "Brief summary of competitive landscape"
+}
+
+Data:
+{{ context }}

@@ -237,6 +237,49 @@ class GoalTracker:
 2. **Completeness Check**: Auto-verify all fields present
 3. **Constraint Monitor**: Ensure branding rules respected
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Zeno's Paradox**: The agent gets infinitely closer to the goal but never finishes (e.g., "Polish the text" forever).
+    - _Fix_: Define a "Good Enough" threshold or max iterations.
+2.  **Goal Conflict**: Goal A (Speed) contradicts Goal B (Quality).
+    - _Fix_: Assign weights or priorities to goals.
+3.  **False Positives**: The agent thinks it's done because it misunderstood the criteria.
+    - _Fix_: Use an independent "Verifier" agent to confirm completion.
+
+### Edge Cases
+
+- **Moving Goalposts**: The user changes the goal mid-task.
+- **Impossible Goal**: "Find a unicorn." (Need early exit/failure detection).
+
+## 🧪 Testing Strategy
+
+### 1. Drift Simulation
+
+Intentionally steer the agent off-course and see if it corrects itself.
+
+```python
+async def test_correction():
+    agent.state = "off_topic"
+    action = await monitor.check(agent.state)
+    assert action == "realign"
+```
+
+### 2. Completion Check
+
+Verify that the monitor correctly identifies a finished state.
+
+### 3. Eval Metrics
+
+- **Time to Completion**: How fast did it reach the goal?
+- **Correction Rate**: How many times did it have to self-correct?
+
+## 💻 Runnable Example
+
+View a working example of Goal Monitoring:
+[11_goal_monitoring.py](../examples/11_goal_monitoring.py)
+
 ---
 
 **Status**: ❌ Not Implemented  

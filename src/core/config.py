@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: Optional[str] = None
 
     TAVILY_API_KEY: Optional[str] = None
+    NEWSAPI_KEY: Optional[str] = None  # For news aggregation
     SERPAPI_API_KEY: Optional[str] = None
 
     # Langfuse

@@ -436,6 +436,50 @@ async def call_tool(name: str, arguments: dict):
 - **Cross-Platform MCP**: Connect different agent frameworks
 - **MCP Marketplace**: Share and discover community tools
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Server Crash**: The MCP server dies, leaving the agent stranded.
+    - _Fix_: Implement auto-restart and connection retry logic in the client.
+2.  **Latency**: Too many round-trips to discover tools slow down the agent.
+    - _Fix_: Cache tool definitions and resource lists locally.
+3.  **Security**: Exposing sensitive files via MCP.
+    - _Fix_: Strict allow-listing of directories and resources.
+
+### Edge Cases
+
+- **Version Mismatch**: Client speaks MCP v1, Server speaks MCP v2.
+- **Huge Resource**: Reading a 1GB file via MCP freezes the connection.
+
+## 🧪 Testing Strategy
+
+### 1. Mock Server
+
+Test the client against a mock server that returns predefined responses.
+
+```python
+async def test_client_connect():
+    server = MockMCPServer()
+    client = MCPClient(server)
+    await client.connect()
+    assert client.is_connected
+```
+
+### 2. Protocol Compliance
+
+Ensure messages follow the JSON-RPC 2.0 standard.
+
+### 3. Eval Metrics
+
+- **Connection Stability**: Uptime % of the MCP link.
+- **Throughput**: MB/s of data transferred.
+
+## 💻 Runnable Example
+
+View a working example of a Mock MCP Server/Client:
+[10_mcp.py](../examples/10_mcp.py)
+
 ---
 
 **Status**: ❌ Not Implemented  

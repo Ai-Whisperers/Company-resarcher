@@ -1,0 +1,17 @@
+Analyze the following market research data for {{ company.name }} in the {{ company.industry }} industry ({{ company.country }}).
+
+Return a JSON object with the following structure:
+{
+    "industry": "{{ company.industry }}",
+    "market_size": "Current market size and currency",
+    "growth_rate": "CAGR or percentage growth",
+    "trends": [
+        {"name": "Trend Name", "description": "Detailed description"}
+    ],
+    "cultural_context": "Cultural nuances affecting the market",
+    "regulatory_landscape": "Key regulations or legal considerations",
+    "executive_summary": "Brief summary of the market status"
+}
+
+Data:
+{{ context }}

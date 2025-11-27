@@ -116,6 +116,55 @@ def select_tool(task_type: str) -> Tool:
 - ✅ YAML/JSON Parsing
 - ❌ Database (Removed)
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Hallucinated Arguments**: The model invents parameters that don't exist (e.g., `search(query="foo", date="tomorrow")` when `date` isn't supported).
+    - _Fix_: Use strict Pydantic models or JSON schemas to validate tool inputs.
+2.  **Tool Failure**: The API returns 500 or times out.
+    - _Fix_: Implement retries and fallback mechanisms (e.g., try a different search engine).
+3.  **Formatting Issues**: The tool returns CSV but the model expects JSON.
+    - _Fix_: Standardize tool outputs to a common format (e.g., JSON) before passing back to the model.
+
+### Edge Cases
+
+- **Empty Results**: Search returns 0 hits.
+- **Huge Output**: Tool returns 10MB of text, overflowing context. (Truncate or summarize).
+
+## 🧪 Testing Strategy
+
+### 1. Mock Tools
+
+Test the agent's logic without calling real APIs.
+
+```python
+class MockSearch:
+    def run(self, query):
+        return "Mock results for " + query
+```
+
+### 2. Argument Validation
+
+Verify that the model generates correct arguments for the tool.
+
+```python
+def test_search_args():
+    args = generate_tool_call("Find Apple stock price")
+    assert "Apple stock" in args["query"]
+```
+
+### 3. Eval Metrics
+
+- **Tool Selection Accuracy**: Did it pick the right tool?
+- **Argument Validity**: Were the arguments correct?
+- **Success Rate**: % of tool calls that executed successfully.
+
+## 💻 Runnable Example
+
+View a working example of Tool Use with a Mock Calculator:
+[05_tool_use.py](../examples/05_tool_use.py)
+
 ---
 
 **Pattern Type**: Core (Andrew Ng)  

@@ -1,0 +1,21 @@
+Analyze the financial health of {{ company.name }}.
+
+Return a JSON object with the following structure:
+{
+    "revenue": "Latest annual revenue",
+    "profit": "Net income or EBITDA",
+    "growth": "YoY growth rate",
+    "stock_ticker": "Ticker symbol (if public)",
+    "market_cap": "Current market cap (if public)",
+    "funding": "Total funding raised (if private)",
+    "valuation": "Last known valuation (if private)",
+    "fiscal_year": "Fiscal year end",
+    "key_highlights": [
+        "Highlight 1",
+        "Highlight 2"
+    ],
+    "executive_summary": "Brief financial summary"
+}
+
+Data:
+{{ context }}

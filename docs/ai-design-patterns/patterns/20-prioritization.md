@@ -211,6 +211,49 @@ async def prioritize_tasks(tasks):
 1. **Batch Sorting**: Sort video generation by score
 2. **Research Priority**: Research most critical topics first
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Starvation**: Low-priority tasks never get executed because high-priority ones keep arriving.
+    - _Fix_: Implement "Aging" (increase priority over time).
+2.  **Priority Inversion**: A high-priority task is blocked waiting for a low-priority task.
+    - _Fix_: Use "Priority Inheritance" (bump the low-priority task's score).
+3.  **Complexity Overload**: The scoring function is so complex it takes longer than the task itself.
+    - _Fix_: Keep the scoring heuristic O(1) or O(N).
+
+### Edge Cases
+
+- **Deadlock**: Two high-priority tasks waiting on each other.
+- **Burst Arrival**: 1000 "Critical" tasks arrive at once. (Need load shedding).
+
+## 🧪 Testing Strategy
+
+### 1. Queue Simulation
+
+Simulate a stream of mixed-priority tasks and verify execution order.
+
+```python
+def test_priority_order():
+    queue.push(Task("Low", priority=1))
+    queue.push(Task("High", priority=10))
+    assert queue.pop().name == "High"
+```
+
+### 2. Starvation Check
+
+Ensure low-priority tasks eventually get processed even under load.
+
+### 3. Eval Metrics
+
+- **Average Wait Time**: By priority class.
+- **Throughput**: Tasks/sec.
+
+## 💻 Runnable Example
+
+View a working example of Prioritization:
+[20_prioritization.py](../examples/20_prioritization.py)
+
 ---
 
 **Status**: ❌ Not Implemented  

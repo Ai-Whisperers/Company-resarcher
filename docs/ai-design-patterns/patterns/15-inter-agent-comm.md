@@ -317,6 +317,48 @@ class EventBus:
 - **Language-based Communication**: Agents talking in natural language (English) vs JSON
 - **Dynamic Team Formation**: Agents finding each other to form squads
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Deadlocks**: Agent A waits for B, B waits for A.
+    - _Fix_: Use timeouts and avoid circular dependencies.
+2.  **Message Storms**: One event triggers a cascade of thousands of messages.
+    - _Fix_: Implement rate limiting and debouncing.
+3.  **Schema Drift**: Agent A sends v1 format, Agent B expects v2.
+    - _Fix_: Use strict schema validation (Pydantic) and versioning.
+
+### Edge Cases
+
+- **Orphaned Messages**: Receiver dies before processing. (Need persistent queues).
+- **Race Conditions**: Two agents update shared state simultaneously. (Need locking or atomic operations).
+
+## 🧪 Testing Strategy
+
+### 1. Schema Validation
+
+Ensure all messages match the defined protocol.
+
+```python
+def test_message_schema():
+    msg = AgentMessage(sender="A", recipient="B", content="Hello")
+    assert msg.validate()
+```
+
+### 2. Latency Test
+
+Measure round-trip time for a conversation.
+
+### 3. Eval Metrics
+
+- **Throughput**: Messages processed per second.
+- **Error Rate**: % of failed deliveries.
+
+## 💻 Runnable Example
+
+View a working example of Inter-Agent Communication:
+[15_inter_agent_comm.py](../examples/15_inter_agent_comm.py)
+
 ---
 
 **Status**: ✅ Implemented (Shared State)  

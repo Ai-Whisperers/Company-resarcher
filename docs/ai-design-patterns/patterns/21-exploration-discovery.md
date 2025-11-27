@@ -218,6 +218,50 @@ async def map_topic_space(topic, depth=2):
 1. **Trend Spotter**: Explore peripheral trends
 2. **Cross-Industry Inspiration**: "What can coffee learn from fashion?"
 
+## ⚠️ Edge Cases & Pitfalls
+
+### Common Pitfalls
+
+1.  **Rabbit Holes**: The agent gets obsessed with a niche sub-topic and ignores the main goal.
+    - _Fix_: Set strict "Time to Live" (TTL) or depth limits for exploration branches.
+2.  **Analysis Paralysis**: Generating so many options that decision-making stalls.
+    - _Fix_: Force a "Convergence Phase" where options are aggressively pruned.
+3.  **Hallucinated Connections**: Inventing relationships between unrelated concepts.
+    - _Fix_: Verify connections with a second "Critic" agent.
+
+### Edge Cases
+
+- **Empty Space**: The topic is so new there is no information to explore.
+- **Circular Paths**: A -> B -> C -> A. (Need visited set).
+
+## 🧪 Testing Strategy
+
+### 1. Novelty Score
+
+Measure the semantic distance between the initial query and the findings.
+
+```python
+def test_novelty():
+    initial = embed("Coffee")
+    finding = embed("Molecular Gastronomy")
+    distance = cosine_distance(initial, finding)
+    assert distance > 0.5  # Ensure we drifted far enough
+```
+
+### 2. Coverage Check
+
+Ensure the exploration touched key known sub-domains.
+
+### 3. Eval Metrics
+
+- **Branching Factor**: Average number of new ideas per node.
+- **Unique Concepts**: Count of distinct entities found.
+
+## 💻 Runnable Example
+
+View a working example of Exploration & Discovery:
+[21_exploration.py](../examples/21_exploration.py)
+
 ---
 
 **Status**: ❌ Not Implemented  
