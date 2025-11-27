@@ -24,16 +24,24 @@ class SmartAIRouter(BaseAIClient):
         cheap_client: BaseAIClient = None,
         expensive_client: BaseAIClient = None,
         api_key: str = None,
+        use_ollama: bool = False,
     ):
         """
         Args:
-            cheap_client: Fast, cheap model (e.g., GPT-3.5)
+            cheap_client: Fast, cheap model (e.g., GPT-3.5 or Ollama)
             expensive_client: Slow, expensive model (e.g., GPT-4)
             api_key: API key if clients not provided
+            use_ollama: Use Ollama as the cheap client
         """
         if cheap_client and expensive_client:
             self.cheap = cheap_client
             self.expensive = expensive_client
+        elif use_ollama and api_key:
+            # Hybrid: Ollama (Cheap) + OpenAI (Expensive)
+            from .ai_client import OllamaClient
+
+            self.cheap = OllamaClient(model="llama3")
+            self.expensive = OpenAIClient(api_key, model="gpt-4-turbo-preview")
         elif api_key:
             # Default: OpenAI models
             self.cheap = OpenAIClient(api_key, model="gpt-3.5-turbo")

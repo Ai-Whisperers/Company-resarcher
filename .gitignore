@@ -44,3 +44,7 @@ output/
 # OS
 .DS_Store
 Thumbs.db
+
+# Temporary
+.cache/
+outputs_test/

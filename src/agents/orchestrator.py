@@ -14,15 +14,25 @@ class ResearchOrchestrator:
     Uses dependency injection for all agents.
     """
 
-    def __init__(self, ai_client: BaseAIClient = None):
+    def __init__(self, ai_client: BaseAIClient = None, use_local_tools: bool = False):
         """
         Initialize the orchestrator with dependency injection.
 
         Args:
             ai_client: Optional AI client. If None, uses global manager.
+            use_local_tools: Use free local tools (DuckDuckGo) instead of paid APIs
         """
         # Create agent factory
-        factory = get_agent_factory(ai_client)
+        # Pass use_local_tools to the factory constructor via get_agent_factory
+        # We need to update get_agent_factory signature or call AgentFactory directly
+        # Since get_agent_factory is a helper, let's instantiate directly for clarity here
+        # or update the helper. Let's update the helper call if possible, but get_agent_factory
+        # signature in factory.py is: def get_agent_factory(ai_client: BaseAIClient = None) -> AgentFactory
+
+        # Let's import AgentFactory directly to be safe and explicit
+        from src.agents.factory import AgentFactory
+
+        factory = AgentFactory(ai_client=ai_client, use_local_tools=use_local_tools)
 
         # Create all agents
         specialists = factory.create_specialists()

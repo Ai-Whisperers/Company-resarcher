@@ -17,11 +17,12 @@ logger = setup_logger("specialists")
 class FinancialAgent(BaseAgent):
     """Specialist for financial analysis."""
 
-    def __init__(self, client: BaseAIClient = None):
+    def __init__(self, client: BaseAIClient = None, **kwargs):
         super().__init__(
             client=client,
             name=AGENT_FINANCIAL,
             prompt_template="financial_analysis.txt",
+            **kwargs,
         )
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
@@ -35,16 +36,19 @@ class FinancialAgent(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="financial_report.md",
+            output_template="01-Financials.md",
         )
 
 
 class MarketAnalyst(BaseAgent):
     """Specialist for market research."""
 
-    def __init__(self, client: BaseAIClient = None):
+    def __init__(self, client: BaseAIClient = None, **kwargs):
         super().__init__(
-            client=client, name=AGENT_MARKET, prompt_template="market_intelligence.txt"
+            client=client,
+            name=AGENT_MARKET,
+            prompt_template="market_intelligence.txt",
+            **kwargs,
         )
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
@@ -58,18 +62,19 @@ class MarketAnalyst(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="market_report.md",
+            output_template="01-Market-Size-Growth.md",
         )
 
 
 class CompetitorScout(BaseAgent):
     """Specialist for competitor analysis."""
 
-    def __init__(self, client: BaseAIClient = None):
+    def __init__(self, client: BaseAIClient = None, **kwargs):
         super().__init__(
             client=client,
             name=AGENT_COMPETITOR,
             prompt_template="competitive_landscape.txt",
+            **kwargs,
         )
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
@@ -83,16 +88,19 @@ class CompetitorScout(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="competitor_report.md",
+            output_template="01-Competitor-List.md",
         )
 
 
 class BrandAuditor(BaseAgent):
     """Specialist for brand analysis."""
 
-    def __init__(self, client: BaseAIClient = None):
+    def __init__(self, client: BaseAIClient = None, **kwargs):
         super().__init__(
-            client=client, name=AGENT_BRAND, prompt_template="brand_strategy.txt"
+            client=client,
+            name=AGENT_BRAND,
+            prompt_template="brand_strategy.txt",
+            **kwargs,
         )
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
@@ -106,16 +114,19 @@ class BrandAuditor(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="brand_report.md",
+            output_template="01-Positioning.md",
         )
 
 
 class SalesAgent(BaseAgent):
     """Specialist for sales strategy."""
 
-    def __init__(self, client: BaseAIClient = None):
+    def __init__(self, client: BaseAIClient = None, **kwargs):
         super().__init__(
-            client=client, name=AGENT_SALES, prompt_template="sales_strategy.txt"
+            client=client,
+            name=AGENT_SALES,
+            prompt_template="sales_strategy.txt",
+            **kwargs,
         )
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
@@ -129,5 +140,5 @@ class SalesAgent(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="sales_report.md",
+            output_template="05-Sales-Strategy.md",
         )

@@ -35,5 +35,21 @@
       "source": "Company Researcher",
       "date": "2024-05-22"
     }
+  },
+  {
+    "node": "Personal Paraguay",
+    "type": "Company",
+    "properties": {
+      "source": "Company Researcher",
+      "date": "2024-05-22"
+    }
+  },
+  {
+    "node": "Personal Paraguay",
+    "type": "Company",
+    "properties": {
+      "source": "Company Researcher",
+      "date": "2024-05-22"
+    }
   }
 ]

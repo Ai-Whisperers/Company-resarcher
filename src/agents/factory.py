@@ -39,6 +39,7 @@ class AgentFactory:
         enable_cache: bool = True,
         enable_rate_limiting: bool = True,
         enable_smart_routing: bool = True,
+        use_local_tools: bool = False,
     ):
         """
         Args:
@@ -46,7 +47,10 @@ class AgentFactory:
             enable_cache: Enable response caching
             enable_rate_limiting: Enable rate limiting
             enable_smart_routing: Enable smart model routing
+            use_local_tools: Use free local tools (DuckDuckGo) instead of paid APIs
         """
+        self.use_local_tools = use_local_tools
+
         # Get base client
         base_client = ai_client if ai_client else get_ai_manager()
 
@@ -58,7 +62,19 @@ class AgentFactory:
             logger.info("✓ Enabling smart model routing")
             # SmartRouter wraps the base client to route between cheap/expensive models
             api_key = getattr(base_client, "api_key", None)
-            if api_key:
+
+            if self.use_local_tools:
+                # Local Mode: Use Ollama for cheap tasks, Base Client (Manager) for expensive
+                from src.core.ai_client import OllamaClient
+
+                # We assume llama3 is available as per requirements
+                cheap_client = OllamaClient(model="llama3")
+                optimized_client = SmartAIRouter(
+                    cheap_client=cheap_client, expensive_client=base_client
+                )
+                logger.info("  - Cheap: Ollama (llama3)")
+                logger.info(f"  - Expensive: {base_client.get_provider_name()}")
+            elif api_key:
                 optimized_client = SmartAIRouter(api_key=api_key)
             else:
                 optimized_client = SmartAIRouter(
@@ -81,6 +97,8 @@ class AgentFactory:
         logger.info(
             f"AgentFactory initialized with: {self.ai_client.get_provider_name()}"
         )
+        if self.use_local_tools:
+            logger.info("✓ Using Local Tools (DuckDuckGo)")
 
     def create_specialists(self) -> Dict[str, BaseAgent]:
         """
@@ -89,12 +107,20 @@ class AgentFactory:
         Returns:
             Dictionary mapping agent names to agent instances.
         """
+        from src.tools import get_shared_search_tool, get_shared_local_search_tool
+
+        search_tool = (
+            get_shared_local_search_tool()
+            if self.use_local_tools
+            else get_shared_search_tool()
+        )
+
         return {
-            "financial": FinancialAgent(self.ai_client),
-            "market": MarketAnalyst(self.ai_client),
-            "competitor": CompetitorScout(self.ai_client),
-            "brand": BrandAuditor(self.ai_client),
-            "sales": SalesAgent(self.ai_client),
+            "financial": FinancialAgent(self.ai_client, search_tool=search_tool),
+            "market": MarketAnalyst(self.ai_client, search_tool=search_tool),
+            "competitor": CompetitorScout(self.ai_client, search_tool=search_tool),
+            "brand": BrandAuditor(self.ai_client, search_tool=search_tool),
+            "sales": SalesAgent(self.ai_client, search_tool=search_tool),
         }
 
     def create_insight_generator(self) -> InsightGenerator:
