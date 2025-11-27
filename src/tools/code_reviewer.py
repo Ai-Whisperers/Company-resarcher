@@ -14,6 +14,7 @@ sys.path.append(str(project_root))
 
 from src.core.ai_client import get_ai_manager
 from src.core.logger import setup_logger
+from src.core.sandbox import DockerSandbox
 
 logger = setup_logger("code_reviewer")
 
@@ -50,6 +51,39 @@ class CodeReviewer:
 
         return None
 
+    def verify_fix(self, file_path: Path, code_content: str) -> bool:
+        """
+        Verifies the fixed code by running it in a Docker sandbox.
+        Only supports Python files for now.
+        """
+        if file_path.suffix != ".py":
+            logger.info(f"Skipping verification for non-python file: {file_path}")
+            return True  # Assume valid if not python
+
+        try:
+            logger.info(f"Verifying fix for {file_path} in sandbox...")
+            with DockerSandbox() as sandbox:
+                # Copy file to sandbox
+                container_path = f"/workspace/{file_path.name}"
+                sandbox.copy_to_container(code_content, container_path)
+
+                # Run syntax check first
+                exit_code, stdout, stderr = sandbox.execute(
+                    f"python -m py_compile {container_path}"
+                )
+                if exit_code != 0:
+                    logger.warning(f"Verification failed (Syntax Error): {stderr}")
+                    return False
+
+                # Optionally run the script if safe?
+                # For now, just syntax check is safer than running arbitrary code.
+                # If we had a test suite, we would run that.
+                logger.info(f"Verification passed for {file_path}")
+                return True
+        except Exception as e:
+            logger.error(f"Sandbox verification error: {e}")
+            return False  # Fail safe
+
     async def review_file(
         self, file_path: Path, auto_fix: bool = False
     ) -> Dict[str, Any]:
@@ -81,19 +115,25 @@ class CodeReviewer:
             if auto_fix:
                 fixed_code = self._extract_code_block(response, file_path.suffix)
                 if fixed_code:
-                    # Create backup
-                    backup_path = file_path.with_suffix(file_path.suffix + ".bak")
-                    shutil.copy2(file_path, backup_path)
+                    # Verify fix in sandbox
+                    if self.verify_fix(file_path, fixed_code):
+                        # Create backup
+                        backup_path = file_path.with_suffix(file_path.suffix + ".bak")
+                        shutil.copy2(file_path, backup_path)
 
-                    # Write fixed code
-                    with open(file_path, "w", encoding="utf-8") as f:
-                        f.write(fixed_code)
+                        # Write fixed code
+                        with open(file_path, "w", encoding="utf-8") as f:
+                            f.write(fixed_code)
 
-                    result["fixed"] = True
-                    result["backup"] = str(backup_path)
-                    logger.info(
-                        f"Applied fix to {file_path}. Backup saved to {backup_path}"
-                    )
+                        result["fixed"] = True
+                        result["backup"] = str(backup_path)
+                        logger.info(
+                            f"Applied fix to {file_path}. Backup saved to {backup_path}"
+                        )
+                    else:
+                        result["fixed"] = False
+                        result["error"] = "Verification failed in sandbox."
+                        logger.warning(f"Verification failed for {file_path}")
                 else:
                     result["fixed"] = False
                     result["error"] = "Could not extract fixed code from response."
