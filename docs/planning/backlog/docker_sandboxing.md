@@ -5,6 +5,10 @@
 - **Repository:** `OpenHands/OpenHands`
 - **File:** `openhands/runtime/impl/docker/docker_runtime.py`
 
+## Status
+
+**Implemented** in `src/core/sandbox.py`.
+
 ## Description
 
 Execute all agent-generated code (Python, Shell) inside ephemeral Docker containers to prevent damage to the host system.

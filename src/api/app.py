@@ -61,11 +61,48 @@ def get_task(db: Session, task_id: str):
         return {
             "task_id": task.task_id,
             "status": task.status,
-            "request": json.loads(task.request) if task.request else None,
-            "result": json.loads(task.result) if task.result else None,
+            "request": safe_json_loads(task.request),
+            "result": safe_json_loads(task.result),
             "error": task.error,
         }
     return None
+
+
+def safe_json_loads(data: str | None, default=None):
+    """Safely parse JSON, returning default on failure."""
+    if not data:
+        return default
+    try:
+        return json.loads(data)
+    except json.JSONDecodeError:
+        return default
+
+
+async def run_research_task(task_id: str, request: ResearchRequest):
+    """
+    Background task to run the research process.
+    """
+    db = SessionLocal()
+    try:
+        save_task(db, task_id, status=STATUS_IN_PROGRESS)
+
+        # Import here to avoid circular imports and startup crashes
+        orchestrator = ResearchOrchestrator()
+        result = await orchestrator.conduct_research(
+            company_name=request.company_name,
+            url=request.url or ""
+        )
+
+        save_task(db, task_id, status=STATUS_COMPLETED, result=result)
+
+    except Exception as e:
+        save_task(db, task_id, status=STATUS_FAILED, error=str(e))
+    finally:
+        db.close()
+
+
+@app.post("/api/v1/research", response_model=ResearchResponse)
+async def start_research(
     request: ResearchRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
@@ -74,7 +111,7 @@ def get_task(db: Session, task_id: str):
     Start a new research task.
     """
     task_id = str(uuid.uuid4())
-    save_task(db, task_id, status=STATUS_PENDING, request=request.dict())
+    save_task(db, task_id, status=STATUS_PENDING, request=request.model_dump())
 
     background_tasks.add_task(run_research_task, task_id, request)
 

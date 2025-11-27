@@ -84,5 +84,35 @@ class ResearchOrchestrator:
             raise
 
 
-# Singleton instance (optional)
-orchestrator = ResearchOrchestrator()
+# Lazy singleton instance
+_orchestrator: "ResearchOrchestrator | None" = None
+
+
+def get_orchestrator(
+    ai_client: BaseAIClient = None, use_local_tools: bool = False
+) -> ResearchOrchestrator:
+    """
+    Get or create the singleton orchestrator instance.
+
+    Note: Once created, the orchestrator configuration is fixed.
+    To use different settings, create a new instance directly.
+
+    Args:
+        ai_client: Optional AI client. If None, uses global manager.
+        use_local_tools: Use free local tools (DuckDuckGo) instead of paid APIs
+
+    Returns:
+        ResearchOrchestrator instance
+    """
+    global _orchestrator
+    if _orchestrator is None:
+        _orchestrator = ResearchOrchestrator(
+            ai_client=ai_client, use_local_tools=use_local_tools
+        )
+    return _orchestrator
+
+
+def reset_orchestrator():
+    """Reset the singleton orchestrator (useful for testing)."""
+    global _orchestrator
+    _orchestrator = None
