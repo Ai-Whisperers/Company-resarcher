@@ -47,6 +47,7 @@ We organize research into a structured hierarchy of Markdown reports:
 - **Resilient AI Client**: Automatically falls back to a Mock Client if OpenAI/Anthropic rate limits are hit, ensuring the pipeline never crashes.
 - **Jinja2 Templating**: Uses strict templates to ensure consistent, high-quality output formats.
 - **Smart JSON Parsing**: Includes a robust parser to handle "noisy" LLM outputs.
+- **Local Context Indexing**: Scans and indexes local documents (PDF, Markdown, Text) to provide personalized context to agents.
 
 ## 🚀 Getting Started
 
@@ -97,18 +98,32 @@ The system will:
 - [x] **Phase 1: Foundation**: Core agents, V2 Schema, File Management.
 - [ ] **Phase 2: Intelligence**: Implement RAG (Vector DB) to query the "Company Brain".
 - [ ] **Phase 3: Specialist Agents**: Deploy `SalesAgent` and `InvestmentAgent` to act on the data.
-- [ ] **Phase 4: Graph Analysis**: Connect insights across multiple companies.
+- [x] **Phase 4: Local Indexing**: Scan and index local files (PDF, txt, md) for personalized context.
+- [ ] **Phase 5: Graph Analysis**: Connect insights across multiple companies.
 
 ## 📚 Documentation
 
-- [**Agentic Workflow Strategy**](./docs/plans/agentic_workflow_strategy.md): Detailed breakdown of our AI design patterns.
-- [**Repository Explanations**](./docs/repo_explanations/): In-depth guide to all 44 repos in our ecosystem.
-- [**Research Schema Design**](./docs/plans/research_schema_design.md): The blueprint for our data structure.
-- [**Quick Start Tools**](./docs/guides/QUICK_START_TOOLS.md): Guide for new tools.
+### Getting Started
+
+- [**Setup Guide**](./docs/guides/SETUP.md): Complete installation and configuration
+- [**Configuration Reference**](./docs/guides/CONFIGURATION.md): All environment variables and settings
+- [**Troubleshooting**](./docs/guides/TROUBLESHOOTING.md): Common issues and solutions
+
+### API & Architecture
+
+- [**API Reference**](./docs/api/API_REFERENCE.md): REST API documentation
+- [**AI Design Patterns**](./docs/architecture/patterns/README.md): 21 agentic patterns used in the system
+- [**Research Schema Design**](./docs/planning/technical/research_schema_design.md): Data structure blueprint
+
+### Development
+
+- [**Module Documentation**](./docs/development/modules/): In-depth guides for Agents, Core, Graph, Tools, and Services
+- [**Quick Start Tools**](./docs/guides/QUICK_START_TOOLS.md): Guide for implementing new tools
+- [**Contributing**](./docs/guides/CONTRIBUTING.md): Contribution guidelines
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](./docs/guides/CONTRIBUTING.md) for guidelines.
 
 ## 📄 License
 

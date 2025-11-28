@@ -1,0 +1,98 @@
+site_name: Company Researcher
+site_description: An Autonomous Multi-Agent System for Deep B2B & Investment Analysis
+site_author: Ai-Whisperers
+repo_url: https://github.com/Ai-Whisperers/Company-resarcher
+repo_name: Ai-Whisperers/Company-resarcher
+
+theme:
+  name: material
+  features:
+    - search.suggest
+    - search.highlight
+    - search.share
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - content.code.copy
+    - content.code.annotate
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang: en
+  - tags
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Ai-Whisperers/Company-resarcher
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Setup Guide: guides/SETUP.md
+    - Configuration: guides/CONFIGURATION.md
+    - Quick Start Tools: guides/QUICK_START_TOOLS.md
+    - Troubleshooting: guides/TROUBLESHOOTING.md
+  - Guides:
+    - Security: guides/SECURITY.md
+    - Performance: guides/PERFORMANCE.md
+    - Contributing: guides/CONTRIBUTING.md
+  - API Reference:
+    - REST API: api/API_REFERENCE.md
+  - Architecture:
+    - Overview: architecture/patterns/README.md
+    - Diagrams: architecture/diagrams/ARCHITECTURE_DIAGRAMS.md
+    - Patterns:
+      - Prompt Chaining: architecture/patterns/patterns/01-prompt-chaining.md
+      - Routing: architecture/patterns/patterns/02-routing.md
+      - Parallelization: architecture/patterns/patterns/03-parallelization.md
+      - Reflection: architecture/patterns/patterns/04-reflection.md
+      - Tool Use: architecture/patterns/patterns/05-tool-use.md
+      - Planning: architecture/patterns/patterns/06-planning.md
+      - Multi-Agent: architecture/patterns/patterns/07-multi-agent.md
+      - Memory: architecture/patterns/patterns/08-memory.md
+  - Development:
+    - Modules:
+      - Agents: development/modules/01-Agents.md
+      - Core: development/modules/02-Core.md
+      - Graph: development/modules/03-Graph.md
+      - Tools: development/modules/04-Tools.md
+      - Services: development/modules/05-Services.md
+      - Local Indexing: development/modules/06-Local-Indexing.md
+    - Code Review: development/workflows/CODE_REVIEW_CHECKLIST.md
+  - Reference:
+    - FAQ: FAQ.md
+    - Glossary: GLOSSARY.md
+    - Examples: examples/README.md
+    - Deployment: deployment/README.md
