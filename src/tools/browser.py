@@ -1,11 +1,16 @@
 import asyncio
+import os
 from typing import Optional, List, Dict
 from playwright.async_api import async_playwright, Page, Browser
 from bs4 import BeautifulSoup
 from ..core.logger import setup_logger
 from ..core.types import ResearchSource
+from ..core.url_validator import URLValidator, URLValidationError
 
 logger = setup_logger("browser_tool")
+
+# Overall timeout for the entire fetch operation (default: 60 seconds)
+FETCH_OVERALL_TIMEOUT = int(os.getenv("BROWSER_FETCH_TIMEOUT_SECONDS", "60"))
 
 
 class BrowserTool:
@@ -59,7 +64,42 @@ class BrowserTool:
     ) -> ResearchSource:
         """
         Fetch a single page and extract its content with metadata.
+        Includes overall timeout to prevent hanging on slow pages.
         """
+        try:
+            return await asyncio.wait_for(
+                self._fetch_page_internal(url, wait_for_selector),
+                timeout=FETCH_OVERALL_TIMEOUT
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Overall fetch timeout ({FETCH_OVERALL_TIMEOUT}s) for {url}")
+            return ResearchSource(
+                url=url,
+                title="Fetch Timeout",
+                content=f"Error: Overall fetch timed out after {FETCH_OVERALL_TIMEOUT} seconds",
+                source_type="error",
+                category="error",
+            )
+
+    async def _fetch_page_internal(
+        self, url: str, wait_for_selector: str = "body"
+    ) -> ResearchSource:
+        """
+        Internal fetch implementation wrapped by fetch_page for timeout.
+        """
+        # Validate URL to prevent SSRF attacks
+        try:
+            URLValidator.validate_url(url)
+        except URLValidationError as e:
+            logger.warning(f"URL validation failed for {url}: {e}")
+            return ResearchSource(
+                url=url,
+                title="URL Validation Failed",
+                content=f"Error: URL blocked for security reasons - {e}",
+                source_type="error",
+                category="error",
+            )
+
         if not self.browser:
             await self.start()
 

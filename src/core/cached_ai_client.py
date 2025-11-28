@@ -2,9 +2,6 @@
 Cached AI Client - Wrapper to reduce API costs and improve response times.
 """
 
-import hashlib
-import json
-from typing import Optional
 from .ai_client import BaseAIClient
 from .cache import get_ai_cache
 from .logger import setup_logger

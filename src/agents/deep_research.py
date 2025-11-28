@@ -1,21 +1,25 @@
 import asyncio
 import json
 import logging
+import os
 import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Set
 
-from src.agents.base_agent import BaseAgent
-from src.core.ai_client import BaseAIClient
-from src.core.types import CompanyProfile, ResearchPhaseResult, ResearchSource
-from src.tools.browser import BrowserTool
-from src.tools.search import SearchTool
-from src.core.report_generator import ReportGenerator
+from .base_agent import BaseAgent
+from ..core.ai_client import BaseAIClient
+from ..core.types import CompanyProfile, ResearchPhaseResult, ResearchSource
+from ..core.report_generator import ReportGenerator
+from ..tools.browser import BrowserTool
+from ..tools.search import SearchTool
 
 logger = logging.getLogger(__name__)
 
-# Maximum words allowed in context
-MAX_CONTEXT_WORDS = 25000
+# Configuration (all configurable via environment variables)
+MAX_CONTEXT_WORDS = int(os.getenv("DEEP_RESEARCH_MAX_CONTEXT_WORDS", "25000"))
+DEFAULT_BREADTH = int(os.getenv("DEEP_RESEARCH_DEFAULT_BREADTH", "4"))
+DEFAULT_DEPTH = int(os.getenv("DEEP_RESEARCH_DEFAULT_DEPTH", "2"))
+DEFAULT_CONCURRENCY = int(os.getenv("DEEP_RESEARCH_CONCURRENCY", "2"))
 
 
 def count_words(text: str) -> int:
@@ -65,9 +69,9 @@ class DeepResearchAgent(BaseAgent):
         browser_tool: BrowserTool,
         search_tool: SearchTool,
         local_search_tool: Optional[Any] = None,
-        breadth: int = 4,
-        depth: int = 2,
-        concurrency_limit: int = 2,
+        breadth: int = DEFAULT_BREADTH,
+        depth: int = DEFAULT_DEPTH,
+        concurrency_limit: int = DEFAULT_CONCURRENCY,
         tone: str = "Objective",
     ):
         super().__init__(ai_client, name="Deep Research Agent")
@@ -90,7 +94,7 @@ class DeepResearchAgent(BaseAgent):
         user_prompt = f"Given the following prompt, generate {num_queries} unique search queries to research the topic thoroughly. For each query, provide a research goal. Format as 'Query: <query>' followed by 'Goal: <goal>' for each pair: {query}"
 
         response = await self.ai.generate(
-            system_prompt=system_prompt, user_prompt=user_prompt, temperature=0.4
+            prompt=user_prompt, system=system_prompt, temperature=0.4
         )
 
         lines = response.split("\n")
@@ -126,7 +130,7 @@ Based on the original query and the current time, generate {num_questions} uniqu
 Format each question on a new line starting with 'Question: '"""
 
         response = await self.ai.generate(
-            system_prompt=system_prompt, user_prompt=user_prompt, temperature=0.4
+            prompt=user_prompt, system=system_prompt, temperature=0.4
         )
 
         questions = [
@@ -144,8 +148,8 @@ Format each question on a new line starting with 'Question: '"""
         user_prompt = f"Given the following research results for the query '{query}', extract key learnings and suggest follow-up questions. For each learning, include a citation to the source URL if available and a relevance score (0-10). Format each learning as 'Learning [source_url] (Score: <score>): <insight>' and each question as 'Question: <question>':\n\n{context}"
 
         response = await self.ai.generate(
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
+            prompt=user_prompt,
+            system=system_prompt,
             temperature=0.4,
             max_tokens=1000,
         )
@@ -224,7 +228,11 @@ Format each question on a new line starting with 'Question: '"""
 
             # 1. Web Search
             logger.info(f"Searching web for: {query}")
-            search_results = await self.search_tool.search(query, max_results=3)
+            try:
+                search_results = await self.search_tool.search(query, max_results=3)
+            except Exception as e:
+                logger.warning(f"Web search failed for '{query}': {e}")
+                search_results = []
 
             if not search_results and not combined_content:
                 return f"No search results found for: {query}"
@@ -334,8 +342,23 @@ Format each question on a new line starting with 'Question: '"""
                     return None
 
         tasks = [process_query(query) for query in serp_queries]
-        results = await asyncio.gather(*tasks)
-        results = [r for r in results if r is not None]
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results with error tracking
+        results = []
+        failed_count = 0
+        for query, result in zip(serp_queries, raw_results):
+            if isinstance(result, Exception):
+                logger.error(f"Query '{query.get('query', 'unknown')}' raised exception: {result}")
+                failed_count += 1
+            elif result is not None:
+                results.append(result)
+
+        # Log summary
+        success_count = len(serp_queries) - failed_count
+        logger.info(f"Processed {success_count}/{len(serp_queries)} queries successfully")
+        if failed_count > 0:
+            logger.warning(f"{failed_count} queries failed during deep research")
 
         # Collect results
         for result in results:

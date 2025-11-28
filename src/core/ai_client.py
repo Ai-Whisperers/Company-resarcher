@@ -1,8 +1,8 @@
 import json
 import asyncio
+import threading
 from abc import ABC, abstractmethod
-from typing import Any, Optional
-import httpx
+from typing import Optional
 import google.generativeai as genai
 from anthropic import AsyncAnthropic, APIError, RateLimitError as AnthropicRateLimitError
 from openai import (
@@ -20,6 +20,7 @@ from ..core.exceptions import (
     AITimeoutError,
 )
 from ..core.logger import setup_logger
+from ..core.result import Result, Ok, Err, AIError
 from .cache import get_ai_cache
 
 logger = setup_logger("ai_client")
@@ -42,6 +43,39 @@ class BaseAIClient(ABC):
         response_format: str = "text",
     ) -> str:
         pass
+
+    async def generate_safe(
+        self,
+        prompt: str,
+        system: str | None = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        response_format: str = "text",
+    ) -> Result[str, AIError]:
+        """
+        Generate response with explicit error handling via Result type.
+
+        Returns Ok(response) on success, Err(AIError) on failure.
+        This is the recommended method for new code.
+        """
+        try:
+            response = await self.generate(
+                prompt, system, temperature, max_tokens, response_format
+            )
+            return Ok(response)
+        except AIRateLimitError:
+            return Err(AIError.rate_limited(f"Rate limit exceeded for {self.get_provider_name()}"))
+        except AIProviderError as e:
+            return Err(AIError(
+                code=AIError.MODEL_ERROR,
+                message=str(e),
+                details={"provider": self.get_provider_name()},
+                recoverable=True,
+            ))
+        except asyncio.TimeoutError:
+            return Err(AIError.timeout(f"Request to {self.get_provider_name()} timed out"))
+        except Exception as e:
+            return Err(AIError.connection_error(f"{self.get_provider_name()}: {str(e)}"))
 
     @abstractmethod
     def get_provider_name(self) -> str:
@@ -325,41 +359,52 @@ class AIClientManager:
         self.mock_client = MockAIClient()
         self._initialize_clients()
 
+    def _get_api_key(self, key) -> str | None:
+        """Safely extract API key value from SecretStr."""
+        if key is None:
+            return None
+        return key.get_secret_value()
+
     def _initialize_clients(self):
         # Initialize Primary
         primary = self.settings.ai.primary
-        if primary == "openai" and self.settings.OPENAI_API_KEY:
+        openai_key = self._get_api_key(self.settings.OPENAI_API_KEY)
+        anthropic_key = self._get_api_key(self.settings.ANTHROPIC_API_KEY)
+        gemini_key = self._get_api_key(self.settings.GEMINI_API_KEY)
+        groq_key = self._get_api_key(self.settings.GROQ_API_KEY)
+
+        if primary == "openai" and openai_key:
             self.primary_client = OpenAIClient(
-                self.settings.OPENAI_API_KEY, self.settings.ai.openai.model
+                openai_key, self.settings.ai.openai.model
             )
-        elif primary == "anthropic" and self.settings.ANTHROPIC_API_KEY:
+        elif primary == "anthropic" and anthropic_key:
             self.primary_client = AnthropicClient(
-                self.settings.ANTHROPIC_API_KEY, self.settings.ai.anthropic.model
+                anthropic_key, self.settings.ai.anthropic.model
             )
-        elif primary == "gemini" and self.settings.GEMINI_API_KEY:
+        elif primary == "gemini" and gemini_key:
             self.primary_client = GeminiClient(
-                self.settings.GEMINI_API_KEY, self.settings.ai.gemini.model
+                gemini_key, self.settings.ai.gemini.model
             )
-        elif primary == "groq" and self.settings.GROQ_API_KEY:
+        elif primary == "groq" and groq_key:
             self.primary_client = GroqClient(
-                self.settings.GROQ_API_KEY, self.settings.ai.groq.model
+                groq_key, self.settings.ai.groq.model
             )
         elif primary == "ollama":
             self.primary_client = OllamaClient(self.settings.ai.ollama.model)
 
         # Initialize Fallback
         fallback = self.settings.ai.fallback
-        if fallback == "openai" and self.settings.OPENAI_API_KEY:
+        if fallback == "openai" and openai_key:
             self.fallback_client = OpenAIClient(
-                self.settings.OPENAI_API_KEY, self.settings.ai.openai.model
+                openai_key, self.settings.ai.openai.model
             )
-        elif fallback == "anthropic" and self.settings.ANTHROPIC_API_KEY:
+        elif fallback == "anthropic" and anthropic_key:
             self.fallback_client = AnthropicClient(
-                self.settings.ANTHROPIC_API_KEY, self.settings.ai.anthropic.model
+                anthropic_key, self.settings.ai.anthropic.model
             )
-        elif fallback == "groq" and self.settings.GROQ_API_KEY:
+        elif fallback == "groq" and groq_key:
             self.fallback_client = GroqClient(
-                self.settings.GROQ_API_KEY, self.settings.ai.groq.model
+                groq_key, self.settings.ai.groq.model
             )
 
     def get_client_for_task(self, task_type: str = "general") -> BaseAIClient:
@@ -375,22 +420,27 @@ class AIClientManager:
         # If specific provider is configured as primary, prefer it
         # But if we have multiple keys, we can route intelligently
 
+        groq_key = self._get_api_key(self.settings.GROQ_API_KEY)
+        gemini_key = self._get_api_key(self.settings.GEMINI_API_KEY)
+        anthropic_key = self._get_api_key(self.settings.ANTHROPIC_API_KEY)
+        openai_key = self._get_api_key(self.settings.OPENAI_API_KEY)
+
         if task_type == "fast":
             # Prefer Groq -> Gemini -> OpenAI 3.5 -> Local
-            if self.settings.GROQ_API_KEY:
-                return GroqClient(self.settings.GROQ_API_KEY)
-            if self.settings.GEMINI_API_KEY:
-                return GeminiClient(self.settings.GEMINI_API_KEY)
+            if groq_key:
+                return GroqClient(groq_key)
+            if gemini_key:
+                return GeminiClient(gemini_key)
 
         elif task_type == "smart":
             # Prefer Anthropic Opus -> GPT-4 -> Gemini Pro
-            if self.settings.ANTHROPIC_API_KEY:
+            if anthropic_key:
                 return AnthropicClient(
-                    self.settings.ANTHROPIC_API_KEY, model="claude-3-opus-20240229"
+                    anthropic_key, model="claude-3-opus-20240229"
                 )
-            if self.settings.OPENAI_API_KEY:
+            if openai_key:
                 return OpenAIClient(
-                    self.settings.OPENAI_API_KEY, model="gpt-4-turbo-preview"
+                    openai_key, model="gpt-4-turbo-preview"
                 )
 
         # Default to primary
@@ -455,13 +505,97 @@ class AIClientManager:
 
         return response
 
+    async def generate_safe(
+        self,
+        prompt: str,
+        system: str | None = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        response_format: str = "text",
+        use_fallback: bool = True,
+        use_cache: bool = True,
+        task_type: str = "general",
+    ) -> Result[str, AIError]:
+        """
+        Generate response with explicit error handling via Result type.
+
+        Returns Ok(response) on success, Err(AIError) on failure.
+        This is the recommended method for new code - eliminates need for try/except.
+
+        Example:
+            result = await manager.generate_safe("Hello")
+            if result.is_ok:
+                print(result.unwrap())
+            else:
+                print(f"Error: {result.unwrap_err()}")
+
+            # Or with chaining:
+            response = result.unwrap_or("default response")
+        """
+        cache = get_ai_cache()
+        if use_cache and temperature < 0.3:
+            cached = cache.get(prompt, system, temperature, max_tokens)
+            if cached:
+                logger.debug("Using cached response")
+                return Ok(cached)
+
+        # Select client based on task
+        client = self.get_client_for_task(task_type)
+        errors: list[AIError] = []
+
+        # Try primary client
+        result = await client.generate_safe(
+            prompt, system, temperature, max_tokens, response_format
+        )
+
+        if result.is_ok:
+            response = result.unwrap()
+            if use_cache and temperature < 0.3:
+                cache.set(prompt, response, system, temperature, max_tokens)
+            return Ok(response)
+
+        # Collect error from primary
+        errors.append(result.unwrap_err())
+        logger.warning(f"Selected provider {client.get_provider_name()} failed: {result.unwrap_err()}")
+
+        # Try fallback if enabled
+        if use_fallback and self.fallback_client and client != self.fallback_client:
+            logger.info("Attempting fallback...")
+            fallback_result = await self.fallback_client.generate_safe(
+                prompt, system, temperature, max_tokens, response_format
+            )
+
+            if fallback_result.is_ok:
+                response = fallback_result.unwrap()
+                if use_cache and temperature < 0.3:
+                    cache.set(prompt, response, system, temperature, max_tokens)
+                return Ok(response)
+
+            errors.append(fallback_result.unwrap_err())
+            logger.warning(f"Fallback provider failed: {fallback_result.unwrap_err()}")
+
+        # Use mock as last resort
+        logger.warning("All providers failed, using mock")
+        mock_result = await self.mock_client.generate_safe(
+            prompt, system, temperature, max_tokens, response_format
+        )
+
+        if mock_result.is_ok:
+            return mock_result
+
+        # All failed - return combined error
+        return Err(AIError(
+            code=AIError.MODEL_ERROR,
+            message="All AI providers failed",
+            details={"errors": [str(e) for e in errors]},
+            recoverable=False,
+        ))
+
     def get_provider_name(self) -> str:
         if self.primary_client:
             return f"Manager<{self.primary_client.get_provider_name()}>"
         return "Manager<None>"
 
-
-import threading
 
 _ai_manager: Optional[AIClientManager] = None
 _ai_manager_lock = threading.Lock()

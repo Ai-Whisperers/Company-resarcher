@@ -12,6 +12,10 @@ logger = setup_logger("smart_router")
 # Counter reset interval in seconds (default: 1 hour)
 COUNTER_RESET_INTERVAL = int(os.getenv("ROUTER_COUNTER_RESET_SECONDS", "3600"))
 
+# Configurable model names (defaults to OpenAI models)
+CHEAP_MODEL = os.getenv("ROUTER_CHEAP_MODEL", "gpt-3.5-turbo")
+EXPENSIVE_MODEL = os.getenv("ROUTER_EXPENSIVE_MODEL", "gpt-4-turbo-preview")
+
 
 class SmartAIRouter(BaseAIClient):
     """
@@ -45,11 +49,11 @@ class SmartAIRouter(BaseAIClient):
             from .ai_client import OllamaClient
 
             self.cheap = OllamaClient(model="llama3")
-            self.expensive = OpenAIClient(api_key, model="gpt-4-turbo-preview")
+            self.expensive = OpenAIClient(api_key, model=EXPENSIVE_MODEL)
         elif api_key:
-            # Default: OpenAI models
-            self.cheap = OpenAIClient(api_key, model="gpt-3.5-turbo")
-            self.expensive = OpenAIClient(api_key, model="gpt-4-turbo-preview")
+            # Default: OpenAI models (configurable via environment)
+            self.cheap = OpenAIClient(api_key, model=CHEAP_MODEL)
+            self.expensive = OpenAIClient(api_key, model=EXPENSIVE_MODEL)
         else:
             raise ValueError("Must provide clients or API key")
 

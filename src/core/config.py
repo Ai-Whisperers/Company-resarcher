@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 
 class AIProviderConfig(BaseModel):
@@ -27,24 +27,40 @@ class AIConfig(BaseModel):
     ollama: Optional[AIProviderConfig] = AIProviderConfig(model="llama3.1:8b")
 
 
-class Settings(BaseSettings):
-    # API Keys
-    OPENAI_API_KEY: Optional[str] = None
-    ANTHROPIC_API_KEY: Optional[str] = None
-    GEMINI_API_KEY: Optional[str] = None
-    GROQ_API_KEY: Optional[str] = None
+class RuntimeConfig(BaseModel):
+    """Runtime configuration for application behavior."""
+    headless: bool = False  # Run without UI, for CLI/API/CI use
+    log_to_file: bool = False  # Redirect logs to file instead of stdout
+    log_file_path: Optional[str] = None  # Path for log file
+    disable_interactive: bool = False  # Disable interactive prompts
+    quiet: bool = False  # Suppress non-essential output
+    verbose: bool = False  # Enable verbose output
 
-    TAVILY_API_KEY: Optional[str] = None
-    NEWSAPI_KEY: Optional[str] = None  # For news aggregation
-    SERPAPI_API_KEY: Optional[str] = None
+
+class Settings(BaseSettings):
+    # API Authentication - Required for protected endpoints
+    API_KEY: Optional[SecretStr] = None
+
+    # AI Provider Keys - Using SecretStr to prevent accidental exposure in logs/repr
+    OPENAI_API_KEY: Optional[SecretStr] = None
+    ANTHROPIC_API_KEY: Optional[SecretStr] = None
+    GEMINI_API_KEY: Optional[SecretStr] = None
+    GROQ_API_KEY: Optional[SecretStr] = None
+
+    TAVILY_API_KEY: Optional[SecretStr] = None
+    NEWSAPI_KEY: Optional[SecretStr] = None  # For news aggregation
+    SERPAPI_API_KEY: Optional[SecretStr] = None
 
     # Langfuse
-    LANGFUSE_PUBLIC_KEY: Optional[str] = None
-    LANGFUSE_SECRET_KEY: Optional[str] = None
+    LANGFUSE_PUBLIC_KEY: Optional[SecretStr] = None
+    LANGFUSE_SECRET_KEY: Optional[SecretStr] = None
     LANGFUSE_HOST: str = "https://cloud.langfuse.com"
 
     # AI Configuration
     ai: AIConfig = AIConfig()
+
+    # Runtime Configuration
+    runtime: RuntimeConfig = RuntimeConfig()
 
     # Project Paths
     BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
@@ -67,6 +83,10 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
     )
 
+    def _has_secret(self, secret: Optional[SecretStr]) -> bool:
+        """Check if a SecretStr has a value."""
+        return secret is not None and len(secret.get_secret_value()) > 0
+
     def validate_config(self) -> list[str]:
         """
         Validate configuration and return list of warnings.
@@ -76,10 +96,10 @@ class Settings(BaseSettings):
 
         # Check primary AI provider has API key
         provider_key_map = {
-            "openai": self.OPENAI_API_KEY,
-            "anthropic": self.ANTHROPIC_API_KEY,
-            "gemini": self.GEMINI_API_KEY,
-            "groq": self.GROQ_API_KEY,
+            "openai": self._has_secret(self.OPENAI_API_KEY),
+            "anthropic": self._has_secret(self.ANTHROPIC_API_KEY),
+            "gemini": self._has_secret(self.GEMINI_API_KEY),
+            "groq": self._has_secret(self.GROQ_API_KEY),
             "ollama": True,  # Ollama doesn't need API key
         }
 
@@ -93,7 +113,7 @@ class Settings(BaseSettings):
             warnings.append(f"Fallback AI provider '{fallback}' has no API key configured")
 
         # Check search API key
-        if not self.TAVILY_API_KEY:
+        if not self._has_secret(self.TAVILY_API_KEY):
             warnings.append("TAVILY_API_KEY not set - search functionality will be limited")
 
         return warnings
@@ -101,12 +121,33 @@ class Settings(BaseSettings):
     def has_any_ai_provider(self) -> bool:
         """Check if at least one AI provider is configured."""
         return any([
-            self.OPENAI_API_KEY,
-            self.ANTHROPIC_API_KEY,
-            self.GEMINI_API_KEY,
-            self.GROQ_API_KEY,
+            self._has_secret(self.OPENAI_API_KEY),
+            self._has_secret(self.ANTHROPIC_API_KEY),
+            self._has_secret(self.GEMINI_API_KEY),
+            self._has_secret(self.GROQ_API_KEY),
             self.ai.primary == "ollama",  # Ollama works without API key
         ])
+
+    @property
+    def is_headless(self) -> bool:
+        """Check if running in headless mode."""
+        # Can be set via config or environment variable
+        return self.runtime.headless or os.getenv("HEADLESS", "").lower() in ("1", "true", "yes")
+
+    @property
+    def is_interactive(self) -> bool:
+        """Check if interactive mode is enabled."""
+        return not self.runtime.disable_interactive and not self.is_headless
+
+    @property
+    def is_quiet(self) -> bool:
+        """Check if quiet mode is enabled."""
+        return self.runtime.quiet or os.getenv("QUIET", "").lower() in ("1", "true", "yes")
+
+    @property
+    def is_verbose(self) -> bool:
+        """Check if verbose mode is enabled."""
+        return self.runtime.verbose or os.getenv("VERBOSE", "").lower() in ("1", "true", "yes")
 
 
 @lru_cache()

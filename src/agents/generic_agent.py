@@ -3,6 +3,7 @@ from datetime import datetime
 from .base_agent import BaseAgent
 from ..core.types import CompanyProfile, ResearchPhaseResult
 from ..core.logger import setup_logger
+from ..services.security import sanitize_company_name
 
 logger = setup_logger("generic_agent")
 
@@ -12,22 +13,39 @@ class GenericResearchAgent(BaseAgent):
     A generic agent that can execute any research phase based on configuration.
     """
 
+    # Required keys in phase_config
+    REQUIRED_CONFIG_KEYS = {"name", "description"}
+
     def __init__(self, phase_id: str, phase_config: Dict[str, Any]):
         super().__init__()
+
+        # Validate phase_config
+        if not phase_config:
+            raise ValueError(f"phase_config cannot be empty for phase_id: {phase_id}")
+
+        missing_keys = self.REQUIRED_CONFIG_KEYS - set(phase_config.keys())
+        if missing_keys:
+            raise ValueError(
+                f"phase_config missing required keys {missing_keys} for phase_id: {phase_id}"
+            )
+
         self.phase_id = phase_id
         self.phase_config = phase_config
         self.agent_name = f"Agent-{phase_config['name']}"
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
+        # Sanitize user input for prompts
+        safe_name = sanitize_company_name(company.name)
+
         # 1. Generate Queries
         templates = self.phase_config.get("query_templates", [])
         queries = []
         for tpl in templates:
             try:
                 query = tpl.format(
-                    company_name=company.name,
-                    industry=company.industry,
-                    country=company.country,
+                    company_name=safe_name,
+                    industry=company.industry or "general",
+                    country=company.country or "Global",
                     year="2024",  # Dynamic year ideally
                 )
                 queries.append(query)
@@ -67,7 +85,7 @@ class GenericResearchAgent(BaseAgent):
             template_content = "No template found."
 
         prompt = f"""
-        You are an expert researcher tasked with the '{self.phase_config['name']}' phase for {company.name}.
+        You are an expert researcher tasked with the '{self.phase_config['name']}' phase for {safe_name}.
         
         Goal: {self.phase_config['description']}
         

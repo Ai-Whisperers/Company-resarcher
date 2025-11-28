@@ -24,7 +24,11 @@ class SectorAnalyst:
         # 1. Fetch companies from Vault
         # In a real implementation, we would query Pinecone/Neo4j for companies with industry=sector_name
         # For now, we'll search for the sector name in the local vault
-        companies = await self.vault.search_similar_companies(sector_name)
+        try:
+            companies = await self.vault.search_similar_companies(sector_name)
+        except Exception as e:
+            logger.error(f"Failed to search vault for sector '{sector_name}': {e}")
+            return f"# Error\n\nFailed to retrieve sector data: {e}"
 
         if not companies:
             logger.warning(f"No companies found for sector: {sector_name}")
@@ -36,7 +40,11 @@ class SectorAnalyst:
         aggregated_data = self._aggregate_data(companies)
 
         # 3. Generate Insights using AI
-        report = await self._generate_sector_report(sector_name, aggregated_data)
+        try:
+            report = await self._generate_sector_report(sector_name, aggregated_data)
+        except Exception as e:
+            logger.error(f"Failed to generate sector report for '{sector_name}': {e}")
+            return f"# Error\n\nFailed to generate report: {e}\n\n## Raw Data\n\n{aggregated_data}"
 
         return report
 

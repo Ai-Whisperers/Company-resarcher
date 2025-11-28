@@ -1,11 +1,11 @@
-from typing import Dict, Any
+from typing import Any
 from .base_agent import BaseAgent
 from ..core.logger import setup_logger
 from ..core.ai_client import BaseAIClient
 from ..core.types import CompanyProfile, ResearchPhaseResult
 from ..core.alpha_miner import AlphaFactorMiner
-import pandas as pd
-from src.core.constants import (
+from ..services.security import sanitize_company_name
+from ..core.constants import (
     AGENT_FINANCIAL,
     AGENT_MARKET,
     AGENT_COMPETITOR,
@@ -72,11 +72,12 @@ class FinancialAgent(BaseAgent):
             return DataSourceResult.fail(f"SEC data fetch failed: {e}")
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
+        safe_name = sanitize_company_name(company.name)
         queries = [
-            f"{company.name} financial performance",
-            f"{company.name} annual report",
-            f"{company.name} revenue growth",
-            f"{company.name} stock price analysis",
+            f"{safe_name} financial performance",
+            f"{safe_name} annual report",
+            f"{safe_name} revenue growth",
+            f"{safe_name} stock price analysis",
         ]
 
         # Track errors and warnings
@@ -84,7 +85,7 @@ class FinancialAgent(BaseAgent):
         warnings = []
 
         # 1. Fetch SEC data
-        sec_result = self._fetch_sec_data(company.name)
+        sec_result = self._fetch_sec_data(safe_name)
         sec_data = sec_result.data or ""
 
         if sec_result.error:
@@ -98,7 +99,7 @@ class FinancialAgent(BaseAgent):
         quant_analysis = ""
         if self.financial_tool:
             try:
-                ticker = self.financial_tool.guess_ticker_from_name(company.name)
+                ticker = self.financial_tool.guess_ticker_from_name(safe_name)
                 logger.info(f"FinancialAgent: Guessed ticker {ticker}")
                 if ticker:
                     if hasattr(self.financial_tool, "get_historical_data"):
@@ -113,7 +114,7 @@ class FinancialAgent(BaseAgent):
                                 f"FinancialAgent: Running AlphaFactorMiner on {len(hist_data)} rows..."
                             )
                             quant_analysis = self.alpha_miner.analyze_company(
-                                company.name, hist_data
+                                safe_name, hist_data
                             )
                             logger.info(
                                 f"FinancialAgent: Quant analysis result: {quant_analysis[:100]}..."
@@ -155,10 +156,11 @@ class MarketAnalyst(BaseAgent):
         )
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
+        safe_name = sanitize_company_name(company.name)
         queries = [
-            f"{company.name} market share {company.industry}",
-            f"{company.name} industry trends",
-            f"{company.name} target audience demographics",
+            f"{safe_name} market share {company.industry}",
+            f"{safe_name} industry trends",
+            f"{safe_name} target audience demographics",
             f"{company.industry} market size and growth",
         ]
         return await self.execute_research_cycle(
@@ -200,10 +202,11 @@ class CompetitorScout(BaseAgent):
             return DataSourceResult.fail(f"Tech stack analysis failed: {e}")
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
+        safe_name = sanitize_company_name(company.name)
         queries = [
-            f"{company.name} top competitors",
-            f"{company.name} vs competitors comparison",
-            f"{company.name} competitive advantage",
+            f"{safe_name} top competitors",
+            f"{safe_name} vs competitors comparison",
+            f"{safe_name} competitive advantage",
             f"{company.industry} key players",
         ]
 
@@ -248,11 +251,12 @@ class BrandAuditor(BaseAgent):
         )
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
+        safe_name = sanitize_company_name(company.name)
         queries = [
-            f"{company.name} brand reputation",
-            f"{company.name} customer reviews sentiment",
-            f"{company.name} brand values and mission",
-            f"{company.name} marketing campaigns",
+            f"{safe_name} brand reputation",
+            f"{safe_name} customer reviews sentiment",
+            f"{safe_name} brand values and mission",
+            f"{safe_name} marketing campaigns",
         ]
         return await self.execute_research_cycle(
             company=company,
@@ -274,11 +278,12 @@ class SalesAgent(BaseAgent):
         )
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
+        safe_name = sanitize_company_name(company.name)
         queries = [
-            f"{company.name} sales strategy",
-            f"{company.name} distribution channels",
-            f"{company.name} pricing strategy",
-            f"{company.name} B2B clients",
+            f"{safe_name} sales strategy",
+            f"{safe_name} distribution channels",
+            f"{safe_name} pricing strategy",
+            f"{safe_name} B2B clients",
         ]
         return await self.execute_research_cycle(
             company=company,

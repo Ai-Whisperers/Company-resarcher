@@ -1,12 +1,11 @@
 import os
 import logging
-import pickle
+import json
+import joblib  # Safer alternative to pickle for sklearn objects
 from typing import List, Dict, Any
-import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import NearestNeighbors
 from pypdf import PdfReader
-import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,8 @@ class DocumentIndexer:
 
     def __init__(self, persist_directory: str = "data/vector_store"):
         self.persist_directory = persist_directory
-        self.index_path = os.path.join(persist_directory, "tfidf_index.pkl")
+        self.index_path = os.path.join(persist_directory, "tfidf_index.joblib")
+        self.metadata_path = os.path.join(persist_directory, "metadata.json")
 
         if not os.path.exists(persist_directory):
             os.makedirs(persist_directory)
@@ -115,31 +115,44 @@ class DocumentIndexer:
             self.nn_model.fit(tfidf_matrix)
             self.is_fitted = True
 
-            # Save state
-            with open(self.index_path, "wb") as f:
-                pickle.dump(
+            # Save sklearn objects with joblib (safer than pickle)
+            joblib.dump(
+                {
+                    "vectorizer": self.vectorizer,
+                    "nn_model": self.nn_model,
+                },
+                self.index_path,
+            )
+
+            # Save documents and metadata as JSON (fully safe)
+            with open(self.metadata_path, "w", encoding="utf-8") as f:
+                json.dump(
                     {
                         "documents": self.documents,
                         "metadatas": self.metadatas,
-                        "vectorizer": self.vectorizer,
-                        "nn_model": self.nn_model,
                     },
                     f,
+                    ensure_ascii=False,
                 )
         except Exception as e:
             logger.error(f"Failed to fit/save index: {e}")
 
     def load_index(self):
         """Load index from disk if exists."""
-        if os.path.exists(self.index_path):
+        if os.path.exists(self.index_path) and os.path.exists(self.metadata_path):
             try:
-                with open(self.index_path, "rb") as f:
-                    data = pickle.load(f)
-                    self.documents = data["documents"]
-                    self.metadatas = data["metadatas"]
-                    self.vectorizer = data["vectorizer"]
-                    self.nn_model = data["nn_model"]
-                    self.is_fitted = True
+                # Load sklearn objects with joblib
+                sklearn_data = joblib.load(self.index_path)
+                self.vectorizer = sklearn_data["vectorizer"]
+                self.nn_model = sklearn_data["nn_model"]
+
+                # Load documents and metadata from JSON
+                with open(self.metadata_path, "r", encoding="utf-8") as f:
+                    json_data = json.load(f)
+                    self.documents = json_data["documents"]
+                    self.metadatas = json_data["metadatas"]
+
+                self.is_fitted = True
                 logger.info("Loaded existing index.")
             except Exception as e:
                 logger.error(f"Failed to load index: {e}")

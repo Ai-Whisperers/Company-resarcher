@@ -1,9 +1,11 @@
-from typing import Dict, Any
-from src.core.logger import setup_logger
-from src.graph.graph_builder import ResearchGraph
-from src.graph.state import ResearchState
-from src.agents.factory import AgentFactory  # Direct import, no circular issue
-from src.core.ai_client import BaseAIClient
+import threading
+from typing import Dict, Any, Optional
+
+from ..core.logger import setup_logger
+from ..core.ai_client import BaseAIClient
+from ..graph.graph_builder import ResearchGraph
+from ..graph.state import ResearchState
+from .factory import AgentFactory
 
 logger = setup_logger(__name__)
 
@@ -14,7 +16,7 @@ class ResearchOrchestrator:
     Uses dependency injection for all agents.
     """
 
-    def __init__(self, ai_client: BaseAIClient = None, use_local_tools: bool = False):
+    def __init__(self, ai_client: Optional[BaseAIClient] = None, use_local_tools: bool = False):
         """
         Initialize the orchestrator with dependency injection.
 
@@ -75,15 +77,16 @@ class ResearchOrchestrator:
             raise
 
 
-# Lazy singleton instance
-_orchestrator: "ResearchOrchestrator | None" = None
+# Thread-safe lazy singleton instance
+_orchestrator: Optional["ResearchOrchestrator"] = None
+_orchestrator_lock = threading.Lock()
 
 
 def get_orchestrator(
-    ai_client: BaseAIClient = None, use_local_tools: bool = False
+    ai_client: Optional[BaseAIClient] = None, use_local_tools: bool = False
 ) -> ResearchOrchestrator:
     """
-    Get or create the singleton orchestrator instance.
+    Get or create the singleton orchestrator instance (thread-safe).
 
     Note: Once created, the orchestrator configuration is fixed.
     To use different settings, create a new instance directly.
@@ -96,14 +99,16 @@ def get_orchestrator(
         ResearchOrchestrator instance
     """
     global _orchestrator
-    if _orchestrator is None:
-        _orchestrator = ResearchOrchestrator(
-            ai_client=ai_client, use_local_tools=use_local_tools
-        )
-    return _orchestrator
+    with _orchestrator_lock:
+        if _orchestrator is None:
+            _orchestrator = ResearchOrchestrator(
+                ai_client=ai_client, use_local_tools=use_local_tools
+            )
+        return _orchestrator
 
 
-def reset_orchestrator():
+def reset_orchestrator() -> None:
     """Reset the singleton orchestrator (useful for testing)."""
     global _orchestrator
-    _orchestrator = None
+    with _orchestrator_lock:
+        _orchestrator = None
