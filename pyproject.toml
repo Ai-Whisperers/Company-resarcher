@@ -106,6 +106,7 @@ dev = [
     "faker>=22.0.0",
     "hypothesis>=6.100.0",
     "pact-python>=2.0.0",
+    "mutmut>=2.4.0",
 ]
 
 [project.urls]
@@ -263,3 +264,10 @@ output = "coverage.xml"
 [tool.coverage.json]
 output = "coverage.json"
 pretty_print = true
+
+[tool.mutmut]
+paths_to_mutate = "src/"
+tests_dir = "tests/"
+runner = "python -m pytest -x --tb=no -q"
+dict_synonyms = ["Struct", "NamedTuple"]
+backup = false
