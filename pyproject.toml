@@ -91,10 +91,21 @@ dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
+    "pytest-xdist>=3.5.0",
+    "pytest-timeout>=2.2.0",
+    "pytest-html>=4.1.0",
+    "pytest-randomly>=3.15.0",
+    "pytest-rerunfailures>=13.0",
+    "pytest-vcr>=1.0.2",
+    "vcrpy>=6.0.1",
+    "syrupy>=4.6.0",
     "black>=23.0.0",
     "mypy>=1.5.0",
     "ruff>=0.1.0",
     "pre-commit>=3.4.0",
+    "faker>=22.0.0",
+    "hypothesis>=6.100.0",
+    "pact-python>=2.0.0",
 ]
 
 [project.urls]
@@ -187,6 +198,8 @@ addopts = [
     "-v",
     "--tb=short",
     "-ra",
+    "--strict-markers",
+    "--timeout=60",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
@@ -194,6 +207,59 @@ filterwarnings = [
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "fast: marks tests as fast (<100ms)",
     "integration: marks tests as integration tests",
     "manual: marks tests that require manual verification",
+    "unit: marks tests as unit tests (fast, isolated)",
+    "requires_api: marks tests that require real API keys",
+    "smoke: marks tests as smoke tests (quick verification)",
+    "e2e: marks tests as end-to-end tests",
+    "security: marks tests as security tests",
+    "regression: marks tests as regression tests",
+    "concurrent: marks tests that test concurrency",
+    "chaos: marks chaos engineering tests",
+    "contract: marks API contract tests",
+    "snapshot: marks snapshot tests",
+    "serial: marks tests that must run serially (not in parallel)",
+    "flaky: marks tests that may fail intermittently (reruns enabled)",
+    "vcr: marks tests that use VCR for HTTP recording",
 ]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+parallel = true
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+    "*/conftest.py",
+    "src/ui/*",
+    "src/scripts/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "@abstractmethod",
+    "pass",
+    "\\.\\.\\.",
+]
+fail_under = 50
+show_missing = true
+skip_covered = false
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
+title = "Company Researcher Coverage Report"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.coverage.json]
+output = "coverage.json"
+pretty_print = true
