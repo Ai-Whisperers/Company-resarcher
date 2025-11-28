@@ -6,8 +6,7 @@ import os
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from src.agents.orchestrator import ResearchOrchestrator
-from src.core.types import CompanyProfile
+from src.pipeline.orchestrator import PipelineOrchestrator
 
 st.set_page_config(page_title="Company Researcher Agent", page_icon="🕵️‍♂️", layout="wide")
 
@@ -32,15 +31,16 @@ if start_btn and company_name:
     progress_container = st.container()
 
     async def run_research():
-        orchestrator = ResearchOrchestrator()
-        company = CompanyProfile(
-            name=company_name, website=url, industry=industry, country=country
-        )
+        orchestrator = PipelineOrchestrator()
 
         # We can't easily stream logs to Streamlit without a custom handler,
         # so we'll just await the result for now.
-        with st.spinner("Agents are working... (This may take 2-3 minutes)"):
-            final_state = await orchestrator.conduct_research(company)
+        with st.spinner("Pipeline is working... (This may take 2-3 minutes)"):
+            final_state = await orchestrator.conduct_research(
+                company_name=company_name,
+                url=url,
+                industry=industry,
+            )
             return final_state
 
     # Run async loop
@@ -61,33 +61,47 @@ if start_btn and company_name:
             ]
         )
 
-        # Helper to get content safely
-        def get_content(phase_name):
-            if not final_state or "research_results" not in final_state:
+        # Helper to get content safely from pipeline results
+        def get_phase_content(phase_name_partial):
+            if not final_state or "phases" not in final_state:
                 return "No data."
-            return (
-                final_state["research_results"]
-                .get(phase_name, {})
-                .get("markdown_content", "No content generated.")
-            )
+            for phase in final_state["phases"]:
+                if phase_name_partial.lower() in phase.get("phase_name", "").lower():
+                    return phase.get("markdown_content", "No content generated.")
+            return "No content generated."
+
+        # Build executive summary from all phases
+        def get_executive_summary():
+            if not final_state or "phases" not in final_state:
+                return "No report generated."
+            summary_parts = [f"# Research Report: {final_state.get('company_name', 'Unknown')}\n"]
+            for phase in final_state["phases"]:
+                summary_parts.append(f"## {phase.get('phase_name', 'Unknown Phase')}\n")
+                content = phase.get("markdown_content", "")
+                # Take first 500 chars as summary
+                if len(content) > 500:
+                    summary_parts.append(content[:500] + "...\n")
+                else:
+                    summary_parts.append(content + "\n")
+            return "\n".join(summary_parts)
 
         with tab1:
-            st.markdown(final_state.get("final_report", "No report generated."))
+            st.markdown(get_executive_summary())
 
         with tab2:
-            st.markdown(get_content("Financial Analysis"))
+            st.markdown(get_phase_content("financial"))
 
         with tab3:
-            st.markdown(get_content("Market Intelligence"))
+            st.markdown(get_phase_content("market"))
 
         with tab4:
-            st.markdown(get_content("Competitive Landscape"))
+            st.markdown(get_phase_content("competitor"))
 
         with tab5:
-            st.markdown(get_content("Brand Strategy"))
+            st.markdown(get_phase_content("brand"))
 
         with tab6:
-            st.markdown(get_content("Sales Strategy"))
+            st.markdown(get_phase_content("sales"))
 
     except Exception as e:
         st.error(f"An error occurred: {e}")

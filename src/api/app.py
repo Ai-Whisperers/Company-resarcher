@@ -4,16 +4,18 @@ import uuid
 import json
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends, Request
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
 from .models import ResearchRequest, ResearchResponse, TaskStatusResponse, Task
+from ..core.config import get_settings, clear_settings
 from .database import get_db, engine, Base, SessionLocal
-from ..agents.orchestrator import ResearchOrchestrator
-from ..core.types import CompanyProfile
-from ..core.logger import setup_logger
+from ..pipeline.orchestrator import PipelineOrchestrator
+from ..core.logger import setup_logger, set_request_id, clear_request_id
+from ..core.error_tracking import init_error_tracking, capture_exception
 from src.core.constants import (
     STATUS_PENDING,
     STATUS_IN_PROGRESS,
@@ -28,12 +30,33 @@ logger = setup_logger("api")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for FastAPI app.
+    Handles startup initialization and graceful shutdown.
+    """
+    # Startup: Initialize error tracking (Issue #066)
+    init_error_tracking()
+
     # Startup: Create tables
     Base.metadata.create_all(bind=engine)
     logger.info("API started, database tables created")
+
     yield
-    # Shutdown
-    logger.info("API shutting down")
+
+    # Shutdown: Cleanup resources
+    logger.info("API shutting down - starting graceful cleanup")
+
+    # Clear rate limiter state
+    rate_limiter.requests.clear()
+
+    # Close database connections
+    try:
+        engine.dispose()
+        logger.info("Database connections closed")
+    except Exception as e:
+        logger.warning(f"Error closing database connections: {e}")
+
+    logger.info("API shutdown complete")
 
 
 app = FastAPI(title="Company Researcher API", version="1.0.0", lifespan=lifespan)
@@ -51,6 +74,22 @@ app.add_middleware(
 
 # Request size limit (default 1MB)
 MAX_REQUEST_SIZE = int(os.getenv("MAX_REQUEST_SIZE_BYTES", "1000000"))
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """
+    Add unique request ID for tracing (Issue #064).
+    Sets request ID in context for all downstream logging.
+    """
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    token = set_request_id(request_id)
+    try:
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+    finally:
+        clear_request_id(token)
 
 
 @app.middleware("http")
@@ -94,6 +133,43 @@ class RateLimiter:
 
 
 rate_limiter = RateLimiter(requests_per_minute=10)
+
+# API Key Authentication
+API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> str:
+    """
+    Verify API key from X-API-Key header.
+    Returns the API key if valid, raises 401 if invalid or missing.
+    """
+    settings = get_settings()
+
+    # Check if API key is configured
+    if not settings.API_KEY:
+        # No API key configured = auth disabled (development mode)
+        logger.warning("API_KEY not configured - authentication disabled")
+        return "no-auth"
+
+    expected_key = settings.API_KEY.get_secret_value()
+
+    if not api_key:
+        logger.warning("Missing API key in request")
+        raise HTTPException(
+            status_code=401,
+            detail="Missing API key. Include 'X-API-Key' header.",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
+    if api_key != expected_key:
+        logger.warning("Invalid API key provided")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
+    return api_key
 
 
 @app.middleware("http")
@@ -178,25 +254,24 @@ async def run_research_task(task_id: str, request: ResearchRequest):
     try:
         save_task(db, task_id, status=STATUS_IN_PROGRESS)
 
-        # Import here to avoid circular imports and startup crashes
-        orchestrator = ResearchOrchestrator()
+        # Use PipelineOrchestrator (replaces LangGraph-based ResearchOrchestrator)
+        orchestrator = PipelineOrchestrator(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
 
-        # Wrap with timeout to prevent runaway tasks
-        result = await asyncio.wait_for(
-            orchestrator.conduct_research(
-                company_name=request.company_name,
-                url=str(request.url) if request.url else ""
-            ),
-            timeout=RESEARCH_TIMEOUT_SECONDS
+        # Execute research (timeout is handled internally by the pipeline)
+        result = await orchestrator.conduct_research(
+            company_name=request.company_name,
+            url=str(request.url) if request.url else ""
         )
 
         save_task(db, task_id, status=STATUS_COMPLETED, result=result)
 
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError as e:
         logger.error(f"Research task {task_id} timed out after {RESEARCH_TIMEOUT_SECONDS} seconds")
+        capture_exception(e, context={"task_id": task_id, "timeout": RESEARCH_TIMEOUT_SECONDS})
         save_task(db, task_id, status=STATUS_FAILED, error=f"Task timed out after {RESEARCH_TIMEOUT_SECONDS} seconds")
     except Exception as e:
         logger.error(f"Research task {task_id} failed: {str(e)}")
+        capture_exception(e, context={"task_id": task_id, "company": request.company_name})
         save_task(db, task_id, status=STATUS_FAILED, error=str(e))
     finally:
         db.close()
@@ -207,9 +282,11 @@ async def start_research(
     request: ResearchRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    _api_key: str = Depends(verify_api_key),
 ):
     """
     Start a new research task.
+    Requires valid API key in X-API-Key header.
     """
     task_id = str(uuid.uuid4())
     save_task(db, task_id, status=STATUS_PENDING, request=request.model_dump(mode="json"))
@@ -224,16 +301,24 @@ async def start_research(
 
 
 @app.get("/api/v1/research/{task_id}", response_model=TaskStatusResponse)
-async def get_task_status(task_id: str, db: Session = Depends(get_db)):
+async def get_task_status(
+    task_id: str,
+    db: Session = Depends(get_db),
+    _api_key: str = Depends(verify_api_key),
+):
     """
     Get the status of a research task.
+    Requires valid API key in X-API-Key header.
     """
     task = get_task(db, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
     return TaskStatusResponse(
-        task_id=task_id, status=task["status"], result=task.get("result") or {}
+        task_id=task_id,
+        status=task["status"],
+        result=task.get("result"),
+        error=task.get("error"),
     )
 
 
@@ -258,7 +343,8 @@ async def detailed_health_check(db: Session = Depends(get_db)):
 
     # Check database
     try:
-        db.execute("SELECT 1")
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
         health["checks"]["database"] = {"status": "ok"}
     except Exception as e:
         health["checks"]["database"] = {"status": "error", "message": str(e)}
@@ -289,3 +375,15 @@ async def detailed_health_check(db: Session = Depends(get_db)):
         health["status"] = "degraded"
 
     return health
+
+
+@app.post("/admin/reload-config")
+async def reload_config(_api_key: str = Depends(verify_api_key)):
+    """
+    Reload configuration from environment variables.
+    Useful for secret rotation without restart.
+    Requires valid API key in X-API-Key header.
+    """
+    clear_settings()
+    logger.info("Configuration reloaded via admin endpoint")
+    return {"status": "ok", "message": "Configuration reloaded successfully"}

@@ -1,7 +1,7 @@
 import asyncio
 import argparse
 from datetime import datetime
-from src.agents.orchestrator import ResearchOrchestrator
+from src.pipeline.orchestrator import PipelineOrchestrator
 from src.core.logger import setup_logger
 from src.core.output_manager import OutputManager
 
@@ -13,9 +13,15 @@ async def main():
     parser.add_argument("--name", type=str, help="Company name to research")
     parser.add_argument("--url", type=str, help="Company website URL")
     parser.add_argument(
-        "--local",
+        "--parallel",
         action="store_true",
-        help="Use free local tools (DuckDuckGo + Ollama) instead of paid APIs",
+        default=True,
+        help="Run research phases in parallel (default: True)",
+    )
+    parser.add_argument(
+        "--sequential",
+        action="store_true",
+        help="Run research phases sequentially (slower but uses less resources)",
     )
 
     args = parser.parse_args()
@@ -24,33 +30,44 @@ async def main():
     company_name = args.name or "Nestle"
     url = args.url or "https://www.nestle.com"
 
-    logger.info(f"Initializing research for {company_name} ({url})")
-    if args.local:
-        logger.info("Running in LOCAL mode (Free Tools)")
+    # Sequential flag overrides parallel
+    parallel = not args.sequential
 
-    orchestrator = ResearchOrchestrator(use_local_tools=args.local)
+    logger.info(f"Initializing research for {company_name} ({url})")
+    logger.info(f"Running in {'PARALLEL' if parallel else 'SEQUENTIAL'} mode")
+
+    orchestrator = PipelineOrchestrator(parallel=parallel)
     result = await orchestrator.conduct_research(company_name, url)
     print("\n--- RESEARCH COMPLETE ---")
-    print(f"Final State Keys: {result.keys()}")
+    print(f"Status: {result.get('status', 'unknown')}")
+    print(f"Phases completed: {len(result.get('phases', []))}")
 
-    if "drafts" in result:
+    if result.get("phases"):
         # Use OutputManager to save structured reports
         output_manager = OutputManager()
-        output_manager.save_research_output(company_name, result["drafts"])
-
-        # Also save the full report for backward compatibility or easy reading
-        # We can reconstruct it from the drafts if needed, or just rely on the structured files.
-        # For now, let's just log success.
+        # Convert phases to drafts format for backward compatibility
+        drafts = {
+            phase["phase_name"]: phase["markdown_content"]
+            for phase in result["phases"]
+        }
+        output_manager.save_research_output(company_name, drafts)
+        logger.info(f"Saved {len(drafts)} reports to output directory")
     else:
-        logger.warning("No drafts found in result!")
+        logger.warning("No phases found in result!")
+        if result.get("errors"):
+            for error in result["errors"]:
+                logger.error(f"Error: {error}")
 
     # Save to Vault (Optional / Legacy)
     try:
         from src.core.vault import VaultManager
 
         vault = VaultManager()
-        # Construct a full report string for the vault
-        full_report_content = "\n\n".join(result.get("drafts", {}).values())
+        # Construct a full report string for the vault from phases
+        full_report_content = "\n\n".join(
+            phase["markdown_content"]
+            for phase in result.get("phases", [])
+        )
 
         await vault.store_report(
             company_name=company_name,
