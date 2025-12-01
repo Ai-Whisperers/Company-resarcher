@@ -1,20 +1,58 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.pool import StaticPool
 from src.core.constants import DB_PATH
+from src.core.logger import setup_logger
 
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+logger = setup_logger("database")
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+# Support external database URL (PostgreSQL, etc.) or default to SQLite
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
+
+# Configure engine based on database type
+if DATABASE_URL.startswith("sqlite"):
+    # SQLite with thread-safe StaticPool for concurrent access
+    # StaticPool ensures single connection with serialized access
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    logger.info("Using SQLite database with StaticPool for thread safety")
+else:
+    # PostgreSQL/MySQL - proper connection pooling for production
+    pool_size = int(os.getenv("DB_POOL_SIZE", "5"))
+    max_overflow = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=pool_size,
+        max_overflow=max_overflow,
+        pool_pre_ping=True,  # Verify connections before use
+    )
+    logger.info(f"Using external database with pool_size={pool_size}, max_overflow={max_overflow}")
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
 
 def get_db():
+    """Get database session with proper lifecycle management."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+def check_db_health() -> dict:
+    """Check database connectivity for health endpoint."""
+    try:
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        return {"status": "healthy", "type": "sqlite" if DATABASE_URL.startswith("sqlite") else "external"}
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        return {"status": "unhealthy", "error": str(e)}

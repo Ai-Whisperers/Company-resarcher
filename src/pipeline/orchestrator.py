@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional
 
 from ..core.types import CompanyProfile
 from ..core.logger import setup_logger
+from ..services.html_cache import get_html_cache
 
 from .context import RequestContext, create_context
 from .research_pipeline import (
@@ -120,12 +121,21 @@ class PipelineOrchestrator:
         """
         logger.info(f"Starting research for {company_name} ({url})")
 
-        # Create company profile
+        # Create company profile with country and industry enrichment (BUG-049, BUG-050)
         company = CompanyProfile(
             name=company_name,
             website=url,
             industry=industry,
-        )
+        ).with_enriched_context()
+
+        if company.country != "Global":
+            logger.info(f"Detected country from URL: {company.country}")
+        if company.industry and not industry:
+            logger.info(f"Inferred industry from domain: {company.industry}")
+
+        # Initialize HTML cache with company name for saving scraped content
+        html_cache = get_html_cache()
+        html_cache.set_company(company_name)
 
         # Create context
         ctx = create_context(timeout_seconds=self._config.timeout_seconds)
@@ -137,6 +147,12 @@ class PipelineOrchestrator:
                 ctx=ctx,
                 extra_context=extra_context,
             )
+
+            # Save HTML cache index after research completes
+            try:
+                html_cache.save_index()
+            except Exception as cache_err:
+                logger.debug(f"HTML cache index save error (non-fatal): {cache_err}")
 
             # Convert to dictionary format for backward compatibility
             if result.is_success and result.output:

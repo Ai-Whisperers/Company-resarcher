@@ -1,17 +1,59 @@
-Analyze the following market research data for {{ company.name }} in the {{ company.industry }} industry ({{ company.country }}).
+You are an expert market research analyst. Analyze the following market research data for {{ company.name }} in the {{ company.industry }} industry ({{ company.country }}).
 
-Return a JSON object with the following structure:
+IMPORTANT: Extract as much specific, quantitative data as possible from the sources. Include actual numbers, percentages, dates, and specific details. Do NOT summarize - be comprehensive and detailed.
+
+Return a JSON object with the following structure (use "N/A" ONLY if data is truly not available in the sources):
 {
-    "industry": "{{ company.industry }}",
-    "market_size": "Current market size and currency",
-    "growth_rate": "CAGR or percentage growth",
-    "trends": [
-        {"name": "Trend Name", "description": "Detailed description"}
+    "tam": "Total Addressable Market size with currency and year (e.g., '$5.2 billion in 2025')",
+    "tam_details": "Detailed explanation of how TAM is calculated or what it includes",
+    "sam": "Serviceable Available Market size with details",
+    "som": "Serviceable Obtainable Market size or company's realistic target",
+    "cagr": "Compound Annual Growth Rate with time period (e.g., '12.5% CAGR 2024-2030')",
+    "market_value_current": "Current market value with year",
+    "market_value_projected": "Projected market value with target year",
+    "forecast_summary": "Detailed 2025-2030 market forecast with specific numbers, projections, and milestones. Include subscriber counts, revenue projections, and any available metrics.",
+    "growth_drivers": [
+        {
+            "driver": "Name of growth driver",
+            "description": "Detailed explanation with specific data points, statistics, or examples from the sources",
+            "impact": "High/Medium/Low impact assessment"
+        }
     ],
-    "cultural_context": "Cultural nuances affecting the market",
-    "regulatory_landscape": "Key regulations or legal considerations",
-    "executive_summary": "Brief summary of the market status"
+    "market_challenges": [
+        {
+            "challenge": "Name of challenge",
+            "description": "Detailed explanation of the challenge with specific context",
+            "severity": "High/Medium/Low"
+        }
+    ],
+    "market_trends": [
+        {
+            "trend": "Name of emerging trend",
+            "description": "Detailed description with timeline and implications",
+            "relevance": "How this specifically affects {{ company.name }}"
+        }
+    ],
+    "market_segments": [
+        {
+            "segment": "Segment name (e.g., Mobile, Fixed Broadband, Enterprise)",
+            "size": "Segment size or share",
+            "growth": "Segment-specific growth rate"
+        }
+    ],
+    "regional_insights": "Specific insights about the {{ company.country }} market including penetration rates, unique characteristics, regulatory environment",
+    "key_statistics": [
+        "Specific statistic with number and source context",
+        "Another key data point from the research"
+    ],
+    "competitive_position": "{{ company.name }}'s position in the market (market share, ranking, competitive standing)"
 }
+
+INSTRUCTIONS:
+1. Extract EVERY relevant data point from the sources - numbers, percentages, dates, names
+2. Be specific - instead of "growing market" say "market growing at 12.5% CAGR from $699M to $784M"
+3. Include at least 3-5 items in each array if the data supports it
+4. Quote specific statistics and attribute them when possible
+5. For growth drivers and challenges, provide real context not generic statements
 
 Data:
 {{ context }}

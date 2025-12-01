@@ -108,6 +108,8 @@ The system will:
 - [**Setup Guide**](./docs/guides/SETUP.md): Complete installation and configuration
 - [**Configuration Reference**](./docs/guides/CONFIGURATION.md): All environment variables and settings
 - [**Troubleshooting**](./docs/guides/TROUBLESHOOTING.md): Common issues and solutions
+- [**Agent Guide**](./AGENT_GUIDE.md): Comprehensive guide for new agents and developers
+- [**Tech Stack**](./TECH_STACK.md): Technologies used and why
 
 ### API & Architecture
 

@@ -203,11 +203,17 @@ class CompetitorScout(BaseAgent):
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
         safe_name = sanitize_company_name(company.name)
+        industry = company.industry or "industry"
+        country = company.country or "global"
+
+        # Improved competitor queries with industry/geography context (BUG-042)
         queries = [
-            f"{safe_name} top competitors",
-            f"{safe_name} vs competitors comparison",
-            f"{safe_name} competitive advantage",
-            f"{company.industry} key players",
+            f'"{safe_name}" competitors {industry}',
+            f"{safe_name} vs competitors comparison {industry}",
+            f"{industry} companies {country} market leaders",
+            f"{industry} top players {country}",
+            f'"{safe_name}" competitive landscape analysis',
+            f"{industry} market share by company {country}",
         ]
 
         # Track errors and warnings
@@ -230,7 +236,11 @@ class CompetitorScout(BaseAgent):
             queries=queries,
             prompt_file=self.prompt_template,
             output_template="01-Competitor-List.md",
-            extra_context={"tech_stack": tech_stack_data},
+            extra_context={
+                "tech_stack": tech_stack_data,
+                "industry": industry,
+                "country": country,
+            },
         )
 
         # Add tracked errors/warnings to result

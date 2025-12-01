@@ -1,6 +1,7 @@
+import re
 from datetime import datetime
 from typing import List, Optional, Dict, Any, TypedDict
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # =============================================================================
@@ -11,6 +12,7 @@ from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 class SWOTAnalysis(TypedDict, total=False):
     """SWOT analysis structure from insight generator."""
+
     strengths: List[str]
     weaknesses: List[str]
     opportunities: List[str]
@@ -19,6 +21,7 @@ class SWOTAnalysis(TypedDict, total=False):
 
 class StrategicInsightsDict(TypedDict, total=False):
     """Strategic insights response from insight generator."""
+
     swot: SWOTAnalysis
     strategic_takeaways: List[str]
     executive_summary: str
@@ -26,6 +29,7 @@ class StrategicInsightsDict(TypedDict, total=False):
 
 class SearchResultDict(TypedDict, total=False):
     """Structure for search results from Tavily or local search."""
+
     url: str
     title: str
     content: str
@@ -34,6 +38,7 @@ class SearchResultDict(TypedDict, total=False):
 
 class TechStackDict(TypedDict, total=False):
     """Technology stack analysis data."""
+
     technologies: List[str]
     frameworks: List[str]
     analytics: List[str]
@@ -42,6 +47,7 @@ class TechStackDict(TypedDict, total=False):
 
 class CriticFeedbackDict(TypedDict, total=False):
     """Critic agent feedback structure."""
+
     score: float
     strengths: List[str]
     weaknesses: List[str]
@@ -57,6 +63,7 @@ class CriticFeedbackDict(TypedDict, total=False):
 
 class SWOTAnalysisModel(BaseModel):
     """Validated SWOT analysis from LLM."""
+
     strengths: List[str] = Field(default_factory=list)
     weaknesses: List[str] = Field(default_factory=list)
     opportunities: List[str] = Field(default_factory=list)
@@ -65,6 +72,7 @@ class SWOTAnalysisModel(BaseModel):
 
 class StrategicInsightsResponse(BaseModel):
     """Validated strategic insights response from insight generator."""
+
     swot: SWOTAnalysisModel = Field(default_factory=SWOTAnalysisModel)
     strategic_takeaways: List[str] = Field(default_factory=list)
     executive_summary: str = Field(default="N/A")
@@ -81,6 +89,7 @@ class StrategicInsightsResponse(BaseModel):
 
 class CriticFeedbackResponse(BaseModel):
     """Validated critic feedback response."""
+
     score: float = Field(default=0.0, ge=0.0, le=10.0)
     strengths: List[str] = Field(default_factory=list)
     weaknesses: List[str] = Field(default_factory=list)
@@ -103,6 +112,164 @@ class CriticFeedbackResponse(BaseModel):
 # Original Pydantic Models
 # =============================================================================
 
+# Mapping from AI-generated source types to canonical types
+# Defined at module level to avoid Pydantic class attribute access issues in validators
+_SOURCE_TYPE_MAPPING: Dict[str, str] = {
+    # Financial/business types
+    "market_data": "financial",
+    "industry_report": "financial",
+    "company_profile": "financial",
+    "business": "financial",
+    "economic": "financial",
+    # News types
+    "news_article": "news",
+    "press_release": "news",
+    "blog": "news",
+    "article": "news",
+    # Social types
+    "social_media": "social",
+    "forum": "social",
+    "review": "social",
+    # Government/academic types
+    "government": "web",
+    "academic": "web",
+    "research": "web",
+    "legal": "web",
+    # Error/fallback types
+    "error": "web",
+    "unknown": "web",
+    "other": "web",
+}
+
+# Patterns that indicate error/blocked pages
+_ERROR_TITLE_PATTERNS: List[str] = [
+    r"just a moment",
+    r"attention required",
+    r"cloudflare",
+    r"captcha",
+    r"access.*denied",
+    r"error.*request",
+    r"error fetching",  # Browser tool error prefix
+    r"failed to fetch",  # Alternative error prefix
+    r"403 forbidden",
+    r"404 not found",
+    r"page not found",
+    r"blocked",
+    r"rate limit",
+    r"too many requests",
+    r"temporarily unavailable",
+    r"service unavailable",
+    r"please verify",
+    r"human verification",
+    r"robot check",
+    r"security check",
+    r"subscribe to continue",
+    r"sign in required",
+    r"login required",
+    # Additional error patterns (Issue #3)
+    r"technical difficulties",
+    r"something went wrong",
+    r"server error",
+    r"internal server error",
+    r"bad gateway",
+    r"gateway timeout",
+    r"connection refused",
+    r"connection timed out",
+    r"not available",
+    r"under maintenance",
+    r"coming soon",
+    r"site.*unavailable",
+]
+
+# Dictionary/translation sites that should be filtered out (BUG-039)
+_DICTIONARY_DOMAIN_PATTERNS: List[str] = [
+    r"iciba\.com",
+    r"dictionary\.cambridge\.org",
+    r"baidu\.com/item",
+    r"baike\.baidu\.com",
+    r"dict\.cn",
+    r"youdao\.com",
+    r"translate\.google",
+    r"deepl\.com/translator",
+    r"linguee\.com",
+    r"wordreference\.com",
+    r"merriam-webster\.com",
+    r"dictionary\.com",
+    r"thesaurus\.com",
+    r"urbandictionary\.com",
+    r"wiktionary\.org",
+    r"collinsdictionary\.com",
+    r"oxfordlearnersdictionaries\.com",
+    r"lexico\.com",
+    r"reverso\.net",
+    # Spam/irrelevant domains that return junk results
+    r"zhihu\.com",  # Chinese Q&A site - returns irrelevant results for English queries
+    r"douban\.com",  # Chinese social site
+    r"weibo\.com",  # Chinese social media
+    r"tianya\.cn",  # Chinese forum
+    r"163\.com",  # Chinese portal
+    r"sohu\.com",  # Chinese portal
+    r"qq\.com/.*",  # QQ non-news pages
+    r"csdn\.net",  # Chinese developer blog (often irrelevant)
+    r"jianshu\.com",  # Chinese blog platform
+    # Ad/tracking URLs that return no useful content
+    r"bing\.com/aclick",  # Bing ad redirect URLs
+    r"googleadservices\.com",  # Google ad redirects
+    r"doubleclick\.net",  # Ad tracking
+    r"clickserve\.dartsearch",  # Ad tracking
+    r"go\.redirectingat\.com",  # Affiliate redirects
+    r"tracking\.",  # Generic tracking domains
+    r"/aclk\?",  # Google ad click URLs
+    r"zhidao\.baidu\.com",  # Baidu Q&A - irrelevant for company research
+]
+
+# Common irrelevant patterns shared across industries
+_COMMON_IRRELEVANT = [
+    r"rotor\s+market",
+    r"diagnostic\s+testing",
+    r"medical\s+device",
+    r"pharmaceutical",
+]
+
+# Irrelevant industry keywords to filter (BUG-045, Issue #10)
+_IRRELEVANT_INDUSTRY_PATTERNS: Dict[str, List[str]] = {
+    "telecommunications": _COMMON_IRRELEVANT
+    + [
+        r"industrial\s+equipment",
+        r"manufacturing\s+sector",
+        r"discount\s+retail",
+        r"grocery\s+market",
+        r"cryptocurrency",
+        r"nft\s+market",
+        r"real\s+estate\s+investment",
+        # Issue #10: Filter beauty/personal care when researching telecom
+        r"beauty.*personal\s*care",
+        r"personal\s*care.*market",
+        r"cosmetic",
+        r"skincare",
+        r"haircare",
+        r"fragrance",
+        r"makeup",
+        r"personal\s*hygiene",
+        r"toiletries",
+        r"deodorant",
+        r"shampoo",
+        r"lotion",
+    ],
+    "banking": _COMMON_IRRELEVANT
+    + [
+        r"industrial\s+equipment",
+        r"beauty.*personal\s*care",
+        r"cosmetic",
+    ],
+    "technology": _COMMON_IRRELEVANT
+    + [
+        r"grocery\s+market",
+        r"beauty.*personal\s*care",
+        r"cosmetic",
+    ],
+}
+
 
 class ResearchSource(BaseModel):
     """Represents a single source of information (webpage, PDF, etc.)"""
@@ -119,10 +286,141 @@ class ResearchSource(BaseModel):
     @field_validator("source_type")
     @classmethod
     def validate_source_type(cls, v: str) -> str:
-        allowed = {"web", "pdf", "news", "financial", "social", "api"}
-        if v not in allowed:
-            raise ValueError(f"source_type must be one of: {allowed}")
-        return v
+        """Validate and normalize source_type to canonical values.
+
+        Maps AI-generated source types to canonical types instead of rejecting them.
+        This prevents ~90% data loss from overly restrictive validation.
+        """
+        canonical = {"web", "pdf", "news", "financial", "social", "api"}
+
+        # If already canonical, return as-is
+        if v in canonical:
+            return v
+
+        # Normalize: lowercase and strip
+        v_normalized = v.lower().strip()
+
+        # Check if normalized version is canonical
+        if v_normalized in canonical:
+            return v_normalized
+
+        # Map to canonical type, default to "web" if not found
+        mapped = _SOURCE_TYPE_MAPPING.get(v_normalized, "web")
+        return mapped
+
+    def is_error_source(self) -> bool:
+        """Check if this source is an error/blocked page.
+
+        Returns True if the source title matches error patterns or content is too short.
+        """
+        title_lower = self.title.lower()
+
+        # Check title against error patterns
+        for pattern in _ERROR_TITLE_PATTERNS:
+            if re.search(pattern, title_lower):
+                return True
+
+        # Check if content is too short (likely failed to load)
+        if len(self.content.strip()) < 100:
+            return True
+
+        return False
+
+    def is_dictionary_site(self) -> bool:
+        """Check if this source is a dictionary/translation site (BUG-039).
+
+        Returns True if the URL matches dictionary domain patterns.
+        """
+        url_lower = self.url.lower()
+        for pattern in _DICTIONARY_DOMAIN_PATTERNS:
+            if re.search(pattern, url_lower):
+                return True
+        return False
+
+    def is_irrelevant_industry(self, target_industry: Optional[str] = None) -> bool:
+        """Check if this source is from an irrelevant industry (BUG-045).
+
+        Args:
+            target_industry: The industry we're researching (e.g., "telecommunications")
+
+        Returns True if the source mentions industries unrelated to the target.
+        """
+        if not target_industry:
+            return False
+
+        target_lower = target_industry.lower()
+        text_lower = f"{self.title} {self.content[:500]}".lower()
+
+        # Get patterns for this industry
+        patterns = _IRRELEVANT_INDUSTRY_PATTERNS.get(target_lower, _COMMON_IRRELEVANT)
+
+        for pattern in patterns:
+            if re.search(pattern, text_lower):
+                return True
+
+        return False
+
+    def is_irrelevant_foreign_source(
+        self, target_country_tld: Optional[str] = None
+    ) -> bool:
+        """Check if this source is from an irrelevant foreign country.
+
+        Filters out results from countries that typically don't provide
+        relevant results when researching companies in other regions.
+        Global business domains (e.g., mordorintelligence.com) are never filtered.
+
+        Args:
+            target_country_tld: The country TLD we're researching (e.g., "py")
+
+        Returns:
+            True if the source should be filtered out.
+        """
+        from ..utils.url_utils import is_irrelevant_foreign_source
+
+        return is_irrelevant_foreign_source(self.url, target_country_tld)
+
+    def get_geographic_relevance_score(
+        self, target_country_tld: Optional[str] = None
+    ) -> float:
+        """Calculate geographic relevance score for this source.
+
+        Higher scores indicate more geographically relevant sources.
+        Scores range from 0.0 to 1.0.
+
+        Args:
+            target_country_tld: The country TLD we're researching (e.g., "py")
+
+        Returns:
+            Relevance score from 0.0 to 1.0
+        """
+        from ..utils.url_utils import calculate_source_relevance_score
+
+        return calculate_source_relevance_score(self.url, target_country_tld)
+
+    def is_usable(
+        self,
+        target_industry: Optional[str] = None,
+        target_country_tld: Optional[str] = None,
+    ) -> bool:
+        """Check if this source is usable for reports.
+
+        Returns True if the source has valid content, is not an error page,
+        is not a dictionary site, is not from an irrelevant industry,
+        and is not from an irrelevant foreign country.
+
+        Args:
+            target_industry: The industry we're researching (e.g., "telecommunications")
+            target_country_tld: The country TLD we're researching (e.g., "py")
+        """
+        if self.is_error_source():
+            return False
+        if self.is_dictionary_site():
+            return False
+        if self.is_irrelevant_industry(target_industry):
+            return False
+        if self.is_irrelevant_foreign_source(target_country_tld):
+            return False
+        return True
 
 
 class CompanyProfile(BaseModel):
@@ -159,6 +457,79 @@ class CompanyProfile(BaseModel):
     def validate_competitors(cls, v: List[str]) -> List[str]:
         return [c.strip() for c in v if c and c.strip()]
 
+    def with_country_from_url(self) -> "CompanyProfile":
+        """
+        Return a new CompanyProfile with country extracted from website URL.
+
+        If country is already set to something other than "Global", keeps it.
+        If website has a country TLD, extracts and sets the country.
+
+        Returns:
+            New CompanyProfile with country populated.
+        """
+        # Don't override if country is already set
+        if self.country and self.country != "Global":
+            return self
+
+        if not self.website:
+            return self
+
+        from ..utils.url_utils import extract_country_from_url
+
+        detected_country = extract_country_from_url(self.website)
+        if detected_country:
+            return self.model_copy(update={"country": detected_country})
+
+        return self
+
+    def get_country_tld(self) -> Optional[str]:
+        """
+        Get the country TLD from the website URL.
+
+        Returns:
+            Two-letter country code (e.g., "py") or None.
+        """
+        if not self.website:
+            return None
+
+        from ..utils.url_utils import extract_country_tld
+
+        return extract_country_tld(self.website)
+
+    def with_inferred_industry(self) -> "CompanyProfile":
+        """
+        Return a new CompanyProfile with industry inferred from URL/name.
+
+        If industry is already set, keeps it.
+        Uses domain patterns and company name to infer industry (BUG-050).
+
+        Returns:
+            New CompanyProfile with industry populated if detected.
+        """
+        # Don't override if industry is already set
+        if self.industry:
+            return self
+
+        from ..utils.url_utils import infer_industry
+
+        detected_industry = infer_industry(self.website or "", self.name)
+        if detected_industry:
+            return self.model_copy(update={"industry": detected_industry})
+
+        return self
+
+    def with_enriched_context(self) -> "CompanyProfile":
+        """
+        Return a new CompanyProfile with both country and industry enriched.
+
+        Convenience method that applies both with_country_from_url() and
+        with_inferred_industry() for full context enrichment.
+
+        Returns:
+            New CompanyProfile with country and industry populated if detected.
+        """
+        return self.with_country_from_url().with_inferred_industry()
+
 
 class ResearchContext(BaseModel):
     """
@@ -185,6 +556,7 @@ class ResearchPhaseResult(BaseModel):
     missing_info: List[str] = Field(default_factory=list)
     errors: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
+    evaluation: Optional[Dict[str, Any]] = None
 
 
 class FullCompanyResearch(BaseModel):

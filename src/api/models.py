@@ -1,5 +1,11 @@
+import re
 from pydantic import BaseModel, Field, field_validator, HttpUrl
 from typing import Optional, Dict, Any
+
+# Character patterns for input validation
+COMPANY_NAME_PATTERN = re.compile(r'^[\w\s\-\.\,\&\'\"\(\)\+\/\:]+$', re.UNICODE)
+INDUSTRY_PATTERN = re.compile(r'^[\w\s\-\/\&\,\.]+$', re.UNICODE)
+COUNTRY_PATTERN = re.compile(r'^[\w\s\-\.\']+$', re.UNICODE)
 
 
 class ResearchRequest(BaseModel):
@@ -28,19 +34,48 @@ class ResearchRequest(BaseModel):
 
     @field_validator("company_name")
     @classmethod
-    def company_name_must_not_be_empty(cls, v: str) -> str:
-        """Validate that company name is not empty or whitespace."""
+    def validate_company_name(cls, v: str) -> str:
+        """Validate company name is not empty and contains only allowed characters."""
         v = v.strip()
         if not v:
             raise ValueError("Company name cannot be empty or whitespace only")
+        if not COMPANY_NAME_PATTERN.match(v):
+            raise ValueError(
+                "Company name contains invalid characters. "
+                "Allowed: letters, numbers, spaces, and common punctuation (-.,'\"()&+/:)"
+            )
         return v
 
-    @field_validator("industry", "country")
+    @field_validator("industry")
     @classmethod
-    def strip_whitespace(cls, v: Optional[str]) -> Optional[str]:
-        """Strip whitespace from optional string fields."""
-        if v is not None:
-            return v.strip() or None
+    def validate_industry(cls, v: Optional[str]) -> Optional[str]:
+        """Validate industry field contains only allowed characters."""
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            return None
+        if not INDUSTRY_PATTERN.match(v):
+            raise ValueError(
+                "Industry contains invalid characters. "
+                "Allowed: letters, numbers, spaces, and basic punctuation (-/&,.)"
+            )
+        return v
+
+    @field_validator("country")
+    @classmethod
+    def validate_country(cls, v: Optional[str]) -> Optional[str]:
+        """Validate country field contains only allowed characters."""
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            return None
+        if not COUNTRY_PATTERN.match(v):
+            raise ValueError(
+                "Country contains invalid characters. "
+                "Allowed: letters, numbers, spaces, hyphens, periods, and apostrophes"
+            )
         return v
 
 
@@ -58,11 +93,13 @@ class TaskStatusResponse(BaseModel):
 
 
 # SQLAlchemy Models
-from sqlalchemy import Column, String, Text
+from datetime import datetime
+from sqlalchemy import Column, String, Text, DateTime
 from .database import Base
 
 
 class Task(Base):
+    """SQLAlchemy model for research tasks with timestamps."""
     __tablename__ = "tasks"
 
     task_id = Column(String, primary_key=True, index=True)
@@ -70,3 +107,7 @@ class Task(Base):
     request = Column(Text)  # JSON string
     result = Column(Text)  # JSON string
     error = Column(Text)
+
+    # Timestamp fields (BUG-021 fix)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

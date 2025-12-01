@@ -13,16 +13,14 @@ A robust web scraper using `Playwright` and `BeautifulSoup`.
 - **`fetch_page(self, url: str) -> ResearchSource`**:
   - Navigates to the URL.
   - Waits for content load.
-  - Extracts metadata (title, description, author).
-  - Cleans DOM (removes scripts, ads).
-  - Extracts main content text.
-  - Classifies source type (e.g., "news", "academic").
+  - Extracts metadata and cleans DOM.
+  - Classifies source type.
 - **`fetch_multiple(self, urls: List[str]) -> List[ResearchSource]`**:
   - Runs `fetch_page` concurrently for multiple URLs.
 
 ---
 
-## 2. Search Tool (`src/tools/search.py`)
+## 2. Search Tool (`src/tools/search_tool.py`)
 
 Wrapper for the Tavily Search API.
 
@@ -34,13 +32,65 @@ Wrapper for the Tavily Search API.
 
 ---
 
-## 3. File Manager (`src/tools/file_manager.py`)
+## 3. Financial Data Tool (`src/tools/financial_data.py`)
 
-Handles file system operations and project structure creation.
+Fetches financial data using `yfinance`.
+
+### Class: `FinancialDataTool`
+
+- **`get_company_info(self, ticker: str)`**: Returns market cap, PE ratio, margins, etc.
+- **`get_financial_statements(self, ticker: str)`**: Returns income statement, balance sheet, cash flow.
+- **`get_historical_data(self, ticker: str)`**: Returns OHLCV data for backtesting.
+
+---
+
+## 4. SEC Tool (`src/tools/sec_tool.py`)
+
+Analyzes SEC filings using `edgartools`.
+
+### Class: `SECTool`
+
+- **`find_ticker(self, company_name: str)`**: Looks up ticker symbol.
+- **`get_latest_10k_content(self, ticker: str)`**: Fetches text content of the latest 10-K filing.
+
+---
+
+## 5. News Aggregator (`src/tools/news_aggregator.py`)
+
+Aggregates news using `NewsAPI`.
+
+### Class: `NewsAggregatorTool`
+
+- **`get_company_news(self, company_name: str)`**: Fetches recent articles.
+- **`detect_signals(self, company_name: str)`**: Categorizes news into signals like "funding", "partnerships", "product_launches".
+
+---
+
+## 6. Tech Stack Tool (`src/tools/tech_stack_tool.py`)
+
+Identifies technologies used on a website using `webtech`.
+
+### Class: `TechStackTool`
+
+- **`analyze_url_typed(self, url: str)`**: Returns a `TechStack` object listing frameworks, analytics, and hosting providers.
+
+---
+
+## 7. Local Search Tool (`src/tools/local_search.py`)
+
+Executes searches against a local vector store.
+
+### Class: `LocalSearchTool`
+
+- **`search(self, query: str)`**: Semantic search against indexed documents.
+
+---
+
+## 8. File Manager (`src/tools/file_manager.py`)
+
+Handles file system operations.
 
 ### Class: `FileManager`
 
-- **`setup_company_folder(self, company_name: str)`**:
-  - Creates the standardized directory structure (e.g., `01-Market-Intelligence`, `99-Sources`).
-- **`save_markdown(self, path: str, content: str)`**: Writes content to a markdown file.
-- **`save_source_data(self, data: str, filename: str)`**: Saves raw data dumps to `99-Sources/raw`.
+- **`setup_company_folder(self, company_name: str)`**: Creates directory structure.
+- **`save_markdown(self, path: str, content: str)`**: Writes markdown files.

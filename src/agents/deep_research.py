@@ -11,7 +11,7 @@ from ..core.ai_client import BaseAIClient
 from ..core.types import CompanyProfile, ResearchPhaseResult, ResearchSource
 from ..core.report_generator import ReportGenerator
 from ..tools.browser import BrowserTool
-from ..tools.search import SearchTool
+from ..tools.search_tool import SearchTool
 
 logger = logging.getLogger(__name__)
 

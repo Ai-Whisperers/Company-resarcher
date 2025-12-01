@@ -21,6 +21,13 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import yaml
 
+from src.core.safe_eval import (
+    SafeConditionEvaluator,
+    SafeExpressionEvaluator,
+    SafeEvalError,
+    UnsupportedOperationError,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -473,35 +480,69 @@ class ToolNodeExecutor(NodeExecutor):
 
 
 class CodeNodeExecutor(NodeExecutor):
-    """Executor for code nodes."""
+    """Executor for code nodes.
+
+    Note: For security reasons, arbitrary code execution is not supported.
+    Only safe expression evaluation is allowed. Use expressions that set
+    'result' variable, e.g., "result = x + y * 2".
+    """
+
+    def __init__(self):
+        """Initialize with safe expression evaluator."""
+        self._evaluator = SafeExpressionEvaluator()
 
     async def execute(self, node: NodeConfig, context: Dict[str, Any]) -> Any:
-        """Execute code."""
+        """Execute safe expression (not arbitrary code)."""
         code = node.config.get("code", "")
         language = node.config.get("language", "python")
 
         if language != "python":
             return f"[Unsupported language: {language}]"
 
-        local_vars = dict(context)
+        # For security, we only support simple assignment expressions
+        # Format: "result = <expression>"
+        code = code.strip()
+        if code.startswith("result"):
+            # Extract expression after "result ="
+            if "=" in code:
+                _, expression = code.split("=", 1)
+                expression = expression.strip()
+            else:
+                raise RuntimeError(
+                    "Code must be in format 'result = <expression>'. "
+                    "Arbitrary code execution is not supported for security reasons."
+                )
+        else:
+            # Treat entire code as expression
+            expression = code
+
         try:
-            exec(code, {"__builtins__": {}}, local_vars)
-            return local_vars.get("result")
+            return self._evaluator.evaluate(expression, context)
+        except SafeEvalError as e:
+            raise RuntimeError(f"Expression evaluation failed: {e}")
         except Exception as e:
             raise RuntimeError(f"Code execution failed: {e}")
 
 
 class IfElseNodeExecutor(NodeExecutor):
-    """Executor for if/else nodes."""
+    """Executor for if/else nodes using safe condition evaluation."""
+
+    def __init__(self):
+        """Initialize with safe condition evaluator."""
+        self._evaluator = SafeConditionEvaluator()
 
     async def execute(self, node: NodeConfig, context: Dict[str, Any]) -> Any:
-        """Evaluate condition."""
+        """Evaluate condition safely."""
         condition = node.config.get("condition", "")
 
         try:
-            result = eval(condition, {"__builtins__": {}}, context)
+            result = self._evaluator.evaluate(condition, context)
             return {"branch": "true" if result else "false", "value": result}
+        except SafeEvalError as e:
+            logger.warning(f"Condition evaluation failed: {e}")
+            return {"branch": "false", "error": str(e)}
         except Exception as e:
+            logger.warning(f"Unexpected error in condition: {e}")
             return {"branch": "false", "error": str(e)}
 
 

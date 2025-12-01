@@ -11,6 +11,8 @@ from ..core.models import (
 )
 from ..core.logger import setup_logger
 from ..services.security import sanitize_company_name
+from ..services.grounding_service import GroundingService
+from ..core.ai_client import AIClientManager
 
 logger = setup_logger("writer")
 
@@ -23,6 +25,10 @@ class ReportWriter(BaseAgent):
     """
     Drafts the final markdown sections based on the insights and gathered data.
     """
+
+    def __init__(self, ai_client: AIClientManager):
+        super().__init__(ai_client)
+        self.grounding_service = GroundingService(ai_client)
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
         """
@@ -59,6 +65,7 @@ class ReportWriter(BaseAgent):
             competitor=context.competitor_data,
             brand=context.brand_data,
             insights=insights,
+            sources=context.sources,
         )
 
     async def write_report(
@@ -89,6 +96,7 @@ class ReportWriter(BaseAgent):
             competitor=competitor,
             brand=brand,
             insights=insights_typed,
+            sources=[],  # Legacy path has no sources
         )
 
     async def _generate_drafts(
@@ -99,6 +107,7 @@ class ReportWriter(BaseAgent):
         competitor: CompetitorData,
         brand: BrandData,
         insights: StrategicInsights,
+        sources: List[Any] = None,
     ) -> Dict[str, str]:
         """
         Internal method that generates drafts using typed models.
@@ -112,6 +121,19 @@ class ReportWriter(BaseAgent):
         drafts["00-Strategic-Context/02-Executive-Summary.md"] = (
             f"# Executive Summary for {safe_name}\n\n{insights.executive_summary}\n"
         )
+
+        # Ground Executive Summary if sources available
+        if sources:
+            try:
+                grounded = await self.grounding_service.ground_response(
+                    insights.executive_summary, sources
+                )
+                if grounded and grounded.get("grounded_text"):
+                    drafts["00-Strategic-Context/02-Executive-Summary.md"] = (
+                        f"# Executive Summary for {safe_name}\n\n{grounded['grounded_text']}\n"
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to ground executive summary: {e}")
         drafts["00-Strategic-Context/01-Company-Overview.md"] = (
             f"# Company Overview: {safe_name}\n\nWebsite: {company.website}\n"
         )
@@ -121,19 +143,41 @@ class ReportWriter(BaseAgent):
             f"# Market Size & Growth\n\nIndustry: {market.industry or 'N/A'}\n"
             f"Market Size: {market.market_size or 'N/A'}\n"
         )
-        trends_list = "\n".join([f"- {t}" for t in market.trends]) if market.trends else "*No trends identified*"
+        trends_list = (
+            "\n".join([f"- {t}" for t in market.trends])
+            if market.trends
+            else "*No trends identified*"
+        )
         drafts["01-Market-Intelligence/02-Key-Trends.md"] = (
             f"# Key Trends\n\n{trends_list}\n"
         )
 
         # --- 03-Competitive-Landscape ---
         swot = insights.swot
-        strengths = "\n".join([f"- {s}" for s in swot.strengths]) if swot.strengths else _NONE_IDENTIFIED
-        weaknesses = "\n".join([f"- {w}" for w in swot.weaknesses]) if swot.weaknesses else _NONE_IDENTIFIED
-        opportunities = "\n".join([f"- {o}" for o in swot.opportunities]) if swot.opportunities else _NONE_IDENTIFIED
-        threats = "\n".join([f"- {t}" for t in swot.threats]) if swot.threats else _NONE_IDENTIFIED
+        strengths = (
+            "\n".join([f"- {s}" for s in swot.strengths])
+            if swot.strengths
+            else _NONE_IDENTIFIED
+        )
+        weaknesses = (
+            "\n".join([f"- {w}" for w in swot.weaknesses])
+            if swot.weaknesses
+            else _NONE_IDENTIFIED
+        )
+        opportunities = (
+            "\n".join([f"- {o}" for o in swot.opportunities])
+            if swot.opportunities
+            else _NONE_IDENTIFIED
+        )
+        threats = (
+            "\n".join([f"- {t}" for t in swot.threats])
+            if swot.threats
+            else _NONE_IDENTIFIED
+        )
 
-        drafts["03-Competitive-Landscape/05-SWOT-Analysis.md"] = f"""# Strategic Analysis (SWOT)
+        drafts[
+            "03-Competitive-Landscape/05-SWOT-Analysis.md"
+        ] = f"""# Strategic Analysis (SWOT)
 
 ## Strengths
 {strengths}
@@ -160,8 +204,14 @@ class ReportWriter(BaseAgent):
         )
 
         # --- 06-Data-Room ---
-        highlights = "\n".join([f"- {h}" for h in financial.key_highlights]) if financial.key_highlights else "*No highlights available*"
-        drafts["06-Data-Room/01-Financials.md"] = f"""# Financial Overview
+        highlights = (
+            "\n".join([f"- {h}" for h in financial.key_highlights])
+            if financial.key_highlights
+            else "*No highlights available*"
+        )
+        drafts[
+            "06-Data-Room/01-Financials.md"
+        ] = f"""# Financial Overview
 
 | Metric | Value |
 | :--- | :--- |

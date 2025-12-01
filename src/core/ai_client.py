@@ -21,9 +21,37 @@ from ..core.exceptions import (
 )
 from ..core.logger import setup_logger
 from ..core.result import Result, Ok, Err, AIError
+from ..core.circuit_breaker import (
+    CircuitBreaker,
+    CircuitOpenError,
+    get_circuit_registry,
+)
+from ..core.retry_strategy import (
+    RetryStrategy,
+    RetryPolicy,
+    TimeoutBudget,
+)
 from .cache import get_ai_cache
 
 logger = setup_logger("ai_client")
+
+# Default retry configuration for AI providers
+AI_RETRY_STRATEGY = RetryStrategy(
+    max_attempts=3,
+    base_delay=2.0,
+    max_delay=30.0,
+    exponential_base=2.0,
+    jitter=True,
+    policies=[
+        RetryPolicy(
+            exception_types=(AIRateLimitError,),
+            max_attempts=5,
+            base_delay=5.0,
+            max_delay=60.0,
+            respect_retry_after=True,
+        ),
+    ],
+)
 
 # =============================================================================
 # Base AI Client
@@ -88,7 +116,7 @@ class BaseAIClient(ABC):
 
 
 class AnthropicClient(BaseAIClient):
-    def __init__(self, api_key: str, model: str = "claude-3-opus-20240229"):
+    def __init__(self, api_key: str, model: str = "claude-sonnet-4-20250514"):
         self.client = AsyncAnthropic(api_key=api_key)
         self.model = model
         logger.info(f"Initialized Anthropic client with model: {model}")
@@ -327,6 +355,115 @@ class OllamaClient(BaseAIClient):
 
 
 class MockAIClient(BaseAIClient):
+    """
+    Mock AI client that returns template-compatible placeholder data.
+
+    When all real AI providers fail, this returns structured data that
+    templates can render properly instead of blank fields everywhere.
+    """
+
+    # Template-compatible mock responses for each research type
+    MOCK_RESPONSES = {
+        "market": {
+            "tam": "⚠️ Data unavailable - AI providers rate limited",
+            "sam": "Data unavailable",
+            "som": "Data unavailable",
+            "cagr": "Data unavailable",
+            "forecast_summary": "AI analysis unavailable. Please retry when AI providers are available.",
+            "growth_drivers": [
+                "⚠️ AI analysis unavailable - all providers rate limited",
+                "Retry in a few minutes or configure additional AI providers",
+            ],
+            "market_challenges": [
+                "⚠️ Could not analyze market challenges - AI unavailable",
+            ],
+            "market_size": "Data unavailable",
+            "market_trends": ["AI analysis required for trend identification"],
+            "is_mock": True,
+        },
+        "financial": {
+            "revenue": "⚠️ Data unavailable - AI analysis required",
+            "revenue_growth": "N/A",
+            "profitability": "N/A",
+            "funding_history": ["⚠️ AI providers unavailable for financial analysis"],
+            "stock_performance": "Data unavailable",
+            "financial_highlights": ["AI analysis unavailable - retry when providers are available"],
+            "is_mock": True,
+        },
+        "competitor": {
+            "direct_competitors": [
+                {
+                    "name": "⚠️ Competitor Analysis Unavailable",
+                    "website": "N/A",
+                    "description": "AI providers are rate limited. Retry in a few minutes.",
+                    "strength": "N/A",
+                }
+            ],
+            "indirect_competitors": [
+                {"name": "Data unavailable", "description": "AI analysis required"}
+            ],
+            "emerging_threats": ["⚠️ AI analysis unavailable - retry when providers are available"],
+            "competitive_advantages": ["Data requires AI analysis"],
+            "is_mock": True,
+        },
+        "brand": {
+            "usp": "⚠️ AI analysis unavailable - all providers rate limited",
+            "value_proposition": "Data unavailable - retry when AI is available",
+            "brand_archetype": "N/A",
+            "archetype_description": "AI analysis required",
+            "positioning_statement": "⚠️ Could not generate - AI providers unavailable",
+            "brand_strengths": ["AI analysis unavailable"],
+            "brand_values": ["Data requires AI analysis"],
+            "is_mock": True,
+        },
+        "sales": {
+            "executive_summary": "⚠️ **AI Analysis Unavailable**\n\nAll configured AI providers are currently rate-limited. Sales strategy analysis could not be performed. Please retry in a few minutes or configure additional AI providers.",
+            "priorities": [
+                "⚠️ AI analysis unavailable - retry when providers are available",
+            ],
+            "pain_points": [
+                "Could not identify pain points - AI providers rate limited",
+            ],
+            "recommended_solutions": [
+                {
+                    "product": "Analysis Unavailable",
+                    "rationale": "AI providers are rate limited",
+                    "pitch_angle": "Retry when AI is available",
+                }
+            ],
+            "sales_channels": ["Data requires AI analysis"],
+            "pricing_insights": "AI analysis unavailable",
+            "is_mock": True,
+        },
+    }
+
+    # Default fallback for unknown research types
+    DEFAULT_MOCK = {
+        "summary": "⚠️ AI analysis unavailable - all providers rate limited",
+        "key_findings": ["Data unavailable - retry when AI providers are available"],
+        "recommendations": [
+            "Wait a few minutes and retry",
+            "Configure additional AI providers in .env",
+            "Check API key quotas and rate limits",
+        ],
+        "is_mock": True,
+    }
+
+    def _detect_research_type(self, prompt: str) -> str:
+        """Detect research type from prompt content."""
+        prompt_lower = prompt.lower()
+        if "market" in prompt_lower and ("size" in prompt_lower or "growth" in prompt_lower or "tam" in prompt_lower):
+            return "market"
+        elif "financial" in prompt_lower or "revenue" in prompt_lower or "funding" in prompt_lower:
+            return "financial"
+        elif "competitor" in prompt_lower or "competitive" in prompt_lower:
+            return "competitor"
+        elif "brand" in prompt_lower or "positioning" in prompt_lower or "usp" in prompt_lower:
+            return "brand"
+        elif "sales" in prompt_lower or "pricing" in prompt_lower or "distribution" in prompt_lower:
+            return "sales"
+        return "default"
+
     async def generate(
         self,
         prompt: str,
@@ -335,12 +472,24 @@ class MockAIClient(BaseAIClient):
         max_tokens: int = 4096,
         response_format: str = "text",
     ) -> str:
-        logger.info("Generating MOCK response")
+        logger.warning("Generating MOCK response - all AI providers unavailable (BUG-047)")
+
         if response_format == "json":
-            return json.dumps(
-                {"mock_key": "mock_value", "note": "This is a mock response"}
-            )
-        return "This is a mock response from the AI client."
+            # Detect research type and return appropriate mock data
+            research_type = self._detect_research_type(prompt)
+            mock_data = self.MOCK_RESPONSES.get(research_type, self.DEFAULT_MOCK)
+            return json.dumps(mock_data)
+
+        # Return a clear indicator that this is a fallback response
+        return (
+            "**⚠️ AI Analysis Unavailable**\n\n"
+            "All configured AI providers are currently rate-limited or unavailable. "
+            "This section could not be analyzed.\n\n"
+            "**Recommendations:**\n"
+            "- Wait a few minutes and try again\n"
+            "- Configure additional AI providers (Gemini, Anthropic, etc.) in .env\n"
+            "- Check your API key quotas and rate limits\n"
+        )
 
     def get_provider_name(self) -> str:
         return "mock"
@@ -356,8 +505,20 @@ class AIClientManager:
         self.settings = get_settings()
         self.primary_client: Optional[BaseAIClient] = None
         self.fallback_client: Optional[BaseAIClient] = None
+        self.all_clients: list[BaseAIClient] = []  # All available clients for multi-fallback
         self.mock_client = MockAIClient()
+        self._circuit_registry = get_circuit_registry()
+        self._retry_strategy = AI_RETRY_STRATEGY
         self._initialize_clients()
+
+    def _get_circuit_breaker(self, provider: str) -> CircuitBreaker:
+        """Get or create circuit breaker for a provider."""
+        return self._circuit_registry.get_or_create(
+            name=f"ai_{provider}",
+            failure_threshold=5,
+            recovery_timeout=60.0,
+            success_threshold=2,
+        )
 
     def _get_api_key(self, key) -> str | None:
         """Safely extract API key value from SecretStr."""
@@ -392,7 +553,7 @@ class AIClientManager:
         elif primary == "ollama":
             self.primary_client = OllamaClient(self.settings.ai.ollama.model)
 
-        # Initialize Fallback
+        # Initialize Fallback (BUG-047: improved fallback chain)
         fallback = self.settings.ai.fallback
         if fallback == "openai" and openai_key:
             self.fallback_client = OpenAIClient(
@@ -406,6 +567,66 @@ class AIClientManager:
             self.fallback_client = GroqClient(
                 groq_key, self.settings.ai.groq.model
             )
+        elif fallback == "gemini" and gemini_key:
+            self.fallback_client = GeminiClient(
+                gemini_key, self.settings.ai.gemini.model
+            )
+
+        # Auto-detect additional fallback if no explicit fallback configured
+        # This helps prevent mock responses when multiple providers are available
+        if not self.fallback_client:
+            # Try providers in order: OpenAI -> Gemini -> Anthropic -> Groq
+            if openai_key and primary != "openai":
+                self.fallback_client = OpenAIClient(
+                    openai_key, self.settings.ai.openai.model
+                )
+            elif gemini_key and primary != "gemini":
+                self.fallback_client = GeminiClient(
+                    gemini_key, self.settings.ai.gemini.model
+                )
+            elif anthropic_key and primary != "anthropic":
+                self.fallback_client = AnthropicClient(
+                    anthropic_key, self.settings.ai.anthropic.model
+                )
+            elif groq_key and primary != "groq":
+                self.fallback_client = GroqClient(
+                    groq_key, self.settings.ai.groq.model
+                )
+
+        # Build complete fallback chain with ALL available providers
+        # This ensures we try every configured provider before using mock
+        self.all_clients = []
+        used_providers = set()
+
+        # Add primary first
+        if self.primary_client:
+            self.all_clients.append(self.primary_client)
+            used_providers.add(self.primary_client.get_provider_name())
+
+        # Add fallback second
+        if self.fallback_client and self.fallback_client.get_provider_name() not in used_providers:
+            self.all_clients.append(self.fallback_client)
+            used_providers.add(self.fallback_client.get_provider_name())
+
+        # Add all other available providers
+        # Priority order: Gemini (fast, generous limits), Anthropic (smart), OpenAI, Groq
+        if gemini_key and "gemini" not in used_providers:
+            self.all_clients.append(GeminiClient(gemini_key, self.settings.ai.gemini.model))
+            used_providers.add("gemini")
+
+        if anthropic_key and "anthropic" not in used_providers:
+            self.all_clients.append(AnthropicClient(anthropic_key, self.settings.ai.anthropic.model))
+            used_providers.add("anthropic")
+
+        if openai_key and "openai" not in used_providers:
+            self.all_clients.append(OpenAIClient(openai_key, self.settings.ai.openai.model))
+            used_providers.add("openai")
+
+        if groq_key and "groq" not in used_providers:
+            self.all_clients.append(GroqClient(groq_key, self.settings.ai.groq.model))
+            used_providers.add("groq")
+
+        logger.info(f"AI fallback chain: {[c.get_provider_name() for c in self.all_clients]}")
 
     def get_client_for_task(self, task_type: str = "general") -> BaseAIClient:
         """
@@ -433,10 +654,10 @@ class AIClientManager:
                 return GeminiClient(gemini_key)
 
         elif task_type == "smart":
-            # Prefer Anthropic Opus -> GPT-4 -> Gemini Pro
+            # Prefer Anthropic Sonnet (best accuracy) -> GPT-4 -> Gemini Pro
             if anthropic_key:
                 return AnthropicClient(
-                    anthropic_key, model="claude-3-opus-20240229"
+                    anthropic_key, model="claude-sonnet-4-20250514"
                 )
             if openai_key:
                 return OpenAIClient(
@@ -452,6 +673,37 @@ class AIClientManager:
             return self.fallback_client
 
         return self.mock_client
+
+    async def _generate_with_circuit_breaker(
+        self,
+        client: BaseAIClient,
+        prompt: str,
+        system: str | None,
+        temperature: float,
+        max_tokens: int,
+        response_format: str,
+    ) -> str:
+        """Generate response using a client with circuit breaker protection."""
+        provider = client.get_provider_name()
+        breaker = self._get_circuit_breaker(provider)
+
+        # Check circuit state before attempting
+        if not breaker.can_execute():
+            retry_after = breaker.time_until_retry()
+            raise CircuitOpenError(provider, retry_after)
+
+        try:
+            await breaker.acquire()
+            response = await client.generate(
+                prompt, system, temperature, max_tokens, response_format
+            )
+            breaker.record_success()
+            return response
+        except CircuitOpenError:
+            raise
+        except Exception as e:
+            breaker.record_failure(e)
+            raise
 
     async def generate(
         self,
@@ -472,30 +724,45 @@ class AIClientManager:
                 return cached
 
         response = None
+        errors: list[tuple[str, Exception]] = []
 
-        # Select client based on task
-        client = self.get_client_for_task(task_type)
-
-        try:
-            response = await client.generate(
-                prompt, system, temperature, max_tokens, response_format
-            )
-        except Exception as e:
-            logger.warning(
-                f"Selected provider {client.get_provider_name()} failed: {e}"
-            )
-            if use_fallback and self.fallback_client and client != self.fallback_client:
+        # Try ALL available clients in the fallback chain with circuit breaker
+        if use_fallback and self.all_clients:
+            for client in self.all_clients:
+                provider = client.get_provider_name()
                 try:
-                    logger.info("Attempting fallback...")
-                    response = await self.fallback_client.generate(
-                        prompt, system, temperature, max_tokens, response_format
+                    response = await self._generate_with_circuit_breaker(
+                        client, prompt, system, temperature, max_tokens, response_format
                     )
-                except Exception as e2:
-                    logger.warning(f"Fallback provider failed: {e2}")
+                    if response:
+                        logger.info(f"Successfully generated with {provider}")
+                        break
+                except CircuitOpenError as e:
+                    logger.warning(f"Circuit open for {provider}, skipping (retry in {e.retry_after:.1f}s)")
+                    errors.append((provider, e))
+                    continue
+                except Exception as e:
+                    logger.warning(f"Provider {provider} failed: {e}")
+                    errors.append((provider, e))
+                    continue
+        else:
+            # Fallback disabled or no clients - try primary only
+            client = self.get_client_for_task(task_type)
+            try:
+                response = await self._generate_with_circuit_breaker(
+                    client, prompt, system, temperature, max_tokens, response_format
+                )
+            except Exception as e:
+                logger.warning(f"Provider {client.get_provider_name()} failed: {e}")
+                errors.append((client.get_provider_name(), e))
 
-        # Use Mock
+        # Use Mock only if ALL providers failed
         if response is None:
-            logger.warning("All providers failed, using mock")
+            open_circuits = self._circuit_registry.get_open_circuits()
+            logger.warning(
+                f"All {len(self.all_clients)} providers failed, using mock. "
+                f"Open circuits: {open_circuits}"
+            )
             response = await self.mock_client.generate(
                 prompt, system, temperature, max_tokens, response_format
             )

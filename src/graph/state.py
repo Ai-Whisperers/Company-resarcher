@@ -34,6 +34,7 @@ from ..core.models import (
     SalesData,
     TypedResearchContext,
 )
+from ..core.types import ResearchSource
 
 
 # =============================================================================
@@ -49,6 +50,7 @@ class StateConfig:
     Addresses GR-019: Hardcoded configuration by providing a single
     place to configure all state-related settings.
     """
+
     # Bounds (GR-003)
     max_raw_data_items: int = 100
     max_source_log_items: int = 100
@@ -113,6 +115,7 @@ MAX_FEEDBACK_LOOPS = 10
 
 class StateErrorCode(str, Enum):
     """Standardized error codes for state operations."""
+
     VALIDATION_ERROR = "STATE_VALIDATION_ERROR"
     TRANSITION_ERROR = "STATE_TRANSITION_ERROR"
     BOUNDS_EXCEEDED = "STATE_BOUNDS_EXCEEDED"
@@ -130,6 +133,7 @@ class StateError:
     Addresses GR-015: Inconsistent error handling by providing
     a standardized error structure.
     """
+
     code: StateErrorCode
     message: str
     details: Optional[Dict[str, Any]] = None
@@ -182,9 +186,12 @@ class LifecycleHooks:
     Addresses GR-017: Missing lifecycle hooks by providing
     callbacks for state transition events.
     """
+
     on_before_transition: List[LifecycleHook] = field(default_factory=list)
     on_after_transition: List[LifecycleHook] = field(default_factory=list)
-    on_validation_error: List[Callable[[StateError], None]] = field(default_factory=list)
+    on_validation_error: List[Callable[[StateError], None]] = field(
+        default_factory=list
+    )
     on_checkpoint: List[Callable[[Dict[str, Any]], None]] = field(default_factory=list)
     on_rollback: List[Callable[[Dict[str, Any]], None]] = field(default_factory=list)
 
@@ -248,6 +255,7 @@ def reset_lifecycle_hooks() -> None:
 @dataclass
 class SchemaField:
     """Definition of a field in the state schema."""
+
     name: str
     field_type: type
     required: bool = True
@@ -288,11 +296,13 @@ class StateSchema:
         for name, field_def in self._fields.items():
             # Check required fields
             if field_def.required and name not in state_dict:
-                errors.append(StateError(
-                    code=StateErrorCode.SCHEMA_MISMATCH,
-                    message=f"Required field '{name}' is missing",
-                    details={"field": name},
-                ))
+                errors.append(
+                    StateError(
+                        code=StateErrorCode.SCHEMA_MISMATCH,
+                        message=f"Required field '{name}' is missing",
+                        details={"field": name},
+                    )
+                )
                 continue
 
             if name not in state_dict:
@@ -302,75 +312,138 @@ class StateSchema:
 
             # Type check
             if not isinstance(value, field_def.field_type):
-                errors.append(StateError(
-                    code=StateErrorCode.SCHEMA_MISMATCH,
-                    message=f"Field '{name}' has wrong type",
-                    details={
-                        "field": name,
-                        "expected": field_def.field_type.__name__,
-                        "actual": type(value).__name__,
-                    },
-                ))
+                errors.append(
+                    StateError(
+                        code=StateErrorCode.SCHEMA_MISMATCH,
+                        message=f"Field '{name}' has wrong type",
+                        details={
+                            "field": name,
+                            "expected": field_def.field_type.__name__,
+                            "actual": type(value).__name__,
+                        },
+                    )
+                )
                 continue
 
             # Numeric bounds
             if field_def.min_value is not None and isinstance(value, (int, float)):
                 if value < field_def.min_value:
-                    errors.append(StateError(
-                        code=StateErrorCode.BOUNDS_EXCEEDED,
-                        message=f"Field '{name}' below minimum",
-                        details={"field": name, "min": field_def.min_value, "value": value},
-                    ))
+                    errors.append(
+                        StateError(
+                            code=StateErrorCode.BOUNDS_EXCEEDED,
+                            message=f"Field '{name}' below minimum",
+                            details={
+                                "field": name,
+                                "min": field_def.min_value,
+                                "value": value,
+                            },
+                        )
+                    )
 
             if field_def.max_value is not None and isinstance(value, (int, float)):
                 if value > field_def.max_value:
-                    errors.append(StateError(
-                        code=StateErrorCode.BOUNDS_EXCEEDED,
-                        message=f"Field '{name}' exceeds maximum",
-                        details={"field": name, "max": field_def.max_value, "value": value},
-                    ))
+                    errors.append(
+                        StateError(
+                            code=StateErrorCode.BOUNDS_EXCEEDED,
+                            message=f"Field '{name}' exceeds maximum",
+                            details={
+                                "field": name,
+                                "max": field_def.max_value,
+                                "value": value,
+                            },
+                        )
+                    )
 
             # Length bounds for sequences
             if hasattr(value, "__len__"):
-                if field_def.min_length is not None and len(value) < field_def.min_length:
-                    errors.append(StateError(
-                        code=StateErrorCode.BOUNDS_EXCEEDED,
-                        message=f"Field '{name}' too short",
-                        details={"field": name, "min_length": field_def.min_length, "length": len(value)},
-                    ))
+                if (
+                    field_def.min_length is not None
+                    and len(value) < field_def.min_length
+                ):
+                    errors.append(
+                        StateError(
+                            code=StateErrorCode.BOUNDS_EXCEEDED,
+                            message=f"Field '{name}' too short",
+                            details={
+                                "field": name,
+                                "min_length": field_def.min_length,
+                                "length": len(value),
+                            },
+                        )
+                    )
 
-                if field_def.max_length is not None and len(value) > field_def.max_length:
-                    errors.append(StateError(
-                        code=StateErrorCode.BOUNDS_EXCEEDED,
-                        message=f"Field '{name}' too long",
-                        details={"field": name, "max_length": field_def.max_length, "length": len(value)},
-                    ))
+                if (
+                    field_def.max_length is not None
+                    and len(value) > field_def.max_length
+                ):
+                    errors.append(
+                        StateError(
+                            code=StateErrorCode.BOUNDS_EXCEEDED,
+                            message=f"Field '{name}' too long",
+                            details={
+                                "field": name,
+                                "max_length": field_def.max_length,
+                                "length": len(value),
+                            },
+                        )
+                    )
 
             # Allowed values
             if field_def.allowed_values is not None:
                 if value not in field_def.allowed_values:
-                    errors.append(StateError(
-                        code=StateErrorCode.VALIDATION_ERROR,
-                        message=f"Field '{name}' has invalid value",
-                        details={"field": name, "allowed": field_def.allowed_values, "value": value},
-                    ))
+                    errors.append(
+                        StateError(
+                            code=StateErrorCode.VALIDATION_ERROR,
+                            message=f"Field '{name}' has invalid value",
+                            details={
+                                "field": name,
+                                "allowed": field_def.allowed_values,
+                                "value": value,
+                            },
+                        )
+                    )
 
         return errors
 
     @classmethod
     def default_schema(cls) -> "StateSchema":
         """Create the default schema for ResearchState."""
-        return cls([
-            SchemaField("company_name", str, required=True, min_length=1, max_length=500),
-            SchemaField("website", str, required=False, max_length=2000),
-            SchemaField("current_wave", str, required=True, allowed_values=[
-                "init", "gathering", "thinking", "writing", "review", "complete", "error"
-            ]),
-            SchemaField("feedback_loop_count", int, required=False, min_value=0, max_value=MAX_FEEDBACK_LOOPS),
-            SchemaField("raw_data", list, required=False, max_length=MAX_RAW_DATA_ITEMS),
-            SchemaField("source_log", list, required=False, max_length=MAX_SOURCE_LOG_ITEMS),
-            SchemaField("errors", list, required=False, max_length=MAX_ERRORS),
-        ])
+        return cls(
+            [
+                SchemaField(
+                    "company_name", str, required=True, min_length=1, max_length=500
+                ),
+                SchemaField("website", str, required=False, max_length=2000),
+                SchemaField(
+                    "current_wave",
+                    str,
+                    required=True,
+                    allowed_values=[
+                        "init",
+                        "gathering",
+                        "thinking",
+                        "writing",
+                        "review",
+                        "complete",
+                        "error",
+                    ],
+                ),
+                SchemaField(
+                    "feedback_loop_count",
+                    int,
+                    required=False,
+                    min_value=0,
+                    max_value=MAX_FEEDBACK_LOOPS,
+                ),
+                SchemaField(
+                    "raw_data", list, required=False, max_length=MAX_RAW_DATA_ITEMS
+                ),
+                SchemaField(
+                    "source_log", list, required=False, max_length=MAX_SOURCE_LOG_ITEMS
+                ),
+                SchemaField("errors", list, required=False, max_length=MAX_ERRORS),
+            ]
+        )
 
 
 # Global schema instance
@@ -404,6 +477,7 @@ def reset_state_schema() -> None:
 
 class ResearchPhase(str, Enum):
     """Valid research workflow phases."""
+
     INIT = "init"
     GATHERING = "gathering"
     THINKING = "thinking"
@@ -432,7 +506,11 @@ class TransitionConfig:
         ResearchPhase.GATHERING: {ResearchPhase.THINKING, ResearchPhase.ERROR},
         ResearchPhase.THINKING: {ResearchPhase.WRITING, ResearchPhase.ERROR},
         ResearchPhase.WRITING: {ResearchPhase.REVIEW, ResearchPhase.ERROR},
-        ResearchPhase.REVIEW: {ResearchPhase.WRITING, ResearchPhase.COMPLETE, ResearchPhase.ERROR},
+        ResearchPhase.REVIEW: {
+            ResearchPhase.WRITING,
+            ResearchPhase.COMPLETE,
+            ResearchPhase.ERROR,
+        },
         ResearchPhase.COMPLETE: set(),  # Terminal state
         ResearchPhase.ERROR: {ResearchPhase.INIT},  # Can restart from error
     }
@@ -459,7 +537,9 @@ class TransitionConfig:
         """Get valid transitions from a phase."""
         return self._transitions.get(from_phase, set())
 
-    def can_transition(self, from_phase: ResearchPhase, to_phase: ResearchPhase) -> bool:
+    def can_transition(
+        self, from_phase: ResearchPhase, to_phase: ResearchPhase
+    ) -> bool:
         """Check if a transition is valid."""
         if self._allow_skip_phases:
             # Allow any non-backward transition except from terminal
@@ -468,13 +548,17 @@ class TransitionConfig:
             return True
         return to_phase in self.get_valid_transitions(from_phase)
 
-    def add_transition(self, from_phase: ResearchPhase, to_phase: ResearchPhase) -> None:
+    def add_transition(
+        self, from_phase: ResearchPhase, to_phase: ResearchPhase
+    ) -> None:
         """Add a new valid transition."""
         if from_phase not in self._transitions:
             self._transitions[from_phase] = set()
         self._transitions[from_phase].add(to_phase)
 
-    def remove_transition(self, from_phase: ResearchPhase, to_phase: ResearchPhase) -> None:
+    def remove_transition(
+        self, from_phase: ResearchPhase, to_phase: ResearchPhase
+    ) -> None:
         """Remove a transition."""
         if from_phase in self._transitions:
             self._transitions[from_phase].discard(to_phase)
@@ -524,7 +608,9 @@ def reset_transition_config() -> None:
 
 
 # Legacy constant for backward compatibility
-VALID_PHASE_TRANSITIONS: Dict[ResearchPhase, Set[ResearchPhase]] = TransitionConfig.DEFAULT_TRANSITIONS
+VALID_PHASE_TRANSITIONS: Dict[ResearchPhase, Set[ResearchPhase]] = (
+    TransitionConfig.DEFAULT_TRANSITIONS
+)
 
 
 # =============================================================================
@@ -534,6 +620,7 @@ VALID_PHASE_TRANSITIONS: Dict[ResearchPhase, Set[ResearchPhase]] = TransitionCon
 
 class SourceMetadata(BaseModel):
     """Metadata for a research source."""
+
     url: str
     title: str
     date_accessed: str
@@ -561,7 +648,9 @@ class StateManager:
         self._checkpoints: List[Dict[str, Any]] = []
         self._max_checkpoints = max_checkpoints
 
-    async def update_state(self, state: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_state(
+        self, state: Dict[str, Any], updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Thread-safe state update with locking.
 
@@ -688,6 +777,9 @@ class ResearchState(BaseModel):
     critique_feedback: Optional[str] = None
     feedback_loop_count: int = Field(default=0, ge=0)
 
+    # Evaluation Metrics
+    evaluation_metrics: Optional[Dict[str, Any]] = None
+
     # =============================================================================
     # Validators (GR-001: State Validation, GR-003: Bounds)
     # =============================================================================
@@ -720,7 +812,9 @@ class ResearchState(BaseModel):
 
     @field_validator("source_log")
     @classmethod
-    def validate_source_log_bounds(cls, v: List[SourceMetadata]) -> List[SourceMetadata]:
+    def validate_source_log_bounds(
+        cls, v: List[SourceMetadata]
+    ) -> List[SourceMetadata]:
         """Enforce bounds on source_log (GR-003)."""
         if len(v) > MAX_SOURCE_LOG_ITEMS:
             return v[-MAX_SOURCE_LOG_ITEMS:]
@@ -748,7 +842,10 @@ class ResearchState(BaseModel):
         """Enforce size limits on drafts (GR-003)."""
         for key, content in v.items():
             if len(content) > MAX_DRAFT_SIZE_CHARS:
-                v[key] = content[:MAX_DRAFT_SIZE_CHARS] + "\n\n[Content truncated due to size limits]"
+                v[key] = (
+                    content[:MAX_DRAFT_SIZE_CHARS]
+                    + "\n\n[Content truncated due to size limits]"
+                )
         return v
 
     @field_validator("feedback_loop_count")
@@ -840,6 +937,7 @@ class ResearchState(BaseModel):
             Approximate size in bytes
         """
         import sys
+
         return sys.getsizeof(self.model_dump_json())
 
     def cleanup_transient_data(self) -> "ResearchState":
@@ -849,12 +947,16 @@ class ResearchState(BaseModel):
         Returns:
             State with cleaned up transient data
         """
-        trimmed_messages = self.messages[-10:] if len(self.messages) > 10 else self.messages
+        trimmed_messages = (
+            self.messages[-10:] if len(self.messages) > 10 else self.messages
+        )
 
-        return self.model_copy(update={
-            "messages": trimmed_messages,
-            "raw_data": [],  # Clear raw data after processing
-        })
+        return self.model_copy(
+            update={
+                "messages": trimmed_messages,
+                "raw_data": [],  # Clear raw data after processing
+            }
+        )
 
     # =============================================================================
     # Typed Model Accessors (Issue #053 - Replace Dict[str, Any])
@@ -911,12 +1013,29 @@ class ResearchState(BaseModel):
             ctx = state.get_typed_research_context()
             revenue = ctx.financial_data.revenue  # IDE autocomplete works!
         """
+        # Convert raw_data to ResearchSource objects
+        sources = []
+        for item in self.raw_data:
+            url = item.get("url")
+            content = item.get("content")
+            if url and content:
+                sources.append(
+                    ResearchSource(
+                        url=url,
+                        title=item.get("source", "Unknown Source"),
+                        content=content,
+                        source_type="web",
+                        metadata=item.get("metadata", {}),
+                    )
+                )
+
         return TypedResearchContext.from_state_dicts(
             financial=self.financial_data,
             market=self.market_data,
             competitor=self.competitor_data,
             brand=self.brand_data,
             sales=self.sales_data,
+            sources=sources,
         )
 
     def set_typed_financial_data(self, data: FinancialData) -> "ResearchState":
@@ -1051,6 +1170,7 @@ def validate_state_transition(func):
 
     Ensures state consistency and catches validation errors.
     """
+
     @wraps(func)
     async def wrapper(state_dict: Dict[str, Any], *args, **kwargs) -> Dict[str, Any]:
         # Validate input state
@@ -1059,7 +1179,8 @@ def validate_state_transition(func):
         except Exception as e:
             return {
                 **state_dict,
-                "errors": state_dict.get("errors", []) + [f"Input state validation failed: {e}"],
+                "errors": state_dict.get("errors", [])
+                + [f"Input state validation failed: {e}"],
                 "current_wave": ResearchPhase.ERROR.value,
             }
 
@@ -1069,7 +1190,8 @@ def validate_state_transition(func):
         except Exception as e:
             return {
                 **state_dict,
-                "errors": state_dict.get("errors", []) + [f"Node execution failed: {e}"],
+                "errors": state_dict.get("errors", [])
+                + [f"Node execution failed: {e}"],
             }
 
         # Merge and validate output state
@@ -1081,7 +1203,8 @@ def validate_state_transition(func):
             return {
                 **state_dict,
                 **result,
-                "errors": state_dict.get("errors", []) + [f"Output state validation failed: {e}"],
+                "errors": state_dict.get("errors", [])
+                + [f"Output state validation failed: {e}"],
             }
 
     return wrapper

@@ -355,7 +355,9 @@ class FileIndexer:
                 for chunk in iter(lambda: f.read(8192), b""):
                     hasher.update(chunk)
             return hasher.hexdigest()[:16]
-        except Exception:
+        except (OSError, IOError) as e:
+            # Log file I/O errors (BUG-008)
+            logger.debug(f"Failed to compute hash for {path}: {e}")
             return ""
 
     def _should_index(self, path: Path) -> bool:
@@ -400,8 +402,10 @@ class FileIndexer:
                     return True
 
             return False
-        except Exception:
-            return True
+        except (OSError, IOError) as e:
+            # Log file access errors (BUG-008)
+            logger.debug(f"Failed to check if {path} changed: {e}")
+            return True  # Assume changed if we can't check
 
     def add_callback(self, callback: Callable[[FileMetadata], None]) -> None:
         """Add callback for index updates."""

@@ -9,15 +9,15 @@ Inspired by microsoft/qlib alpha factor mining.
 import hashlib
 import logging
 import math
-import operator
 import random
 import re
 import threading
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+from src.core.safe_eval import SafeExpressionEvaluator, SafeEvalError
 
 logger = logging.getLogger(__name__)
 
@@ -130,15 +130,11 @@ class Factor:
 
 
 class ExpressionParser:
-    """Parse and evaluate factor expressions."""
+    """Parse and evaluate factor expressions safely using AST parsing.
 
-    OPERATORS = {
-        '+': operator.add,
-        '-': operator.sub,
-        '*': operator.mul,
-        '/': operator.truediv,
-        '^': operator.pow,
-    }
+    This class uses SafeExpressionEvaluator to prevent code injection attacks
+    while still supporting mathematical expressions for alpha factor calculations.
+    """
 
     FUNCTIONS = {
         'abs': abs,
@@ -151,8 +147,11 @@ class ExpressionParser:
     }
 
     def __init__(self):
-        """Initialize parser."""
+        """Initialize parser with safe expression evaluator."""
         self._cache: Dict[str, Callable] = {}
+        self._evaluator = SafeExpressionEvaluator(
+            additional_functions=self.FUNCTIONS
+        )
 
     def parse(self, expression: str) -> Callable:
         """Parse expression into callable function."""
@@ -164,15 +163,15 @@ class ExpressionParser:
         return func
 
     def _compile(self, expression: str) -> Callable:
-        """Compile expression to function."""
+        """Compile expression to function using safe evaluation."""
         safe_expr = self._sanitize(expression)
+        evaluator = self._evaluator
 
         def evaluate(data: Dict[str, float]) -> float:
-            local_vars = dict(data)
-            local_vars.update(self.FUNCTIONS)
-
             try:
-                return eval(safe_expr, {"__builtins__": {}}, local_vars)
+                return evaluator.evaluate(safe_expr, data)
+            except SafeEvalError:
+                return float('nan')
             except Exception:
                 return float('nan')
 
@@ -185,13 +184,12 @@ class ExpressionParser:
         return expression
 
     def validate(self, expression: str) -> Tuple[bool, str]:
-        """Validate expression syntax."""
+        """Validate expression syntax using safe evaluator."""
         try:
             safe_expr = self._sanitize(expression)
-            compile(safe_expr, '<string>', 'eval')
-            return True, "Valid expression"
-        except SyntaxError as e:
-            return False, f"Syntax error: {e}"
+            return self._evaluator.validate(safe_expr)
+        except Exception as e:
+            return False, f"Validation error: {e}"
 
 
 class TimeSeriesOperations:

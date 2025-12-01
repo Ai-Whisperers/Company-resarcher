@@ -82,8 +82,15 @@ dependencies = [
     "langfuse>=2.0.0",
     "langsmith>=0.1.0",
 
-    # Metrics
+    # Metrics & Telemetry
     "prometheus-client>=0.19.0",
+
+    # Security (optional but recommended)
+    "cryptography>=41.0.0",
+
+    # Research Quality
+    "sentence-transformers>=2.2.0",
+    "rank-bm25>=0.2.2",
 ]
 
 [project.optional-dependencies]
@@ -107,6 +114,26 @@ dev = [
     "hypothesis>=6.100.0",
     "pact-python>=2.0.0",
     "mutmut>=2.4.0",
+    "bandit>=1.7.0",
+]
+
+# OpenTelemetry for distributed tracing
+telemetry = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp>=1.20.0",
+    "opentelemetry-instrumentation-fastapi>=0.41b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.41b0",
+]
+
+# Error tracking with Sentry
+sentry = [
+    "sentry-sdk[fastapi]>=1.35.0",
+]
+
+# All observability features
+observability = [
+    "company-researcher[telemetry,sentry]",
 ]
 
 [project.urls]
@@ -224,6 +251,9 @@ markers = [
     "serial: marks tests that must run serially (not in parallel)",
     "flaky: marks tests that may fail intermittently (reruns enabled)",
     "vcr: marks tests that use VCR for HTTP recording",
+    "behavior: marks agent behavior tests",
+    "golden: marks golden output comparison tests",
+    "property: marks property-based tests",
 ]
 
 [tool.coverage.run]

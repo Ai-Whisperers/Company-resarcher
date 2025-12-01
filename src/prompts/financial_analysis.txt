@@ -1,21 +1,75 @@
-Analyze the financial health of {{ company.name }}.
+You are an expert financial analyst. Analyze the financial health of {{ company.name }} in the {{ company.industry }} industry ({{ company.country }}).
 
-Return a JSON object with the following structure:
+IMPORTANT: Extract ALL financial data points available in the sources. Include specific numbers, currencies, dates, growth rates, and financial metrics. For private companies, look for parent company financials, industry benchmarks, or any available financial indicators.
+
+Return a JSON object with the following structure (use "N/A" ONLY if data is truly not available):
 {
-    "revenue": "Latest annual revenue",
-    "profit": "Net income or EBITDA",
-    "growth": "YoY growth rate",
-    "stock_ticker": "Ticker symbol (if public)",
-    "market_cap": "Current market cap (if public)",
-    "funding": "Total funding raised (if private)",
-    "valuation": "Last known valuation (if private)",
-    "fiscal_year": "Fiscal year end",
-    "key_highlights": [
-        "Highlight 1",
-        "Highlight 2"
+    "company_structure": {
+        "ownership": "Parent company and ownership structure",
+        "subsidiaries": "Any subsidiaries or related entities",
+        "headquarters": "Location of headquarters",
+        "founded": "Year founded"
+    },
+    "revenue_latest": "Latest annual revenue with currency and year (e.g., '$500M in 2024')",
+    "revenue_growth": "Year-over-year growth rate with specific years (e.g., '+15% from 2023 to 2024')",
+    "revenue_history": [
+        {
+            "year": "2024",
+            "amount": "$500M",
+            "growth": "+15%"
+        }
     ],
-    "executive_summary": "Brief financial summary"
+    "profitability": {
+        "status": "Profitable/Unprofitable/Unknown",
+        "profit_margin": "Profit margin percentage if available",
+        "ebitda": "EBITDA figures if available",
+        "net_income": "Net income if available"
+    },
+    "funding_rounds": [
+        {
+            "date": "2024",
+            "amount": "$50M",
+            "stage": "Series B",
+            "investors": "Lead investor names",
+            "valuation": "Post-money valuation if available"
+        }
+    ],
+    "stock_performance": {
+        "status": "Public/Private",
+        "ticker": "Stock ticker if public",
+        "exchange": "Stock exchange if public",
+        "current_price": "Current stock price if available",
+        "market_cap": "Market capitalization if available",
+        "52_week_range": "52-week price range if available",
+        "performance_ytd": "Year-to-date performance"
+    },
+    "key_financial_metrics": {
+        "arpu": "Average Revenue Per User if available",
+        "customer_acquisition_cost": "CAC if available",
+        "lifetime_value": "LTV if available",
+        "churn_rate": "Customer churn rate if available",
+        "subscriber_count": "Total subscribers/customers"
+    },
+    "financial_highlights": [
+        {
+            "highlight": "Key financial achievement or milestone",
+            "details": "Specific numbers and context",
+            "date": "When this occurred"
+        }
+    ],
+    "investments_capex": "Notable capital expenditures or investments",
+    "debt_position": "Debt levels or credit ratings if available",
+    "financial_outlook": "Forward-looking statements or guidance if available",
+    "industry_comparison": "How {{ company.name }}'s financials compare to industry peers"
 }
+
+INSTRUCTIONS:
+1. For private companies, extract parent company financials (e.g., Telecom Argentina, Millicom for telecoms)
+2. Look for ARPU, subscriber counts, and telecom-specific metrics
+3. Include any available historical data to show trends
+4. Note the source of financial data (annual report, news article, estimate)
+5. If exact figures aren't available, include estimates or ranges mentioned in sources
+6. Extract investment and infrastructure spending information
 
 Data:
 {{ context }}

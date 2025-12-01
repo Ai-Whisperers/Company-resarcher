@@ -57,25 +57,26 @@ class YouTubeTool:
             List of transcript segments
 
         Raises:
-            Exception if transcript cannot be fetched
+            ValueError if transcript cannot be fetched
         """
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
 
         # Try manual English transcript first
         try:
             return transcript_list.find_transcript(["en"]).fetch()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"No manual English transcript for {video_id}: {e}")
 
         # Try auto-generated English transcript
         try:
             return transcript_list.find_generated_transcript(["en"]).fetch()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"No auto-generated English transcript for {video_id}: {e}")
 
         # Fallback to first available transcript
         first_transcript = next(iter(transcript_list), None)
         if first_transcript:
+            logger.info(f"Using fallback transcript language for {video_id}")
             return first_transcript.fetch()
 
         raise ValueError(f"No transcripts available for video {video_id}")

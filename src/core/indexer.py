@@ -1,10 +1,7 @@
 import os
 import logging
 import json
-import joblib  # Safer alternative to pickle for sklearn objects
 from typing import List, Dict, Any
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.neighbors import NearestNeighbors
 from pypdf import PdfReader
 
 logger = logging.getLogger(__name__)
@@ -12,25 +9,19 @@ logger = logging.getLogger(__name__)
 
 class DocumentIndexer:
     """
-    Indexes documents using TF-IDF and NearestNeighbors for lightweight semantic search.
-    Fallback implementation due to dependency issues with torch/chromadb on Python 3.13.
+    Indexes documents using Hybrid Retrieval (Semantic + Keyword).
     """
 
     def __init__(self, persist_directory: str = "data/vector_store"):
         self.persist_directory = persist_directory
-        self.index_path = os.path.join(persist_directory, "tfidf_index.joblib")
+        # Changed filename to hybrid_index.joblib
+        self.index_path = os.path.join(persist_directory, "hybrid_index.joblib")
         self.metadata_path = os.path.join(persist_directory, "metadata.json")
 
         if not os.path.exists(persist_directory):
             os.makedirs(persist_directory)
 
         self.documents = []  # List of chunk contents
-        self.metadatas = []  # List of metadata dicts
-        self.vectorizer = TfidfVectorizer(stop_words="english")
-        self.nn_model = NearestNeighbors(n_neighbors=5, metric="cosine")
-        self.is_fitted = False
-
-        self.load_index()
 
     def load_pdf(self, file_path: str) -> str:
         """Extract text from a PDF file."""
@@ -106,25 +97,20 @@ class DocumentIndexer:
         return True
 
     def fit_and_save(self):
-        """Fit TF-IDF and NearestNeighbors, then save to disk."""
+        """Fit HybridRetriever and save to disk."""
         if not self.documents:
             return
 
         try:
-            tfidf_matrix = self.vectorizer.fit_transform(self.documents)
-            self.nn_model.fit(tfidf_matrix)
+            from .hybrid_retriever import HybridRetriever
+
+            # Initialize and fit retriever
+            self.retriever = HybridRetriever(self.documents, self.metadatas)
             self.is_fitted = True
 
-            # Save sklearn objects with joblib (safer than pickle)
-            joblib.dump(
-                {
-                    "vectorizer": self.vectorizer,
-                    "nn_model": self.nn_model,
-                },
-                self.index_path,
-            )
-
-            # Save documents and metadata as JSON (fully safe)
+            # Save documents and metadata as JSON
+            # Note: We are not saving the embeddings/BM25 index to disk in this simple version,
+            # we just reload from documents. For production, we'd save the index.
             with open(self.metadata_path, "w", encoding="utf-8") as f:
                 json.dump(
                     {
@@ -134,53 +120,42 @@ class DocumentIndexer:
                     f,
                     ensure_ascii=False,
                 )
+            logger.info("Saved index metadata to disk.")
+
         except Exception as e:
             logger.error(f"Failed to fit/save index: {e}")
 
     def load_index(self):
         """Load index from disk if exists."""
-        if os.path.exists(self.index_path) and os.path.exists(self.metadata_path):
+        if os.path.exists(self.metadata_path):
             try:
-                # Load sklearn objects with joblib
-                sklearn_data = joblib.load(self.index_path)
-                self.vectorizer = sklearn_data["vectorizer"]
-                self.nn_model = sklearn_data["nn_model"]
-
                 # Load documents and metadata from JSON
                 with open(self.metadata_path, "r", encoding="utf-8") as f:
                     json_data = json.load(f)
                     self.documents = json_data["documents"]
                     self.metadatas = json_data["metadatas"]
 
-                self.is_fitted = True
-                logger.info("Loaded existing index.")
+                if self.documents:
+                    from .hybrid_retriever import HybridRetriever
+
+                    self.retriever = HybridRetriever(self.documents, self.metadatas)
+                    self.is_fitted = True
+                    logger.info(
+                        "Loaded existing index and initialized HybridRetriever."
+                    )
+
             except Exception as e:
                 logger.error(f"Failed to load index: {e}")
 
     def search(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """
-        Search the index for relevant chunks.
+        Search the index for relevant chunks using Hybrid Retrieval.
         """
-        if not self.is_fitted or not self.documents:
+        if not self.is_fitted or not self.retriever:
             return []
 
         try:
-            query_vec = self.vectorizer.transform([query])
-            distances, indices = self.nn_model.kneighbors(
-                query_vec, n_neighbors=min(n_results, len(self.documents))
-            )
-
-            results = []
-            for i, idx in enumerate(indices[0]):
-                results.append(
-                    {
-                        "content": self.documents[idx],
-                        "metadata": self.metadatas[idx],
-                        "distance": distances[0][i],
-                    }
-                )
-
-            return results
+            return self.retriever.search(query, k=n_results)
 
         except Exception as e:
             logger.error(f"Search failed: {e}")

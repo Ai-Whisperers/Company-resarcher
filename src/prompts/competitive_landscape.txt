@@ -1,20 +1,63 @@
-Identify and analyze the top competitors for {{ company.name }} in {{ company.country }}.
+You are an expert competitive intelligence analyst. Identify and analyze the top competitors for {{ company.name }} in the {{ company.industry }} industry ({{ company.country }}).
 
-Return a JSON object with the following structure:
+IMPORTANT: Extract comprehensive, specific details about each competitor. Include market shares, revenue figures, subscriber counts, specific strengths/weaknesses, and strategic insights. Be thorough and data-driven.
+
+Return a JSON object with the following structure (use "N/A" ONLY if data is truly not available):
 {
-    "competitors": [
+    "direct_competitors": [
         {
             "name": "Competitor Name",
-            "overview": "Brief overview",
-            "strengths": "Key strengths",
-            "weaknesses": "Key weaknesses",
-            "pricing": "Pricing model/tiers"
+            "website": "https://competitor.com (look for official website URLs in the data)",
+            "description": "Comprehensive description of the competitor - what they do, their history, ownership structure",
+            "market_share": "Specific market share percentage if available",
+            "subscriber_count": "Number of subscribers/customers if available",
+            "revenue": "Revenue figures if available",
+            "strength": "Their primary competitive advantage with specific examples",
+            "weaknesses": "Known weaknesses or challenges they face",
+            "products_services": ["List of main products/services they offer"],
+            "recent_developments": "Recent news, launches, or strategic moves",
+            "threat_level": "High/Medium/Low - how much of a threat to {{ company.name }}"
         }
     ],
-    "feature_comparison_matrix": "Markdown table comparing key features",
-    "market_share_analysis": "Analysis of market share distribution",
-    "executive_summary": "Brief summary of competitive landscape"
+    "indirect_competitors": [
+        {
+            "name": "Alternative/Adjacent Company",
+            "type": "Type of indirect competitor (e.g., MVNO, OTT, adjacent industry)",
+            "description": "How they compete indirectly with {{ company.name }}",
+            "potential_impact": "How they could affect {{ company.name }}'s business"
+        }
+    ],
+    "emerging_threats": [
+        {
+            "threat": "Name of emerging threat",
+            "description": "Detailed description of the threat",
+            "timeline": "When this threat might materialize",
+            "mitigation": "How {{ company.name }} could respond"
+        }
+    ],
+    "competitive_advantages": [
+        {
+            "advantage": "{{ company.name }}'s competitive advantage",
+            "description": "Detailed explanation of this advantage",
+            "sustainability": "How sustainable is this advantage"
+        }
+    ],
+    "market_dynamics": {
+        "market_concentration": "Description of market concentration (oligopoly, fragmented, etc.)",
+        "price_competition": "Level of price competition in the market",
+        "differentiation_factors": ["Key factors companies compete on"],
+        "barriers_to_entry": ["Barriers that protect existing players"]
+    },
+    "competitive_positioning_summary": "A comprehensive summary of {{ company.name }}'s competitive position including market rank, key differentiators, and strategic outlook"
 }
+
+INSTRUCTIONS:
+1. For each direct competitor, extract ALL available data - don't leave fields empty if info exists
+2. Include actual market share percentages and subscriber numbers when mentioned
+3. Identify at least 2-3 direct competitors and 2-3 indirect competitors if data supports it
+4. Look for competitor websites in the source URLs
+5. Be specific about each competitor's strengths - cite actual capabilities or achievements
+6. Analyze the overall competitive dynamics, not just individual competitors
 
 Data:
 {{ context }}

@@ -345,7 +345,7 @@ def _register_default_services(container: Container) -> None:
     from .cache import AICache
     from .ai_client import AIClientManager
     from .template_renderer import TemplateRenderer
-    from ..tools.search import SearchTool
+    from ..tools.search_tool import SearchTool
     from ..tools.browser import BrowserTool
     from ..tools.local_search import LocalSearchTool
 

@@ -1,17 +1,81 @@
-Analyze the brand identity of {{ company.name }}.
+You are an expert brand strategist. Analyze the brand identity of {{ company.name }} in the {{ company.industry }} industry ({{ company.country }}).
 
-Return a JSON object with the following structure:
+IMPORTANT: Extract detailed, specific brand insights from the sources. Include actual taglines, campaign names, brand history, customer perception data, and strategic positioning details. Be comprehensive and insightful.
+
+Return a JSON object with the following structure (use "N/A" ONLY if data is truly not available):
 {
-    "positioning_statement": "Core positioning statement",
-    "usp": "Unique Selling Proposition",
-    "brand_archetype": "Brand Archetype (e.g., Hero, Sage)",
-    "messaging_pillars": [
-        {"name": "Pillar Name", "description": "Description"}
+    "company_overview": {
+        "founded": "Year company was founded",
+        "history": "Brief history and evolution of the company",
+        "mission": "Company mission statement if available",
+        "vision": "Company vision statement if available"
+    },
+    "usp": "Unique Selling Proposition - what specifically makes them different from competitors, with examples",
+    "value_prop": "Core value proposition for customers - what specific benefits they deliver",
+    "brand_identity": {
+        "tagline": "Current brand tagline or slogan",
+        "brand_promise": "What they promise to customers",
+        "brand_personality": "Personality traits the brand embodies",
+        "tone_of_voice": "How the brand communicates"
+    },
+    "brand_archetype": "Brand Archetype (e.g., Hero, Sage, Explorer, Creator, Innovator, Caregiver)",
+    "archetype_description": "Detailed explanation of why this archetype fits the brand with specific examples from their marketing or behavior",
+    "positioning_statement": "Core brand positioning statement - how they want to be perceived in the market",
+    "brand_strengths": [
+        {
+            "strength": "Brand strength name",
+            "description": "Detailed explanation with evidence from sources",
+            "competitive_advantage": "How this creates advantage over competitors"
+        }
     ],
-    "tone_of_voice": "Description of tone",
-    "taglines": "List of known taglines",
-    "executive_summary": "Brief summary of brand strategy"
+    "brand_weaknesses": [
+        {
+            "weakness": "Brand weakness or challenge",
+            "description": "Details about this weakness",
+            "impact": "How it affects their market position"
+        }
+    ],
+    "brand_values": [
+        {
+            "value": "Core brand value",
+            "description": "How this value is demonstrated in their actions"
+        }
+    ],
+    "target_audience": {
+        "primary": "Primary target audience description",
+        "secondary": "Secondary audiences",
+        "demographics": "Key demographic details",
+        "psychographics": "Lifestyle and behavioral characteristics"
+    },
+    "marketing_campaigns": [
+        {
+            "campaign": "Campaign name or description",
+            "details": "What the campaign involved",
+            "results": "Results or impact if known"
+        }
+    ],
+    "customer_perception": {
+        "reputation": "Overall brand reputation",
+        "reviews_sentiment": "Customer review sentiment if available",
+        "nps_score": "Net Promoter Score if available",
+        "key_complaints": "Common customer complaints or issues"
+    },
+    "digital_presence": {
+        "website": "Quality and features of their website",
+        "social_media": "Social media presence and engagement",
+        "content_strategy": "Type of content they produce"
+    },
+    "brand_evolution": "How the brand has evolved over time",
+    "strategic_recommendations": "Insights on brand positioning opportunities or improvements"
 }
+
+INSTRUCTIONS:
+1. Extract actual taglines, slogans, and campaign names from the sources
+2. Look for customer reviews, awards, or recognition mentioned
+3. Analyze their digital presence and marketing approach
+4. Identify specific examples that demonstrate their brand values
+5. Note any brand evolution or rebranding efforts
+6. Consider competitive positioning - how they differentiate from main competitors
 
 Data:
 {{ context }}

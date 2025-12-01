@@ -5,9 +5,10 @@ Thread-safe singleton pattern using locks.
 """
 
 import threading
-from .search import SearchTool
+from .search_tool import SearchTool
 from .browser import BrowserTool
 from .local_search import LocalSearchTool
+from .search.manager import reset_search_manager
 
 # Singleton instances
 _search_tool_instance: SearchTool | None = None
@@ -62,3 +63,5 @@ def reset_shared_tools():
         _local_search_tool_instance = None
     with _browser_tool_lock:
         _browser_tool_instance = None
+    # Also reset the search manager singleton
+    reset_search_manager()

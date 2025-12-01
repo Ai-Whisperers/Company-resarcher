@@ -1,28 +1,74 @@
-Analyze the strategic priorities and pain points of {{ company.name }}.
-Then, acting as a B2B Sales Representative, suggest relevant solutions from OUR PRODUCT PORTFOLIO.
+You are an expert B2B sales strategist. Analyze the strategic priorities and pain points of {{ company.name }} in the {{ company.industry }} industry.
+
+IMPORTANT: Extract specific, actionable insights from the research data. Include actual business challenges, strategic initiatives, technology needs, and growth plans mentioned in the sources. Be thorough and provide detailed rationale for each recommendation.
 
 OUR PRODUCT PORTFOLIO:
 {{ products_str }}
 
 Return a JSON object with the following structure:
 {
+    "company_context": {
+        "business_model": "How {{ company.name }} generates revenue",
+        "current_initiatives": ["List of known current strategic initiatives or projects"],
+        "technology_stack": "Known technologies or platforms they use",
+        "organizational_structure": "Key departments or business units if known"
+    },
     "pain_points": [
-        "Pain point 1",
-        "Pain point 2"
-    ],
-    "priorities": [
-        "Priority 1",
-        "Priority 2"
-    ],
-    "recommended_solutions": [
         {
-            "product": "One of our Product Names",
-            "rationale": "Why this fits their needs",
-            "pitch_angle": "How to position it"
+            "pain_point": "Specific pain point or challenge",
+            "description": "Detailed description of the problem with evidence from research",
+            "business_impact": "How this affects their business (revenue, costs, customer satisfaction)",
+            "urgency": "High/Medium/Low - how urgent is solving this"
         }
     ],
-    "executive_summary": "Brief sales opportunity summary"
+    "priorities": [
+        {
+            "priority": "Strategic priority name",
+            "description": "What they're trying to achieve",
+            "timeline": "Known timeline or urgency",
+            "investment_level": "Expected investment level if known"
+        }
+    ],
+    "decision_makers": {
+        "key_titles": ["Titles of likely decision makers for our solutions"],
+        "buying_process": "Likely buying process (RFP, direct, etc.)",
+        "budget_cycle": "When they typically make purchasing decisions"
+    },
+    "recommended_solutions": [
+        {
+            "product": "One of our Product Names from the portfolio",
+            "primary_pain_point": "Which pain point this addresses",
+            "rationale": "Detailed rationale for why this product fits their needs - be specific about features and benefits",
+            "value_proposition": "Quantifiable value we can deliver (cost savings, efficiency gains, etc.)",
+            "pitch_angle": "Specific messaging and positioning for this prospect",
+            "objection_handling": ["Potential objections and how to address them"],
+            "success_metrics": ["KPIs they could track to measure success"],
+            "implementation_approach": "Suggested implementation approach"
+        }
+    ],
+    "competitive_positioning": {
+        "current_vendors": "Known current solution providers they use",
+        "displacement_strategy": "How to position against incumbents",
+        "differentiators": ["Key differentiators to emphasize"]
+    },
+    "engagement_strategy": {
+        "entry_point": "Best department or use case to start with",
+        "expansion_opportunity": "How to expand within the organization",
+        "reference_customers": "Type of reference customers that would resonate"
+    },
+    "executive_summary": "Comprehensive sales opportunity summary including total addressable opportunity, key stakeholders, recommended approach, and expected timeline",
+    "next_steps": [
+        "Specific recommended next steps for sales engagement"
+    ]
 }
+
+INSTRUCTIONS:
+1. Analyze ALL available research to identify specific pain points - don't be generic
+2. Match pain points to specific products from our portfolio
+3. Provide detailed, actionable rationale - not generic sales speak
+4. Consider competitive dynamics and current vendor relationships
+5. Include specific value propositions with potential ROI
+6. Recommend a practical engagement strategy
 
 Data:
 {{ context }}

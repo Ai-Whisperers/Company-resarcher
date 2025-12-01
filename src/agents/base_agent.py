@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
+from collections import defaultdict
 from pathlib import Path
+from urllib.parse import urlparse
 import asyncio
 import json
 import os
+import time
 
 import jinja2
 from tenacity import (
@@ -24,13 +27,18 @@ from ..services.json_parser_helper import robust_json_parse
 
 if TYPE_CHECKING:
     from ..core.container import Container
-    from ..tools.search import SearchTool
+    from ..tools.search_tool import SearchTool
     from ..tools.browser import BrowserTool
 
 logger = setup_logger("base_agent")
 
 # Maximum concurrent queries per agent (configurable via environment)
+# Can be increased to 10-15 for faster searches if rate limits allow
 MAX_CONCURRENT_QUERIES = int(os.getenv("AGENT_MAX_CONCURRENT_QUERIES", "5"))
+
+# Per-domain rate limiting to avoid overwhelming individual servers
+MAX_REQUESTS_PER_DOMAIN = int(os.getenv("AGENT_MAX_REQUESTS_PER_DOMAIN", "3"))
+DOMAIN_COOLDOWN_SECONDS = float(os.getenv("AGENT_DOMAIN_COOLDOWN_SECONDS", "1.0"))
 
 # LLM call configuration (configurable via environment)
 LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
@@ -95,7 +103,7 @@ class BaseAgent(ABC):
         """
         # Import here to avoid circular imports
         from ..core.container import Container
-        from ..tools.search import SearchTool
+        from ..tools.search_tool import SearchTool
         from ..tools.browser import BrowserTool
 
         return cls(
@@ -201,36 +209,73 @@ class BaseAgent(ABC):
         logger.info(f"[{self.agent_name}] Fetching {len(queries)} queries (max {MAX_CONCURRENT_QUERIES} concurrent)")
         results = await asyncio.gather(*[fetch_query(q) for q in queries], return_exceptions=True)
 
-        # Process results with error tracking
+        # Process results with error tracking and deduplication (BUG-044)
         all_sources = []
+        seen_urls = set()
         failed_count = 0
+        empty_count = 0
+        duplicate_count = 0
+
         for query, result in zip(queries, results):
             if isinstance(result, Exception):
                 logger.error(f"[{self.agent_name}] Query '{query}' raised exception: {result}")
                 failed_count += 1
             elif result:
-                all_sources.extend(result)
+                # Deduplicate by URL (BUG-044, BUG-052)
+                for source in result:
+                    # Normalize URL: lowercase, strip trailing slash, remove www prefix
+                    normalized_url = source.url.lower().rstrip("/")
+                    # Remove www. prefix for deduplication (BUG-052)
+                    if "://www." in normalized_url:
+                        normalized_url = normalized_url.replace("://www.", "://")
+                    if normalized_url not in seen_urls:
+                        seen_urls.add(normalized_url)
+                        all_sources.append(source)
+                    else:
+                        duplicate_count += 1
+            else:
+                empty_count += 1  # Track empty results (TECH-033)
 
-        # Log summary
-        success_count = len(queries) - failed_count
-        logger.info(f"[{self.agent_name}] Gathered {len(all_sources)} sources from {success_count}/{len(queries)} successful queries")
+        # Log summary with accurate counts (TECH-033)
+        success_count = len(queries) - failed_count - empty_count
+        logger.info(
+            f"[{self.agent_name}] Gathered {len(all_sources)} sources from "
+            f"{success_count}/{len(queries)} successful queries "
+            f"(empty={empty_count}, failed={failed_count}, duplicates_removed={duplicate_count})"
+        )
         if failed_count > 0:
             logger.warning(f"[{self.agent_name}] {failed_count} queries failed")
+        if empty_count > 0:
+            logger.warning(f"[{self.agent_name}] {empty_count} queries returned empty results")
 
         return all_sources
 
     def _render(
-        self, template_name: str, data: Dict[str, Any], sources: List[ResearchSource]
+        self, template_name: str, data: Dict[str, Any], sources: List[ResearchSource],
+        company: CompanyProfile = None
     ) -> str:
         """
         Render the report using a Jinja2 template.
         """
-        # Add common context
+        # Filter out error/dictionary/irrelevant sources (BUG-039, BUG-045)
+        target_industry = company.industry if company else None
+        usable_sources = [s for s in sources if s.is_usable(target_industry)]
+        filtered_count = len(sources) - len(usable_sources)
+        if filtered_count > 0:
+            logger.info(f"[{self.agent_name}] Filtered {filtered_count} unusable sources from report")
+
+        # Add common context with timestamp (BUG-040)
+        from datetime import datetime, timezone
         data["agent_name"] = self.agent_name
+        data["timestamp"] = data.get("timestamp") or datetime.now(timezone.utc).isoformat()
         data["sources"] = [
             {"title": s.title, "url": s.url, "source_type": s.source_type}
-            for s in sources
+            for s in usable_sources
         ]
+
+        # Add company context for templates that need it
+        if company:
+            data["company"] = company
 
         return self.renderer.render(template_name, **data)
 
@@ -290,7 +335,7 @@ class BaseAgent(ABC):
 
         # 4. Render Report
         try:
-            markdown_content = self._render(output_template, data, sources)
+            markdown_content = self._render(output_template, data, sources, company)
         except KeyboardInterrupt:
             raise  # Always allow keyboard interrupt
         except Exception as e:

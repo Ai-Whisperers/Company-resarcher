@@ -39,7 +39,9 @@ from ..core.logger import setup_logger
 from ..agents.base_agent import BaseAgent
 from ..agents.insight_generator import InsightGenerator
 from ..agents.writer import ReportWriter
+from ..agents.writer import ReportWriter
 from ..agents.critic import LogicCritic
+from ..evaluation.research_evaluator import ResearchEvaluator
 from src.core.constants import UNKNOWN_VALUE
 
 logger = setup_logger("graph_builder")
@@ -61,6 +63,7 @@ NODE_PARALLEL_GATHERING = "parallel_gathering"
 NODE_INSIGHT_GENERATOR = "insight_generator"
 NODE_REPORT_WRITER = "report_writer"
 NODE_CRITIC = "critic"
+NODE_EVALUATOR = "evaluator"
 NODE_SOURCE_REVIEWER = "source_reviewer"
 NODE_END = "__end__"
 
@@ -80,6 +83,7 @@ AGENT_BRAND = "brand"
 @dataclass
 class NodeMetrics:
     """Metrics for a single node execution."""
+
     node_name: str
     start_time: datetime
     end_time: Optional[datetime] = None
@@ -92,6 +96,7 @@ class NodeMetrics:
 @dataclass
 class ExecutionMetrics:
     """Aggregated execution metrics for a workflow run."""
+
     workflow_id: str
     start_time: datetime = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
@@ -150,6 +155,7 @@ class ExecutionMetrics:
 
 class CircuitState(str, Enum):
     """Circuit breaker states."""
+
     CLOSED = "closed"  # Normal operation
     OPEN = "open"  # Failing, reject requests
     HALF_OPEN = "half_open"  # Testing if recovered
@@ -197,7 +203,9 @@ class CircuitBreaker:
         self._last_failure_time = asyncio.get_event_loop().time()
         if self._failure_count >= self.threshold:
             self._state = CircuitState.OPEN
-            logger.warning(f"Circuit breaker opened after {self._failure_count} failures")
+            logger.warning(
+                f"Circuit breaker opened after {self._failure_count} failures"
+            )
 
     def can_execute(self) -> bool:
         """Check if execution is allowed."""
@@ -213,6 +221,7 @@ class CircuitBreaker:
 @dataclass
 class DeadLetterEntry:
     """Entry in the dead letter queue."""
+
     node_name: str
     state_snapshot: Dict[str, Any]
     error: str
@@ -282,19 +291,23 @@ def with_timeout(timeout_seconds: float = DEFAULT_NODE_TIMEOUT):
     Args:
         timeout_seconds: Maximum execution time in seconds
     """
+
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         @wraps(func)
         async def wrapper(*args, **kwargs) -> T:
             try:
                 return await asyncio.wait_for(
-                    func(*args, **kwargs),
-                    timeout=timeout_seconds
+                    func(*args, **kwargs), timeout=timeout_seconds
                 )
             except asyncio.TimeoutError:
                 node_name = func.__name__
                 logger.error(f"Node {node_name} timed out after {timeout_seconds}s")
-                raise TimeoutError(f"Node {node_name} exceeded timeout of {timeout_seconds}s")
+                raise TimeoutError(
+                    f"Node {node_name} exceeded timeout of {timeout_seconds}s"
+                )
+
         return wrapper
+
     return decorator
 
 
@@ -311,6 +324,7 @@ def with_retry(
         backoff_base: Base for exponential backoff
         retryable_exceptions: Tuple of exceptions that trigger retry
     """
+
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         @wraps(func)
         async def wrapper(*args, **kwargs) -> T:
@@ -321,7 +335,7 @@ def with_retry(
                 except retryable_exceptions as e:
                     last_exception = e
                     if attempt < max_attempts - 1:
-                        wait_time = backoff_base ** attempt
+                        wait_time = backoff_base**attempt
                         logger.warning(
                             f"Node {func.__name__} failed (attempt {attempt + 1}/{max_attempts}), "
                             f"retrying in {wait_time}s: {e}"
@@ -332,7 +346,9 @@ def with_retry(
                             f"Node {func.__name__} failed after {max_attempts} attempts: {e}"
                         )
             raise last_exception
+
         return wrapper
+
     return decorator
 
 
@@ -395,6 +411,7 @@ class LangGraphBackend(GraphBackend):
     def __init__(self, state_class: type):
         # Import here to isolate LangGraph dependency
         from langgraph.graph import StateGraph, END
+
         self._StateGraph = StateGraph
         self._END = END
         self._graph = StateGraph(state_class)
@@ -417,8 +434,7 @@ class LangGraphBackend(GraphBackend):
     ) -> None:
         # Convert __end__ markers
         converted_branches = {
-            k: self._end_marker if v == "__end__" else v
-            for k, v in branches.items()
+            k: self._end_marker if v == "__end__" else v for k, v in branches.items()
         }
         self._graph.add_conditional_edges(from_node, condition, converted_branches)
 
@@ -586,6 +602,7 @@ class ConditionalEdgeConfig:
 
     Provides more flexibility in defining conditional routing.
     """
+
     from_node: str
     condition: Callable[[Any], str]
     branches: Dict[str, str]
@@ -649,8 +666,16 @@ class Subgraph:
             from_node=f"{self.name}_{config.from_node}",
             condition=config.condition,
             branches={k: f"{self.name}_{v}" for k, v in config.branches.items()},
-            default_branch=f"{self.name}_{config.default_branch}" if config.default_branch else None,
-            fallback_on_error=f"{self.name}_{config.fallback_on_error}" if config.fallback_on_error else None,
+            default_branch=(
+                f"{self.name}_{config.default_branch}"
+                if config.default_branch
+                else None
+            ),
+            fallback_on_error=(
+                f"{self.name}_{config.fallback_on_error}"
+                if config.fallback_on_error
+                else None
+            ),
         )
         self._conditional_edges.append(prefixed_config)
         return self
@@ -688,6 +713,7 @@ class GraphVisualization:
 
     Provides methods to export graph structure for visualization.
     """
+
     nodes: List[str]
     edges: List[Tuple[str, str]]
     conditional_edges: List[Tuple[str, List[str]]]
@@ -777,6 +803,7 @@ class GraphVisualization:
 @dataclass
 class DryRunResult:
     """Result of a dry-run execution (GR-023)."""
+
     nodes_visited: List[str]
     edges_traversed: List[Tuple[str, str]]
     simulated_state_changes: List[Dict[str, Any]]
@@ -867,7 +894,9 @@ class DryRunExecutor:
 
         # Use initial_state to determine starting node
         current_wave = initial_state.get("current_wave", "init")
-        current_node = "orchestrator" if current_wave == "init" else "parallel_gathering"
+        current_node = (
+            "orchestrator" if current_wave == "init" else "parallel_gathering"
+        )
         iteration = 0
 
         while current_node and iteration < max_iterations:
@@ -875,10 +904,12 @@ class DryRunExecutor:
 
             # Simulate node execution
             changes = self._simulate_node(current_node)
-            self._state_changes.append({
-                "node": current_node,
-                "changes": changes,
-            })
+            self._state_changes.append(
+                {
+                    "node": current_node,
+                    "changes": changes,
+                }
+            )
 
             # Determine next node
             next_node = self._get_next_node(current_node)
@@ -926,6 +957,7 @@ class DryRunExecutor:
 @dataclass
 class CachedResult:
     """Cached execution result for a node."""
+
     node_name: str
     result: Dict[str, Any]
     timestamp: datetime = field(default_factory=datetime.now)
@@ -1002,6 +1034,7 @@ class ExecutionResultCache:
 
 class GraphEventType(str, Enum):
     """Types of events emitted during graph execution."""
+
     NODE_START = "node_start"
     NODE_END = "node_end"
     NODE_ERROR = "node_error"
@@ -1016,6 +1049,7 @@ class GraphEventType(str, Enum):
 @dataclass
 class GraphEvent:
     """Event emitted during graph execution."""
+
     event_type: GraphEventType
     node_name: Optional[str]
     timestamp: datetime = field(default_factory=datetime.now)
@@ -1126,7 +1160,9 @@ class GraphPlugin(ABC):
         """Called when a workflow execution starts."""
         pass
 
-    def on_workflow_end(self, workflow_id: str, metrics: Optional["ExecutionMetrics"]) -> None:
+    def on_workflow_end(
+        self, workflow_id: str, metrics: Optional["ExecutionMetrics"]
+    ) -> None:
         """Called when a workflow execution ends."""
         pass
 
@@ -1171,7 +1207,9 @@ class PluginManager:
                 try:
                     hook(*args, **kwargs)
                 except Exception as e:
-                    logger.warning(f"Plugin '{plugin.name}' hook '{hook_name}' error: {e}")
+                    logger.warning(
+                        f"Plugin '{plugin.name}' hook '{hook_name}' error: {e}"
+                    )
 
     def clear(self) -> None:
         """Remove all plugins."""
@@ -1206,6 +1244,7 @@ class ResearchGraphBuilder:
         self._insight_generator: Optional[InsightGenerator] = None
         self._report_writer: Optional[ReportWriter] = None
         self._critic: Optional[LogicCritic] = None
+        self._evaluator: Optional[ResearchEvaluator] = None
         self._node_timeout: float = DEFAULT_NODE_TIMEOUT
         self._max_retries: int = MAX_RETRY_ATTEMPTS
         self._backend: Optional[GraphBackend] = None
@@ -1216,7 +1255,9 @@ class ResearchGraphBuilder:
         self._agents = agents
         return self
 
-    def with_insight_generator(self, generator: InsightGenerator) -> "ResearchGraphBuilder":
+    def with_insight_generator(
+        self, generator: InsightGenerator
+    ) -> "ResearchGraphBuilder":
         """Set the insight generator."""
         self._insight_generator = generator
         return self
@@ -1229,6 +1270,11 @@ class ResearchGraphBuilder:
     def with_critic(self, critic: LogicCritic) -> "ResearchGraphBuilder":
         """Set the logic critic."""
         self._critic = critic
+        return self
+
+    def with_evaluator(self, evaluator: ResearchEvaluator) -> "ResearchGraphBuilder":
+        """Set the research evaluator."""
+        self._evaluator = evaluator
         return self
 
     def with_timeout(self, timeout_seconds: float) -> "ResearchGraphBuilder":
@@ -1246,7 +1292,9 @@ class ResearchGraphBuilder:
         self._backend = backend
         return self
 
-    def with_parallel_executor(self, executor: ParallelNodeExecutor) -> "ResearchGraphBuilder":
+    def with_parallel_executor(
+        self, executor: ParallelNodeExecutor
+    ) -> "ResearchGraphBuilder":
         """Set a custom parallel executor."""
         self._parallel_executor = executor
         return self
@@ -1261,17 +1309,21 @@ class ResearchGraphBuilder:
         if self._agents is None:
             raise ValueError("Agents must be set via with_agents()")
         if self._insight_generator is None:
-            raise ValueError("InsightGenerator must be set via with_insight_generator()")
+            raise ValueError(
+                "InsightGenerator must be set via with_insight_generator()"
+            )
         if self._report_writer is None:
             raise ValueError("ReportWriter must be set via with_report_writer()")
         if self._critic is None:
             raise ValueError("LogicCritic must be set via with_critic()")
+        # Evaluator is optional for backward compatibility, but recommended
 
         return ResearchGraph(
             agents=self._agents,
             insight_generator=self._insight_generator,
             report_writer=self._report_writer,
             critic=self._critic,
+            evaluator=self._evaluator,
             node_timeout=self._node_timeout,
             max_retries=self._max_retries,
             backend=self._backend,
@@ -1310,6 +1362,7 @@ class ResearchGraph:
         insight_generator: InsightGenerator,
         report_writer: ReportWriter,
         critic: LogicCritic,
+        evaluator: Optional[ResearchEvaluator] = None,
         node_timeout: float = DEFAULT_NODE_TIMEOUT,
         max_retries: int = MAX_RETRY_ATTEMPTS,
         backend: Optional[GraphBackend] = None,
@@ -1319,6 +1372,7 @@ class ResearchGraph:
         self.insight_generator = insight_generator
         self.report_writer = report_writer
         self.critic = critic
+        self.evaluator = evaluator
         self.node_timeout = node_timeout
         self.max_retries = max_retries
 
@@ -1386,7 +1440,9 @@ class ResearchGraph:
         )
 
         if self._current_metrics:
-            self._current_metrics.record_node_end(node_name, success=False, error=error_msg)
+            self._current_metrics.record_node_end(
+                node_name, success=False, error=error_msg
+            )
             self._current_metrics.total_retries += retry_count
 
         return {"errors": state.errors + [f"Node {node_name} failed: {error_msg}"]}
@@ -1429,15 +1485,21 @@ class ResearchGraph:
 
             except Exception as e:
                 last_exception = e
-                log_msg = "timed out" if isinstance(e, asyncio.TimeoutError) else f"failed: {e}"
+                log_msg = (
+                    "timed out"
+                    if isinstance(e, asyncio.TimeoutError)
+                    else f"failed: {e}"
+                )
                 logger.error(f"Node {node_name} {log_msg} (attempt {attempt + 1})")
                 retry_count += 1
 
                 if attempt < self.max_retries - 1:
-                    await asyncio.sleep(RETRY_BACKOFF_BASE ** attempt)
+                    await asyncio.sleep(RETRY_BACKOFF_BASE**attempt)
 
         error_msg = str(last_exception) if last_exception else "Unknown error"
-        return self._record_failure(node_name, state, circuit_breaker, error_msg, retry_count)
+        return self._record_failure(
+            node_name, state, circuit_breaker, error_msg, retry_count
+        )
 
     async def orchestrator_node(self, state: ResearchState) -> Dict[str, Any]:
         """Entry point - transitions to gathering phase."""
@@ -1541,6 +1603,39 @@ class ResearchGraph:
                 country=UNKNOWN_VALUE,
                 industry=UNKNOWN_VALUE,
             )
+
+    async def evaluator_node(self, state: ResearchState) -> Dict[str, Any]:
+        """Evaluate the quality of the research report."""
+        logger.info("=== RESEARCH EVALUATOR ===")
+        
+        if not self.evaluator:
+            logger.warning("No evaluator configured, skipping evaluation")
+            return {}
+
+        async def _execute(s: ResearchState) -> Dict[str, Any]:
+            # Combine all drafts into one text for evaluation
+            report_content = "\n\n".join(s.drafts.values())
+            
+            # Get typed context to access sources
+            ctx = s.get_typed_research_context()
+            
+            evaluation = await self.evaluator.evaluate_research(
+                content=report_content,
+                sources=ctx.sources,
+                original_query=f"Research {s.company_name}"
+            )
+            
+            logger.info(f"Evaluation Score: {evaluation.get('overall_score', 0)}")
+            
+            return {
+                "evaluation_metrics": evaluation
+            }
+
+        return await self._execute_with_resilience(
+            node_name="evaluator",
+            func=_execute,
+            state=state,
+        )
 
             insights_text = s.drafts.get("insights", "")
             insights_dict = {"executive_summary": insights_text, "swot": {}}
@@ -1671,6 +1766,7 @@ class ResearchGraph:
             (NODE_INSIGHT_GENERATOR, self.insight_generator_node),
             (NODE_REPORT_WRITER, self.report_writer_node),
             (NODE_CRITIC, self.critic_node),
+            (NODE_EVALUATOR, self.evaluator_node),
             (NODE_SOURCE_REVIEWER, self.source_reviewer_node),
         ]
         for name, func in nodes:
@@ -1696,11 +1792,15 @@ class ResearchGraph:
         backend.add_conditional_edge(
             NODE_CRITIC,
             self.should_continue,
-            {"continue": NODE_INSIGHT_GENERATOR, "end": NODE_SOURCE_REVIEWER},
+            {"continue": NODE_INSIGHT_GENERATOR, "end": NODE_EVALUATOR},
         )
         self._registered_conditional_edges.append(
-            (NODE_CRITIC, [NODE_INSIGHT_GENERATOR, NODE_SOURCE_REVIEWER])
+            (NODE_CRITIC, [NODE_INSIGHT_GENERATOR, NODE_EVALUATOR])
         )
+        
+        # Edge from evaluator to source reviewer
+        backend.add_edge(NODE_EVALUATOR, NODE_SOURCE_REVIEWER)
+        self._registered_edges.append((NODE_EVALUATOR, NODE_SOURCE_REVIEWER))
 
         # Mark end node
         backend.set_end_node(NODE_SOURCE_REVIEWER)
@@ -1785,7 +1885,9 @@ class ResearchGraph:
             self._backend.add_edge(exit_node, connect_to)
             self._registered_edges.append((exit_node, connect_to))
 
-        logger.info(f"Added subgraph '{subgraph.name}' with {len(subgraph.get_nodes())} nodes")
+        logger.info(
+            f"Added subgraph '{subgraph.name}' with {len(subgraph.get_nodes())} nodes"
+        )
 
     def get_subgraph(self, name: str) -> Optional[Subgraph]:
         """Get a registered subgraph by name."""

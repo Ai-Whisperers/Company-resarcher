@@ -1,16 +1,42 @@
 import asyncio
 import os
+import threading
 from typing import Optional, List, Dict
+from urllib.parse import urlparse
 from playwright.async_api import async_playwright, Page, Browser
 from bs4 import BeautifulSoup
 from ..core.logger import setup_logger
 from ..core.types import ResearchSource
 from ..core.url_validator import URLValidator, URLValidationError
+from ..services.html_cache import get_html_cache
 
 logger = setup_logger("browser_tool")
 
 # Overall timeout for the entire fetch operation (default: 60 seconds)
 FETCH_OVERALL_TIMEOUT = int(os.getenv("BROWSER_FETCH_TIMEOUT_SECONDS", "60"))
+
+# Enable/disable HTML caching (default: True)
+ENABLE_HTML_CACHE = os.getenv("ENABLE_HTML_CACHE", "true").lower() == "true"
+
+# Combined CSS selector for main content (single query instead of sequential)
+# This is O(1) instead of O(n) sequential queries
+MAIN_CONTENT_SELECTOR = ", ".join([
+    "article",
+    "main",
+    "[role='main']",
+    ".content",
+    "#content",
+    ".post-content",
+    ".entry-content",
+    ".article-content",
+    ".post-body",
+    "#main-content",
+])
+
+# Cache for successful selectors by domain (PERF-003)
+# Stores which selector worked best for each domain
+_selector_cache: Dict[str, str] = {}
+_selector_cache_lock = threading.Lock()
 
 
 class BrowserTool:
@@ -26,6 +52,8 @@ class BrowserTool:
         self.max_concurrent = max_concurrent
         # Initialize semaphore immediately to avoid race condition
         self._semaphore: asyncio.Semaphore = asyncio.Semaphore(max_concurrent)
+        # Lock for thread-safe browser initialization (BUG-046)
+        self._init_lock: asyncio.Lock = asyncio.Lock()
         self._cleanup_registered = False
 
     @property
@@ -81,6 +109,17 @@ class BrowserTool:
                 category="error",
             )
 
+    def _is_pdf_url(self, url: str) -> bool:
+        """Check if URL likely points to a PDF file (BUG-051)."""
+        url_lower = url.lower()
+        return (
+            url_lower.endswith('.pdf') or
+            '/pdf/' in url_lower or
+            'download=pdf' in url_lower or
+            'format=pdf' in url_lower or
+            'type=pdf' in url_lower
+        )
+
     async def _fetch_page_internal(
         self, url: str, wait_for_selector: str = "body"
     ) -> ResearchSource:
@@ -100,8 +139,23 @@ class BrowserTool:
                 category="error",
             )
 
+        # Skip PDF URLs - browser can't render them properly (BUG-051)
+        if self._is_pdf_url(url):
+            logger.info(f"Skipping PDF URL (not supported): {url}")
+            return ResearchSource(
+                url=url,
+                title="PDF Document (Not Extracted)",
+                content="PDF documents are not currently supported for content extraction. "
+                        "Consider adding a PDF extraction library like PyMuPDF.",
+                source_type="pdf",
+                category="document",
+            )
+
+        # Use lock for thread-safe initialization (BUG-046)
         if not self.browser:
-            await self.start()
+            async with self._init_lock:
+                if not self.browser:  # Double-check after acquiring lock
+                    await self.start()
 
         page = None
         try:
@@ -131,6 +185,19 @@ class BrowserTool:
             metadata = self._extract_metadata(soup)
             title = metadata.get("title") or await page.title()
 
+            # Cache raw HTML if enabled
+            if ENABLE_HTML_CACHE:
+                try:
+                    html_cache = get_html_cache()
+                    html_cache.save_html(
+                        url=url,
+                        html_content=content,
+                        title=title,
+                        fetch_status="success",
+                    )
+                except Exception as cache_error:
+                    logger.debug(f"HTML cache error (non-fatal): {cache_error}")
+
             # Remove unwanted elements
             for element in soup.find_all(
                 [
@@ -149,21 +216,38 @@ class BrowserTool:
             ):
                 element.decompose()
 
-            # Smart Content Extraction
-            # Try to find main content area
+            # Smart Content Extraction (PERF-003 optimized)
+            # Use combined selector for O(1) lookup instead of sequential O(n)
+            domain = urlparse(url).netloc
+
+            # Check if we have a cached selector for this domain
+            cached_selector = None
+            with _selector_cache_lock:
+                cached_selector = _selector_cache.get(domain)
+
             main_content = None
-            for selector in [
-                "article",
-                "main",
-                "[role='main']",
-                ".content",
-                "#content",
-                ".post-content",
-                ".entry-content",
-            ]:
-                main_content = soup.select_one(selector)
-                if main_content:
-                    break
+
+            if cached_selector:
+                # Try cached selector first (fast path for known domains)
+                main_content = soup.select_one(cached_selector)
+
+            if not main_content:
+                # Use combined selector (single CSS query)
+                main_content = soup.select_one(MAIN_CONTENT_SELECTOR)
+
+                # If found, cache the specific selector that matched for this domain
+                if main_content and main_content.name:
+                    matched_selector = main_content.name
+                    if main_content.get('id'):
+                        matched_selector = f"#{main_content['id']}"
+                    elif main_content.get('class'):
+                        matched_selector = f".{main_content['class'][0]}"
+                    elif main_content.get('role'):
+                        matched_selector = f"[role='{main_content['role']}']"
+
+                    with _selector_cache_lock:
+                        _selector_cache[domain] = matched_selector
+                    logger.debug(f"Cached selector '{matched_selector}' for domain {domain}")
 
             if not main_content:
                 main_content = soup.body or soup

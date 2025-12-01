@@ -4,39 +4,41 @@ This module contains the foundational utilities, types, and configurations used 
 
 ## 1. AI Client (`src/core/ai_client.py`)
 
-Handles interactions with various LLM providers (OpenAI, Anthropic, Gemini, Groq).
+Handles interactions with various LLM providers (OpenAI, Anthropic, Gemini, Groq, Ollama) and manages fallbacks.
+
+### Class: `AIClientManager`
+
+- **`__init__(self)`**: Initializes clients based on configuration settings.
+- **`get_client_for_task(self, task_type)`**: Returns the appropriate client (primary or fallback) for a specific task.
+- **`generate(self, prompt, ...)`**: Delegates generation to the selected client.
 
 ### Class: `BaseAIClient` (Abstract)
 
 - **`generate(self, prompt: str, ...) -> str`**: Abstract method for text generation.
-
-### Class: `OpenAIClient` / `AnthropicClient` / `GeminiClient`
-
-- Implementations of `BaseAIClient` for specific providers.
-- **`__init__(self, api_key: str, model: str)`**: Initializes the provider SDK.
-- **`generate(...)`**: Sends the prompt to the API and returns the response string.
+- **Implementations**: `OpenAIClient`, `AnthropicClient`, `GeminiClient`, `GroqClient`, `OllamaClient`, `MockAIClient`.
 
 ---
 
 ## 2. Research Phases (`src/core/research_phases.py`)
 
-Defines the structure of the research process.
+Defines the structure of the research process using the V2 Research Schema.
 
 ### Constant: `RESEARCH_PHASES`
 
-A list of dictionaries defining each phase, its sub-phases, and the specific queries to run.
+A dictionary defining each phase, its sub-phases, and the specific queries to run.
 
-Example Structure:
+**Example Structure:**
 
 ```python
-{
-    "name": "Market Intelligence",
-    "sub_phases": [
-        {
-            "name": "Market Size & Growth",
-            "queries": ["{industry} market size {country}", ...]
-        }
-    ]
+"01-Market-Intelligence/01-Market-Size-Growth": {
+    "name": "Market Size & Growth",
+    "description": "TAM/SAM/SOM, CAGR, financial projections",
+    "query_templates": [
+        "{industry} market size {country} 2024 2025",
+        "{industry} industry growth rate {country} CAGR",
+    ],
+    "min_sources": 4,
+    "priority": 3,
 }
 ```
 
@@ -44,10 +46,13 @@ Example Structure:
 
 ## 3. Configuration (`src/core/config.py`)
 
-Manages environment variables and application settings.
+Manages environment variables and application settings using Pydantic.
 
-- **`load_config()`**: Loads `.env` file.
-- **`Config` Class**: Pydantic model or class holding keys like `OPENAI_API_KEY`, `TAVILY_API_KEY`.
+### Class: `Settings`
+
+- **`profile`**: Development, Staging, or Production.
+- **API Keys**: `OPENAI_API_KEY`, `TAVILY_API_KEY`, etc.
+- **AI Settings**: Model selection for each provider.
 
 ---
 
@@ -61,11 +66,12 @@ Centralized logging configuration.
 
 ## 5. Types (`src/core/types.py`)
 
-Pydantic models for type safety.
+Pydantic models for type safety and validation.
 
-- **`CompanyProfile`**: `name`, `industry`, `country`, `url`.
-- **`ResearchSource`**: `url`, `title`, `content`, `source_type`.
-- **`ResearchPhaseResult`**: `phase_name`, `markdown_content`, `sources`.
+- **`CompanyProfile`**: Stores company details (`name`, `website`, `industry`, `country`). Includes validation and enrichment methods.
+- **`ResearchSource`**: Represents a data source (`url`, `title`, `content`). Includes methods to check if a source is usable or relevant.
+- **`ResearchPhaseResult`**: The output of a research phase, containing markdown content and sources.
+- **`FullCompanyResearch`**: The complete research dossier.
 
 ---
 

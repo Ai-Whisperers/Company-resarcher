@@ -202,8 +202,12 @@ class CancellationToken:
             for callback in self._callbacks:
                 try:
                     callback()
-                except Exception:
-                    pass  # Don't let callback errors prevent cancellation
+                except Exception as e:
+                    # Log but don't let callback errors prevent cancellation
+                    import logging
+                    logging.getLogger("pipeline.context").warning(
+                        f"Cancellation callback failed: {e}"
+                    )
 
     def on_cancel(self, callback: Callable[[], None]) -> None:
         """Register a callback to run when cancelled."""
@@ -426,7 +430,7 @@ def create_context(
     from ..core.container import get_container
     from ..core.ai_client import AIClientManager
     from ..core.cache import AICache
-    from ..tools.search import SearchTool
+    from ..tools.search_tool import SearchTool
     from ..tools.browser import BrowserTool
 
     container = get_container()
