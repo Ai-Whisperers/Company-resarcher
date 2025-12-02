@@ -14,21 +14,20 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 import jinja2
 
 from ..core.types import CompanyProfile, ResearchSource
-from ..core.output_structure import OUTPUT_STRUCTURE, OutputSection, FileSpec
 from ..core.comprehensive_queries import (
     COMPREHENSIVE_QUERIES,
     QueryTemplate,
     format_query,
-    get_all_queries,
 )
-from ..services.source_tracker import SourceTracker, TrackedSource, reset_source_tracker
+from ..services.source_tracker import SourceTracker, reset_source_tracker
 from ..services.json_parser_helper import robust_json_parse
 from ..core.logger import setup_logger
+from ..utils.url_utils import add_country_context_to_query
 
 logger = setup_logger("comprehensive_research")
 
@@ -178,13 +177,18 @@ class ComprehensiveResearchService:
         result = SectionResearchResult(section=section, file=filename)
 
         # Format and execute queries
+        # Ensure country context is added to all queries (BUG-049)
+        country_name = company.country if company.country != "Global" else ""
         formatted_queries = [
-            format_query(
-                q,
-                company=company.name,
-                industry=company.industry or "industry",
-                country=company.country if company.country != "Global" else "",
-                year=str(datetime.now().year),
+            add_country_context_to_query(
+                format_query(
+                    q,
+                    company=company.name,
+                    industry=company.industry or "industry",
+                    country=country_name,
+                    year=str(datetime.now().year),
+                ),
+                country_name,
             )
             for q in queries
         ]
@@ -213,13 +217,21 @@ class ComprehensiveResearchService:
             return_exceptions=True,
         )
 
-        # Aggregate sources
+        # Aggregate sources (with country filtering for BUG-049)
+        target_industry = company.industry
+        target_country_tld = company.get_country_tld()
         seen_urls = set()
+        filtered_foreign_count = 0
+        
         for sources in all_sources_lists:
             if isinstance(sources, Exception):
                 continue
             for source in sources:
                 if source.url and source.url not in seen_urls:
+                    # Filter irrelevant foreign sources (BUG-049)
+                    if not source.is_usable(target_industry, target_country_tld):
+                        filtered_foreign_count += 1
+                        continue
                     seen_urls.add(source.url)
                     result.sources.append(source)
                     # Track source
@@ -228,6 +240,8 @@ class ComprehensiveResearchService:
                         section=section,
                     )
 
+        if filtered_foreign_count > 0:
+            logger.info(f"  {section}/{filename}: Filtered {filtered_foreign_count} irrelevant foreign sources (BUG-049)")
         logger.info(f"  {section}/{filename}: {len(result.sources)} sources from {len(formatted_queries)} queries")
 
         return result

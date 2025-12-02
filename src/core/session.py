@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .logger import setup_logger
-from .config import get_settings
 
 logger = setup_logger("session")
 

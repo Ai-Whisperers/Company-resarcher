@@ -77,6 +77,7 @@ dependencies = [
     "aiofiles>=23.0.0",
     "colorlog>=6.8.0",
     "tenacity>=8.2.0",
+    "rich>=13.7.0",
 
     # Observability
     "langfuse>=2.0.0",
@@ -94,6 +95,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings>=0.24.0",
+    "mkdocstrings-python>=1.8.0",
+]
+
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
@@ -206,14 +214,41 @@ ignore = [
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+no_implicit_optional = true
+strict_equality = true
+check_untyped_defs = true
+disallow_untyped_defs = false  # Gradually enable as codebase improves
+disallow_incomplete_defs = true
+disallow_untyped_decorators = false
 ignore_missing_imports = true
+show_error_codes = true
+show_column_numbers = true
+pretty = true
 exclude = [
     "temp_repos/",
     "outputs/",
     "outputs_test/",
     "data/",
+    "tests/",
+    "alembic/",
 ]
+
+# Per-module overrides for stricter checking on new code
+[[tool.mypy.overrides]]
+module = [
+    "src.core.configs",
+    "src.core.agent_state",
+    "src.core.backtesting_engine",
+    "src.core.predictive_model",
+    "src.tools.financial_analysis",
+    "src.tools.crawl4ai_tool",
+    "src.tools.browser.*",
+]
+disallow_untyped_defs = true
+disallow_any_generics = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -301,3 +336,8 @@ tests_dir = "tests/"
 runner = "python -m pytest -x --tb=no -q"
 dict_synonyms = ["Struct", "NamedTuple"]
 backup = false
+
+# Security linting (QUAL-001)
+[tool.bandit]
+exclude_dirs = ["tests", "temp_repos", "outputs", "outputs_test", "data"]
+skips = ["B101", "B104"]  # B101: assert_used, B104: hardcoded_bind_all_interfaces

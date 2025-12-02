@@ -1,10 +1,9 @@
-import os
 import aiofiles
 from pathlib import Path
 from typing import List, Dict, Any
 from ..core.config import get_settings
 from ..core.logger import setup_logger
-from ..core.types import FullCompanyResearch, ResearchPhaseResult
+from ..core.types import ResearchPhaseResult
 
 logger = setup_logger("file_manager")
 settings = get_settings()

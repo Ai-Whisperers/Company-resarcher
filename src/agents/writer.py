@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, overload
+from typing import Dict, Any, List
 from .base_agent import BaseAgent
 from ..core.types import CompanyProfile, ResearchPhaseResult
 from ..core.models import (

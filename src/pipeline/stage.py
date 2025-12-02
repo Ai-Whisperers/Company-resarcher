@@ -262,6 +262,77 @@ class StageResult(Generic[TOutput]):
 
 
 # =============================================================================
+# Stage Configuration (PIPE-005)
+# =============================================================================
+
+
+@dataclass
+class StageConfig:
+    """
+    Configuration for stage execution behavior.
+
+    PIPE-005: Per-stage timeout and retry configuration.
+
+    Attributes:
+        timeout_seconds: Maximum time for this stage (None = use budget)
+        min_timeout_seconds: Minimum timeout even if budget is lower
+        max_retries: Maximum retry attempts for this stage
+        retry_delay_seconds: Base delay between retries
+        fail_fast: Whether to fail immediately on error
+        priority: Execution priority (higher = runs first in parallel)
+    """
+
+    timeout_seconds: Optional[float] = None  # None = use remaining budget
+    min_timeout_seconds: float = 10.0  # Minimum even if budget is lower
+    max_retries: int = 2
+    retry_delay_seconds: float = 1.0
+    fail_fast: bool = True
+    priority: int = 0  # Higher priority runs first
+
+    def get_effective_timeout(self, budget_remaining: float) -> float:
+        """
+        Get the effective timeout considering budget constraints.
+
+        Args:
+            budget_remaining: Remaining time in the timeout budget
+
+        Returns:
+            Effective timeout in seconds
+        """
+        if self.timeout_seconds is not None:
+            # Use configured timeout, but don't exceed budget
+            return min(self.timeout_seconds, budget_remaining)
+        else:
+            # Use budget, but ensure minimum
+            return max(self.min_timeout_seconds, budget_remaining)
+
+
+# Default configurations for common stage types
+STAGE_CONFIGS: Dict[str, StageConfig] = {
+    "query_generation": StageConfig(timeout_seconds=30.0, max_retries=1),
+    "search_execution": StageConfig(timeout_seconds=120.0, max_retries=2),
+    "analysis": StageConfig(timeout_seconds=90.0, max_retries=2),
+    "report_generation": StageConfig(timeout_seconds=60.0, max_retries=1),
+    "evaluation": StageConfig(timeout_seconds=30.0, max_retries=0, fail_fast=False),
+    "default": StageConfig(timeout_seconds=None, max_retries=2),
+}
+
+
+def get_stage_config(stage_name: str) -> StageConfig:
+    """Get configuration for a stage by name."""
+    # Check for exact match
+    if stage_name in STAGE_CONFIGS:
+        return STAGE_CONFIGS[stage_name]
+
+    # Check for partial match (e.g., "market_search_execution" matches "search_execution")
+    for key, config in STAGE_CONFIGS.items():
+        if key in stage_name:
+            return config
+
+    return STAGE_CONFIGS["default"]
+
+
+# =============================================================================
 # Stage Protocol
 # =============================================================================
 

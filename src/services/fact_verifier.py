@@ -1,7 +1,7 @@
 import logging
 import json
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from ..core.types import ResearchSource
 from ..core.ai_client import AIClientManager
 from ..tools.search import SearchTool

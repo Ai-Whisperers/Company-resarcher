@@ -16,8 +16,6 @@ from ..core.config import get_settings
 from ..core.exceptions import (
     AIProviderError,
     AIRateLimitError,
-    AIResponseError,
-    AITimeoutError,
 )
 from ..core.logger import setup_logger
 from ..core.result import Result, Ok, Err, AIError
@@ -29,7 +27,6 @@ from ..core.circuit_breaker import (
 from ..core.retry_strategy import (
     RetryStrategy,
     RetryPolicy,
-    TimeoutBudget,
 )
 from .cache import get_ai_cache
 
@@ -234,8 +231,15 @@ class GeminiClient(BaseAIClient):
                 full_prompt, generation_config=generation_config
             )
             return response.text
+        except google_exceptions.ResourceExhausted as e:
+            # Gemini rate limit error (BUG-047)
+            raise AIRateLimitError("gemini") from e
         except Exception as e:
-            raise AIProviderError(str(e), "gemini")
+            # Check for rate limit errors in message (BUG-047)
+            error_str = str(e).lower()
+            if any(p in error_str for p in ["rate limit", "ratelimit", "429", "quota", "resource exhausted"]):
+                raise AIRateLimitError("gemini") from e
+            raise AIProviderError(str(e), "gemini") from e
 
     def get_provider_name(self) -> str:
         return "gemini"
@@ -275,7 +279,11 @@ class GroqClient(BaseAIClient):
             )
             return response.choices[0].message.content
         except Exception as e:
-            raise AIProviderError(str(e), "groq")
+            # Check for rate limit errors (BUG-047)
+            error_str = str(e).lower()
+            if any(p in error_str for p in ["rate limit", "ratelimit", "429", "quota", "too many requests"]):
+                raise AIRateLimitError("groq") from e
+            raise AIProviderError(str(e), "groq") from e
 
     def get_provider_name(self) -> str:
         return "groq"

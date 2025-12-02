@@ -4,9 +4,8 @@ Evaluation Stage - Evaluates the quality of research outputs.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
 
-from ...core.result import Result, Ok, Err
+from ...core.result import Result, Ok
 from ...core.types import ResearchPhaseResult
 from ...evaluation.research_evaluator import ResearchEvaluator
 

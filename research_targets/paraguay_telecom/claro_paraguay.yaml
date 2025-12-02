@@ -1,0 +1,75 @@
+# Claro Paraguay - Competitor Profile
+# Third player in Paraguay telecommunications market
+
+company:
+  name: "Claro Paraguay"
+  legal_name: "AMX Paraguay S.A."
+  website: "https://www.claro.com.py"
+  industry: "Telecommunications"
+  country: "Paraguay"
+
+  # Company details
+  founded: "2008"  # Entered market
+  headquarters: "Asuncion, Paraguay"
+
+  # Ownership structure
+  ownership:
+    type: "Subsidiary"
+    parent_company: "America Movil"
+    parent_hq: "Mexico City, Mexico"
+    parent_stock: "BMV: AMX, NYSE: AMX"
+    ultimate_owner: "Carlos Slim"
+
+  # Market position
+  market_position:
+    rank: 3
+    market_share: "10-11%"
+    subscribers: "~5 million"  # Note: This figure seems inconsistent with market share
+
+  # Services offered
+  services:
+    - "Mobile voice and data (2G, 3G, 4G)"
+    - "Prepaid and postpaid plans"
+    - "International roaming"
+    - "Value-added services"
+
+  # Key differentiators
+  usp:
+    - "Widest 4G and 3G coverage"
+    - "Strong brand (Claro Latin America)"
+    - "Part of America Movil network"
+
+# Competitors
+competitors:
+  direct:
+    - "Personal Paraguay"
+    - "Tigo Paraguay"
+
+# Research configuration
+research:
+  focus_areas:
+    - market
+    - financial
+    - competitor
+
+  priority_queries:
+    - "Claro Paraguay market share 2024"
+    - "America Movil Paraguay revenue"
+    - "Claro Paraguay subscribers"
+    - "Claro Paraguay network coverage"
+
+  priority_sources:
+    - "americamovil.com"
+    - "investors.americamovil.com"
+    - "sec.gov"  # AMX SEC filings
+
+  # Data to verify
+  data_verification_needed:
+    - "Subscriber count (5 million seems too high for 10-11% share)"
+
+notes: |
+  Claro is the third-largest operator in Paraguay.
+  Part of America Movil, Carlos Slim's telecom empire.
+  Financial data available through America Movil's SEC filings (NYSE: AMX).
+  Note: The subscriber count of 5M vs 10-11% market share needs verification.
+  This could indicate different measurement methodologies.

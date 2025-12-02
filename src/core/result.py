@@ -37,7 +37,7 @@ Usage:
 """
 
 from __future__ import annotations
-from typing import TypeVar, Generic, Callable, Union, Optional, Any, overload
+from typing import TypeVar, Generic, Callable, Optional, Any
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 

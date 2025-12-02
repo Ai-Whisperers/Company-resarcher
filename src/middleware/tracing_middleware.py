@@ -10,17 +10,14 @@ Provides:
 
 import time
 import uuid
-from typing import Callable, Optional, Dict, Any
+from typing import Callable
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
 from ..core.telemetry import (
     get_tracer,
-    get_metrics,
-    trace_span,
     record_request,
-    OPENTELEMETRY_AVAILABLE,
 )
 from ..core.logger import setup_logger, get_request_id, set_request_id
 

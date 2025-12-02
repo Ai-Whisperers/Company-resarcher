@@ -1,0 +1,161 @@
+%% Company Researcher - System Overview Architecture
+%% This diagram shows the high-level architecture and component relationships
+
+graph TB
+    subgraph "Entry Points"
+        CLI[CLI / main.py]
+        API[FastAPI Server]
+        UI[Streamlit UI]
+    end
+
+    subgraph "Configuration & Core"
+        Config[Settings / Config]
+        Container[DI Container]
+        Logger[Structured Logger]
+    end
+
+    subgraph "Pipeline Orchestration"
+        PipelineOrchestrator[Pipeline Orchestrator]
+        ResearchStage[Research Stage]
+        AnalyzeStage[Analyze Stage]
+        SearchStage[Search Stage]
+        PipelineContext[Pipeline Context]
+    end
+
+    subgraph "Agent Layer"
+        DeepResearchAgent[Deep Research Agent]
+        SpecialistAgents[Specialist Agents]
+        WriterAgent[Writer Agent]
+        CriticAgent[Critic Agent]
+        InsightGenerator[Insight Generator]
+    end
+
+    subgraph "AI Clients"
+        AIClient[AI Client]
+        CachedAIClient[Cached AI Client]
+        CostTrackedClient[Cost Tracked Client]
+        RateLimitedClient[Rate Limited Client]
+    end
+
+    subgraph "Tools"
+        SearchManager[Search Manager]
+        BrowserTool[Browser Tool]
+        YouTubeTool[YouTube Tool]
+        FinancialData[Financial Data Tool]
+        TechStackTool[Tech Stack Tool]
+    end
+
+    subgraph "Search Providers"
+        Serper[Serper API]
+        DuckDuckGo[DuckDuckGo]
+        Tavily[Tavily API]
+        Jina[Jina AI]
+        LangSearch[LangSearch]
+    end
+
+    subgraph "Data Services"
+        Vault[Knowledge Vault]
+        SourceRegistry[Source Registry]
+        OutputManager[Output Manager]
+        GapAnalyzer[Gap Analyzer]
+    end
+
+    subgraph "Quality & Security"
+        URLValidator[URL Validator]
+        SourceQuality[Source Quality Scorer]
+        CircuitBreaker[Circuit Breaker]
+        ConcurrencyManager[Concurrency Manager]
+    end
+
+    subgraph "Storage"
+        FileSystem[File System / Outputs]
+        SQLite[(SQLite DB)]
+        VectorStore[(Vector Store)]
+    end
+
+    %% Entry Point Connections
+    CLI --> Config
+    API --> Config
+    UI --> Config
+    Config --> Container
+    Container --> Logger
+
+    %% Pipeline Flow
+    CLI --> PipelineOrchestrator
+    API --> PipelineOrchestrator
+    PipelineOrchestrator --> PipelineContext
+    PipelineOrchestrator --> ResearchStage
+    PipelineOrchestrator --> AnalyzeStage
+    PipelineOrchestrator --> SearchStage
+
+    %% Stage to Agent Connections
+    ResearchStage --> DeepResearchAgent
+    ResearchStage --> SpecialistAgents
+    AnalyzeStage --> InsightGenerator
+    AnalyzeStage --> CriticAgent
+
+    %% Agent to AI Client
+    DeepResearchAgent --> AIClient
+    SpecialistAgents --> AIClient
+    WriterAgent --> AIClient
+    CriticAgent --> AIClient
+    AIClient --> CachedAIClient
+    CachedAIClient --> CostTrackedClient
+    CostTrackedClient --> RateLimitedClient
+
+    %% Agent to Tools
+    DeepResearchAgent --> SearchManager
+    DeepResearchAgent --> BrowserTool
+    SpecialistAgents --> SearchManager
+    SpecialistAgents --> FinancialData
+    SpecialistAgents --> YouTubeTool
+
+    %% Search Manager to Providers
+    SearchManager --> Serper
+    SearchManager --> DuckDuckGo
+    SearchManager --> Tavily
+    SearchManager --> Jina
+    SearchManager --> LangSearch
+
+    %% Tools to Security
+    BrowserTool --> URLValidator
+    SearchManager --> URLValidator
+
+    %% Data Flow
+    DeepResearchAgent --> Vault
+    SpecialistAgents --> SourceRegistry
+    WriterAgent --> OutputManager
+    PipelineContext --> GapAnalyzer
+
+    %% Storage Connections
+    Vault --> VectorStore
+    OutputManager --> FileSystem
+    API --> SQLite
+
+    %% Quality Services
+    SearchManager --> SourceQuality
+    AIClient --> CircuitBreaker
+    SearchManager --> ConcurrencyManager
+    BrowserTool --> ConcurrencyManager
+
+    classDef entryPoint fill:#e1f5fe,stroke:#01579b
+    classDef core fill:#fff3e0,stroke:#e65100
+    classDef pipeline fill:#f3e5f5,stroke:#7b1fa2
+    classDef agent fill:#e8f5e9,stroke:#2e7d32
+    classDef ai fill:#fce4ec,stroke:#c2185b
+    classDef tool fill:#e0f7fa,stroke:#00838f
+    classDef provider fill:#f1f8e9,stroke:#558b2f
+    classDef service fill:#fff8e1,stroke:#f9a825
+    classDef security fill:#ffebee,stroke:#c62828
+    classDef storage fill:#eceff1,stroke:#455a64
+
+    class CLI,API,UI entryPoint
+    class Config,Container,Logger core
+    class PipelineOrchestrator,ResearchStage,AnalyzeStage,SearchStage,PipelineContext pipeline
+    class DeepResearchAgent,SpecialistAgents,WriterAgent,CriticAgent,InsightGenerator agent
+    class AIClient,CachedAIClient,CostTrackedClient,RateLimitedClient ai
+    class SearchManager,BrowserTool,YouTubeTool,FinancialData,TechStackTool tool
+    class Serper,DuckDuckGo,Tavily,Jina,LangSearch provider
+    class Vault,SourceRegistry,OutputManager,GapAnalyzer service
+    class URLValidator,SourceQuality,CircuitBreaker,ConcurrencyManager security
+    class FileSystem,SQLite,VectorStore storage

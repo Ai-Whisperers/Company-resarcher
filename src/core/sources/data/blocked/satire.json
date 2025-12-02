@@ -1,0 +1,23 @@
+{
+  "_description": "Satire & Parody Sites - Not real news, entertainment purposes only",
+  "theonion.com": {"name": "The Onion", "reason": "Satirical news"},
+  "babylonbee.com": {"name": "Babylon Bee", "reason": "Satirical news"},
+  "clickhole.com": {"name": "ClickHole", "reason": "Satirical clickbait"},
+  "thebeaverton.com": {"name": "The Beaverton", "reason": "Canadian satirical news"},
+  "waterfordwhispersnews.com": {"name": "Waterford Whispers News", "reason": "Irish satirical news"},
+  "dailymash.co.uk": {"name": "The Daily Mash", "reason": "UK satirical news"},
+  "newsthump.com": {"name": "NewsThump", "reason": "UK satirical news"},
+  "betootaadvocate.com": {"name": "Betoota Advocate", "reason": "Australian satirical news"},
+  "theshovel.com.au": {"name": "The Shovel", "reason": "Australian satirical news"},
+  "borowitz-report.com": {"name": "Borowitz Report", "reason": "Satirical commentary"},
+  "newyorker.com/humor": {"name": "New Yorker Humor", "reason": "Satirical content section"},
+  "satirewire.com": {"name": "SatireWire", "reason": "Satirical news"},
+  "thespoof.com": {"name": "The Spoof", "reason": "User-generated satire"},
+  "dailysquib.co.uk": {"name": "Daily Squib", "reason": "UK satirical news"},
+  "nationalreport.net": {"name": "National Report", "reason": "Fake news satire"},
+  "empirenews.net": {"name": "Empire News", "reason": "Fake news satire"},
+  "huzlers.com": {"name": "Huzlers", "reason": "Fake news satire"},
+  "newslo.com": {"name": "Newslo", "reason": "Mixed satire/fake news"},
+  "witscience.org": {"name": "Wit Science", "reason": "Satirical science news"},
+  "reductress.com": {"name": "Reductress", "reason": "Satirical women's magazine"}
+}

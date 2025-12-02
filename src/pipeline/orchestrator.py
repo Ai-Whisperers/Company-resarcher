@@ -31,7 +31,7 @@ from ..core.types import CompanyProfile
 from ..core.logger import setup_logger
 from ..services.html_cache import get_html_cache
 
-from .context import RequestContext, create_context
+from .context import create_context
 from .research_pipeline import (
     ResearchPipeline,
     ResearchPipelineConfig,

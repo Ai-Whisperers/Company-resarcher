@@ -1,0 +1,73 @@
+# Tigo Paraguay - Competitor Profile
+# Market leader in Paraguay telecommunications
+
+company:
+  name: "Tigo Paraguay"
+  legal_name: "Telefonica Celular del Paraguay S.A."
+  website: "https://www.tigo.com.py"
+  industry: "Telecommunications"
+  country: "Paraguay"
+
+  # Company details
+  founded: "1991"
+  headquarters: "Asuncion, Paraguay"
+
+  # Ownership structure
+  ownership:
+    type: "Subsidiary"
+    parent_company: "Millicom International Cellular"
+    parent_hq: "Luxembourg"
+    parent_stock: "NASDAQ: TIGO"
+
+  # Market position
+  market_position:
+    rank: 1  # Market leader
+    market_share: "42%"
+    subscribers: "~2.5 million"
+
+  # Services offered
+  services:
+    - "Mobile voice and data (2G, 3G, 4G LTE)"
+    - "Prepaid and postpaid plans"
+    - "Fixed broadband"
+    - "Cable TV"
+    - "Tigo Money (mobile payments)"
+    - "Tigo Business (enterprise)"
+
+  # Key differentiators
+  usp:
+    - "Market leader position"
+    - "Strong urban coverage"
+    - "Tigo Money mobile payments ecosystem"
+    - "Wide service portfolio"
+
+# Competitors
+competitors:
+  direct:
+    - "Personal Paraguay"
+    - "Claro Paraguay"
+
+# Research configuration
+research:
+  focus_areas:
+    - market
+    - financial
+    - competitor
+
+  priority_queries:
+    - "Tigo Paraguay market share 2024"
+    - "Millicom Paraguay revenue"
+    - "Tigo Paraguay subscribers"
+    - "Tigo Paraguay 5G plans"
+    - "Tigo Money Paraguay users"
+
+  priority_sources:
+    - "millicom.com"  # Parent company
+    - "investors.millicom.com"
+    - "conatel.gov.py"
+
+notes: |
+  Tigo is the market leader in Paraguay with ~42% market share.
+  Part of Millicom, a publicly traded company (NASDAQ: TIGO).
+  Financial data available through Millicom's SEC filings.
+  Strong in mobile money through Tigo Money platform.

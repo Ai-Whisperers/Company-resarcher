@@ -1,0 +1,244 @@
+{
+  "_description": "South America Regional Sources",
+
+  "brazil": {
+    "_name": "Brazil",
+    "government": {
+      "bcb.gov.br": {"name": "Banco Central do Brasil", "description": "Central bank", "authority_score": 0.97},
+      "ibge.gov.br": {"name": "IBGE", "description": "Statistics institute", "authority_score": 0.96},
+      "cvm.gov.br": {"name": "CVM", "description": "Securities regulator", "authority_score": 0.96},
+      "gov.br": {"name": "Portal Gov.br", "description": "Federal government", "authority_score": 0.95},
+      "receita.economia.gov.br": {"name": "Receita Federal", "description": "Tax authority", "authority_score": 0.95},
+      "anatel.gov.br": {"name": "ANATEL", "description": "Telecom regulator", "authority_score": 0.94},
+      "aneel.gov.br": {"name": "ANEEL", "description": "Energy regulator", "authority_score": 0.94},
+      "bndes.gov.br": {"name": "BNDES", "description": "Development bank", "authority_score": 0.94},
+      "mdic.gov.br": {"name": "MDIC", "description": "Industry/commerce ministry", "authority_score": 0.93}
+    },
+    "exchanges": {
+      "b3.com.br": {"name": "B3", "description": "Brasil Bolsa Balcão", "authority_score": 0.96}
+    },
+    "news": {
+      "valor.globo.com": {"name": "Valor Econômico", "description": "Financial news", "authority_score": 0.85},
+      "exame.com": {"name": "Exame", "description": "Business magazine", "authority_score": 0.82},
+      "infomoney.com.br": {"name": "InfoMoney", "description": "Financial news", "authority_score": 0.80},
+      "folha.uol.com.br": {"name": "Folha de S.Paulo", "description": "Major newspaper", "authority_score": 0.84},
+      "estadao.com.br": {"name": "Estadão", "description": "Major newspaper", "authority_score": 0.83},
+      "oglobo.globo.com": {"name": "O Globo", "description": "Major newspaper", "authority_score": 0.82}
+    },
+    "business_registries": {
+      "empresas.gov.br": {"name": "RedeSim", "description": "Business registry network", "authority_score": 0.93}
+    }
+  },
+
+  "argentina": {
+    "_name": "Argentina",
+    "government": {
+      "bcra.gob.ar": {"name": "BCRA", "description": "Central bank", "authority_score": 0.96},
+      "indec.gob.ar": {"name": "INDEC", "description": "Statistics institute", "authority_score": 0.94},
+      "cnv.gob.ar": {"name": "CNV", "description": "Securities regulator", "authority_score": 0.95},
+      "argentina.gob.ar": {"name": "Argentina.gob.ar", "description": "Federal government", "authority_score": 0.94},
+      "afip.gob.ar": {"name": "AFIP", "description": "Tax authority", "authority_score": 0.94},
+      "enacom.gob.ar": {"name": "ENACOM", "description": "Telecom regulator", "authority_score": 0.93},
+      "economia.gob.ar": {"name": "Ministerio de Economía", "description": "Economy ministry", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "byma.com.ar": {"name": "BYMA", "description": "Buenos Aires stock exchange", "authority_score": 0.93},
+      "mae.com.ar": {"name": "MAE", "description": "Electronic market", "authority_score": 0.90}
+    },
+    "news": {
+      "ambito.com": {"name": "Ámbito Financiero", "description": "Financial news", "authority_score": 0.80},
+      "cronista.com": {"name": "El Cronista", "description": "Business news", "authority_score": 0.79},
+      "lanacion.com.ar": {"name": "La Nación", "description": "Major newspaper", "authority_score": 0.82},
+      "clarin.com": {"name": "Clarín", "description": "Major newspaper", "authority_score": 0.80},
+      "infobae.com": {"name": "Infobae", "description": "Digital news", "authority_score": 0.78}
+    }
+  },
+
+  "chile": {
+    "_name": "Chile",
+    "government": {
+      "bcentral.cl": {"name": "Banco Central de Chile", "description": "Central bank", "authority_score": 0.97},
+      "ine.cl": {"name": "INE Chile", "description": "Statistics institute", "authority_score": 0.95},
+      "cmfchile.cl": {"name": "CMF", "description": "Financial market commission", "authority_score": 0.96},
+      "sii.cl": {"name": "SII", "description": "Tax authority", "authority_score": 0.95},
+      "subtel.gob.cl": {"name": "SUBTEL", "description": "Telecom regulator", "authority_score": 0.94},
+      "cne.cl": {"name": "CNE", "description": "Energy commission", "authority_score": 0.94},
+      "economia.gob.cl": {"name": "Ministerio de Economía", "description": "Economy ministry", "authority_score": 0.94},
+      "corfo.cl": {"name": "CORFO", "description": "Development agency", "authority_score": 0.93}
+    },
+    "exchanges": {
+      "bolsadesantiago.com": {"name": "Bolsa de Santiago", "description": "Chilean stock exchange", "authority_score": 0.94}
+    },
+    "news": {
+      "df.cl": {"name": "Diario Financiero", "description": "Financial news", "authority_score": 0.83},
+      "pulso.cl": {"name": "Pulso", "description": "Business news", "authority_score": 0.80},
+      "elmercurio.com": {"name": "El Mercurio", "description": "Major newspaper", "authority_score": 0.82},
+      "latercera.com": {"name": "La Tercera", "description": "National newspaper", "authority_score": 0.80},
+      "emol.com": {"name": "Emol", "description": "Digital news", "authority_score": 0.78}
+    }
+  },
+
+  "colombia": {
+    "_name": "Colombia",
+    "government": {
+      "banrep.gov.co": {"name": "Banco de la República", "description": "Central bank", "authority_score": 0.96},
+      "dane.gov.co": {"name": "DANE", "description": "Statistics agency", "authority_score": 0.95},
+      "superfinanciera.gov.co": {"name": "Superfinanciera", "description": "Financial regulator", "authority_score": 0.95},
+      "dian.gov.co": {"name": "DIAN", "description": "Tax authority", "authority_score": 0.94},
+      "crc.gov.co": {"name": "CRC", "description": "Communications regulator", "authority_score": 0.93},
+      "mincomercio.gov.co": {"name": "MinCIT", "description": "Commerce ministry", "authority_score": 0.93},
+      "supercias.gov.co": {"name": "Supersociedades", "description": "Companies regulator", "authority_score": 0.93}
+    },
+    "exchanges": {
+      "bvc.com.co": {"name": "BVC", "description": "Colombian stock exchange", "authority_score": 0.93}
+    },
+    "news": {
+      "larepublica.co": {"name": "La República", "description": "Business news", "authority_score": 0.80},
+      "portafolio.co": {"name": "Portafolio", "description": "Financial news", "authority_score": 0.79},
+      "eltiempo.com": {"name": "El Tiempo", "description": "Major newspaper", "authority_score": 0.81},
+      "elespectador.com": {"name": "El Espectador", "description": "National newspaper", "authority_score": 0.79},
+      "dinero.com": {"name": "Dinero", "description": "Business magazine", "authority_score": 0.78}
+    }
+  },
+
+  "peru": {
+    "_name": "Peru",
+    "government": {
+      "bcrp.gob.pe": {"name": "BCRP", "description": "Central bank", "authority_score": 0.96},
+      "inei.gob.pe": {"name": "INEI", "description": "Statistics institute", "authority_score": 0.94},
+      "smv.gob.pe": {"name": "SMV", "description": "Securities regulator", "authority_score": 0.94},
+      "sbs.gob.pe": {"name": "SBS", "description": "Banking regulator", "authority_score": 0.95},
+      "sunat.gob.pe": {"name": "SUNAT", "description": "Tax authority", "authority_score": 0.94},
+      "osiptel.gob.pe": {"name": "OSIPTEL", "description": "Telecom regulator", "authority_score": 0.93},
+      "minem.gob.pe": {"name": "MINEM", "description": "Energy/mining ministry", "authority_score": 0.93}
+    },
+    "exchanges": {
+      "bvl.com.pe": {"name": "BVL", "description": "Lima stock exchange", "authority_score": 0.92}
+    },
+    "news": {
+      "gestion.pe": {"name": "Gestión", "description": "Business news", "authority_score": 0.80},
+      "elcomercio.pe": {"name": "El Comercio", "description": "Major newspaper", "authority_score": 0.81},
+      "larepublica.pe": {"name": "La República", "description": "National newspaper", "authority_score": 0.78},
+      "semanaeconomica.com": {"name": "Semana Económica", "description": "Business magazine", "authority_score": 0.79}
+    }
+  },
+
+  "ecuador": {
+    "_name": "Ecuador",
+    "government": {
+      "bce.fin.ec": {"name": "BCE", "description": "Central bank", "authority_score": 0.94},
+      "ecuadorencifras.gob.ec": {"name": "INEC Ecuador", "description": "Statistics institute", "authority_score": 0.93},
+      "supercias.gob.ec": {"name": "Supercias", "description": "Companies regulator", "authority_score": 0.93},
+      "superbancos.gob.ec": {"name": "Superbancos", "description": "Banking regulator", "authority_score": 0.93},
+      "sri.gob.ec": {"name": "SRI", "description": "Tax authority", "authority_score": 0.93}
+    },
+    "exchanges": {
+      "bolsadequito.com": {"name": "BVQ", "description": "Quito stock exchange", "authority_score": 0.88}
+    },
+    "news": {
+      "eluniverso.com": {"name": "El Universo", "description": "Major newspaper", "authority_score": 0.78},
+      "elcomercio.com": {"name": "El Comercio", "description": "National newspaper", "authority_score": 0.77},
+      "primicias.ec": {"name": "Primicias", "description": "Digital news", "authority_score": 0.75}
+    }
+  },
+
+  "venezuela": {
+    "_name": "Venezuela",
+    "government": {
+      "bcv.org.ve": {"name": "BCV", "description": "Central bank", "authority_score": 0.90},
+      "ine.gov.ve": {"name": "INE Venezuela", "description": "Statistics institute", "authority_score": 0.85}
+    },
+    "news": {
+      "eluniversal.com": {"name": "El Universal", "description": "Major newspaper", "authority_score": 0.72},
+      "elnacional.com": {"name": "El Nacional", "description": "National newspaper", "authority_score": 0.71}
+    }
+  },
+
+  "uruguay": {
+    "_name": "Uruguay",
+    "government": {
+      "bcu.gub.uy": {"name": "BCU", "description": "Central bank", "authority_score": 0.95},
+      "ine.gub.uy": {"name": "INE Uruguay", "description": "Statistics institute", "authority_score": 0.94},
+      "dgi.gub.uy": {"name": "DGI", "description": "Tax authority", "authority_score": 0.93},
+      "ursec.gub.uy": {"name": "URSEC", "description": "Communications regulator", "authority_score": 0.92}
+    },
+    "exchanges": {
+      "bvm.com.uy": {"name": "BVM", "description": "Montevideo stock exchange", "authority_score": 0.88}
+    },
+    "news": {
+      "elpais.com.uy": {"name": "El País", "description": "Major newspaper", "authority_score": 0.77},
+      "elobservador.com.uy": {"name": "El Observador", "description": "National newspaper", "authority_score": 0.76}
+    }
+  },
+
+  "paraguay": {
+    "_name": "Paraguay",
+    "government": {
+      "bcp.gov.py": {"name": "Banco Central del Paraguay", "description": "Central bank, monetary policy, economic data", "authority_score": 0.95},
+      "hacienda.gov.py": {"name": "Ministerio de Hacienda", "description": "Ministry of Finance, budget data", "authority_score": 0.94},
+      "mic.gov.py": {"name": "MIC Paraguay", "description": "Ministry of Industry & Commerce", "authority_score": 0.92},
+      "set.gov.py": {"name": "SET Paraguay", "description": "Tax authority, company registry", "authority_score": 0.93},
+      "ine.gov.py": {"name": "INE Paraguay", "description": "National statistics institute", "authority_score": 0.92},
+      "conatel.gov.py": {"name": "CONATEL", "description": "Telecom regulator", "authority_score": 0.90},
+      "economia.gov.py": {"name": "Ministerio de Economía", "description": "Economic policy, planning", "authority_score": 0.91},
+      "mre.gov.py": {"name": "Ministerio de Relaciones Exteriores", "description": "Foreign affairs, trade", "authority_score": 0.90},
+      "mitic.gov.py": {"name": "MITIC", "description": "Digital transformation ministry", "authority_score": 0.88},
+      "seprelad.gov.py": {"name": "SEPRELAD", "description": "Financial intelligence unit", "authority_score": 0.89},
+      "rediex.gov.py": {"name": "REDIEX", "description": "Export promotion agency", "authority_score": 0.87},
+      "senacsa.gov.py": {"name": "SENACSA", "description": "Animal health, meat export", "authority_score": 0.86}
+    },
+    "exchanges": {
+      "bvpasa.com.py": {"name": "BVPASA", "description": "Bolsa de Valores de Asunción", "authority_score": 0.88}
+    },
+    "utilities": {
+      "ip.gov.py": {"name": "Itaipú", "description": "Itaipú hydroelectric data", "authority_score": 0.88},
+      "ande.gov.py": {"name": "ANDE", "description": "National electricity administration", "authority_score": 0.87},
+      "essap.com.py": {"name": "ESSAP", "description": "Water utility", "authority_score": 0.85}
+    },
+    "industry_associations": {
+      "capeco.org.py": {"name": "CAPECO", "description": "Chamber of cereals exporters", "authority_score": 0.82},
+      "uip.org.py": {"name": "UIP", "description": "Industrial union of Paraguay", "authority_score": 0.80},
+      "cadam.com.py": {"name": "CADAM", "description": "Automotive dealers association", "authority_score": 0.78},
+      "arp.org.py": {"name": "ARP", "description": "Rural association", "authority_score": 0.80},
+      "cap.org.py": {"name": "CAP", "description": "Production chamber", "authority_score": 0.79}
+    },
+    "telecom": {
+      "tigo.com.py": {"name": "Tigo Paraguay", "description": "Major telecom operator", "authority_score": 0.72},
+      "personal.com.py": {"name": "Personal Paraguay", "description": "Telecom operator", "authority_score": 0.72},
+      "claro.com.py": {"name": "Claro Paraguay", "description": "Telecom operator", "authority_score": 0.72},
+      "copaco.com.py": {"name": "COPACO", "description": "State telecom company", "authority_score": 0.75}
+    },
+    "banks": {
+      "bancontinental.com.py": {"name": "Banco Continental", "description": "Major bank", "authority_score": 0.75},
+      "bancognb.com.py": {"name": "Banco GNB", "description": "Major bank", "authority_score": 0.74},
+      "bancoatlas.com.py": {"name": "Banco Atlas", "description": "Major bank", "authority_score": 0.74},
+      "itau.com.py": {"name": "Itaú Paraguay", "description": "Brazilian bank subsidiary", "authority_score": 0.76},
+      "regional.com.py": {"name": "Banco Regional", "description": "Regional bank", "authority_score": 0.74},
+      "basa.com.py": {"name": "Banco BASA", "description": "Commercial bank", "authority_score": 0.73},
+      "visionbanco.com": {"name": "Visión Banco", "description": "Commercial bank", "authority_score": 0.73}
+    },
+    "news": {
+      "abc.com.py": {"name": "ABC Color", "description": "Major Paraguayan newspaper", "authority_score": 0.75},
+      "lanacion.com.py": {"name": "La Nación", "description": "Paraguayan newspaper", "authority_score": 0.74},
+      "ultimahora.com": {"name": "Última Hora", "description": "Paraguayan newspaper", "authority_score": 0.73},
+      "5dias.com.py": {"name": "5 Días", "description": "Paraguayan business newspaper", "authority_score": 0.76},
+      "ip.gov.py": {"name": "IP Noticias", "description": "Government news", "authority_score": 0.72}
+    }
+  },
+
+  "bolivia": {
+    "_name": "Bolivia",
+    "government": {
+      "bcb.gob.bo": {"name": "BCB", "description": "Central bank", "authority_score": 0.93},
+      "ine.gob.bo": {"name": "INE Bolivia", "description": "Statistics institute", "authority_score": 0.91},
+      "asfi.gob.bo": {"name": "ASFI", "description": "Financial regulator", "authority_score": 0.92}
+    },
+    "exchanges": {
+      "bbv.com.bo": {"name": "BBV", "description": "Bolivian stock exchange", "authority_score": 0.86}
+    },
+    "news": {
+      "lostiempos.com": {"name": "Los Tiempos", "description": "Major newspaper", "authority_score": 0.74},
+      "eldeber.com.bo": {"name": "El Deber", "description": "National newspaper", "authority_score": 0.73}
+    }
+  }
+}

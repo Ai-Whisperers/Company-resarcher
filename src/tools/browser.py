@@ -1,19 +1,34 @@
+"""
+Browser Tool with Pool Support (INT-005).
+
+Provides web scraping capabilities using Playwright with optional browser pooling
+for improved performance and resource management.
+"""
+
 import asyncio
 import os
 import threading
+import time
 from typing import Optional, List, Dict
 from urllib.parse import urlparse
-from playwright.async_api import async_playwright, Page, Browser
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from bs4 import BeautifulSoup
 from ..core.logger import setup_logger
 from ..core.types import ResearchSource
 from ..core.url_validator import URLValidator, URLValidationError
+from ..core.source_classifier import classify_source
 from ..services.html_cache import get_html_cache
 
 logger = setup_logger("browser_tool")
 
 # Overall timeout for the entire fetch operation (default: 60 seconds)
 FETCH_OVERALL_TIMEOUT = int(os.getenv("BROWSER_FETCH_TIMEOUT_SECONDS", "60"))
+
+# Page navigation timeout in milliseconds (TECH-012: default: 30 seconds)
+PAGE_NAVIGATION_TIMEOUT_MS = int(os.getenv("BROWSER_PAGE_TIMEOUT_MS", "30000"))
+
+# Maximum concurrent browser pages (TECH-013: default: 5)
+DEFAULT_MAX_CONCURRENT = int(os.getenv("BROWSER_MAX_CONCURRENT", "5"))
 
 # Enable/disable HTML caching (default: True)
 ENABLE_HTML_CACHE = os.getenv("ENABLE_HTML_CACHE", "true").lower() == "true"
@@ -38,6 +53,212 @@ MAIN_CONTENT_SELECTOR = ", ".join([
 _selector_cache: Dict[str, str] = {}
 _selector_cache_lock = threading.Lock()
 
+# Browser pool settings (INT-005)
+BROWSER_POOL_SIZE = int(os.getenv("BROWSER_POOL_SIZE", "3"))
+BROWSER_POOL_MAX_AGE_SECONDS = int(os.getenv("BROWSER_POOL_MAX_AGE", "300"))  # 5 min
+
+
+class BrowserPool:
+    """
+    Browser context pool for reusing browser contexts (INT-005).
+
+    Maintains a pool of browser contexts to avoid the overhead of
+    creating new browsers for each request. Contexts are recycled
+    periodically to prevent memory leaks.
+
+    Usage:
+        async with BrowserPool() as pool:
+            page = await pool.acquire()
+            try:
+                await page.goto(url)
+                content = await page.content()
+            finally:
+                await pool.release(page)
+    """
+
+    def __init__(
+        self,
+        pool_size: int = BROWSER_POOL_SIZE,
+        max_age_seconds: int = BROWSER_POOL_MAX_AGE_SECONDS,
+    ):
+        self.pool_size = pool_size
+        self.max_age_seconds = max_age_seconds
+        self._playwright = None
+        self._browser: Optional[Browser] = None
+        self._available_contexts: asyncio.Queue = asyncio.Queue()
+        self._context_ages: Dict[int, float] = {}
+        self._lock = asyncio.Lock()
+        self._initialized = False
+        self._total_created = 0
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        await self.start()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit."""
+        await self.stop()
+
+    async def start(self):
+        """Initialize the browser and create initial pool of contexts."""
+        async with self._lock:
+            if self._initialized:
+                return
+
+            self._playwright = await async_playwright().start()
+            self._browser = await self._playwright.chromium.launch(headless=True)
+
+            # Pre-create contexts
+            for _ in range(self.pool_size):
+                context = await self._create_context()
+                await self._available_contexts.put(context)
+
+            self._initialized = True
+            logger.info(f"Browser pool started with {self.pool_size} contexts")
+
+    async def stop(self):
+        """Stop the pool and close all resources."""
+        async with self._lock:
+            if not self._initialized:
+                return
+
+            # Close all available contexts
+            while not self._available_contexts.empty():
+                try:
+                    context = self._available_contexts.get_nowait()
+                    await self._close_context(context)
+                except asyncio.QueueEmpty:
+                    break
+
+            if self._browser:
+                await self._browser.close()
+                self._browser = None
+
+            if self._playwright:
+                await self._playwright.stop()
+                self._playwright = None
+
+            self._initialized = False
+            self._context_ages.clear()
+            logger.info("Browser pool stopped")
+
+    async def _create_context(self) -> BrowserContext:
+        """Create a new browser context with standard settings."""
+        context = await self._browser.new_context(
+            viewport={"width": 1280, "height": 720},
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            java_script_enabled=True,
+            bypass_csp=True,
+        )
+        context_id = id(context)
+        self._context_ages[context_id] = time.time()
+        self._total_created += 1
+        logger.debug(f"Created browser context {context_id}")
+        return context
+
+    async def _close_context(self, context: BrowserContext):
+        """Close a browser context and clean up."""
+        context_id = id(context)
+        try:
+            await context.close()
+            self._context_ages.pop(context_id, None)
+            logger.debug(f"Closed browser context {context_id}")
+        except Exception as e:
+            logger.warning(f"Error closing context {context_id}: {e}")
+
+    def _is_context_stale(self, context: BrowserContext) -> bool:
+        """Check if a context has exceeded its max age."""
+        context_id = id(context)
+        created_at = self._context_ages.get(context_id, 0)
+        return (time.time() - created_at) > self.max_age_seconds
+
+    async def acquire(self) -> Page:
+        """
+        Acquire a page from the pool.
+
+        Returns a new page from an available context. If the context
+        is stale, it will be recycled with a fresh one.
+
+        Returns:
+            Playwright Page instance
+        """
+        if not self._initialized:
+            await self.start()
+
+        # Get a context from the pool
+        context = await self._available_contexts.get()
+
+        # Check if context is stale and needs recycling
+        if self._is_context_stale(context):
+            logger.debug(f"Recycling stale context {id(context)}")
+            await self._close_context(context)
+            context = await self._create_context()
+
+        # Create a new page from the context
+        page = await context.new_page()
+        page.set_default_timeout(PAGE_NAVIGATION_TIMEOUT_MS)
+
+        return page
+
+    async def release(self, page: Page):
+        """
+        Release a page back to the pool.
+
+        Closes the page and returns its context to the available pool.
+
+        Args:
+            page: Playwright Page instance to release
+        """
+        try:
+            context = page.context
+            await page.close()
+
+            # Return context to pool
+            await self._available_contexts.put(context)
+        except Exception as e:
+            logger.warning(f"Error releasing page to pool: {e}")
+            # Create a replacement context if release failed
+            try:
+                new_context = await self._create_context()
+                await self._available_contexts.put(new_context)
+            except Exception as create_error:
+                logger.error(f"Failed to create replacement context: {create_error}")
+
+    @property
+    def available_count(self) -> int:
+        """Number of available contexts in the pool."""
+        return self._available_contexts.qsize()
+
+    @property
+    def total_created(self) -> int:
+        """Total number of contexts created (for metrics)."""
+        return self._total_created
+
+
+# Global browser pool instance (lazy initialized)
+_browser_pool: Optional[BrowserPool] = None
+_browser_pool_lock = asyncio.Lock()
+
+
+async def get_browser_pool() -> BrowserPool:
+    """Get or create the global browser pool instance."""
+    global _browser_pool
+    if _browser_pool is None:
+        async with _browser_pool_lock:
+            if _browser_pool is None:
+                _browser_pool = BrowserPool()
+                await _browser_pool.start()
+    return _browser_pool
+
+
+async def close_browser_pool():
+    """Close the global browser pool."""
+    global _browser_pool
+    if _browser_pool is not None:
+        await _browser_pool.stop()
+        _browser_pool = None
+
 
 class BrowserTool:
     """
@@ -46,7 +267,7 @@ class BrowserTool:
     Supports context manager for proper resource cleanup.
     """
 
-    def __init__(self, max_concurrent: int = 5):
+    def __init__(self, max_concurrent: int = DEFAULT_MAX_CONCURRENT):
         self.browser: Optional[Browser] = None
         self.playwright = None
         self.max_concurrent = max_concurrent
@@ -161,7 +382,7 @@ class BrowserTool:
         try:
             page = await self.browser.new_page()
             logger.info(f"Navigating to: {url}")
-            await page.goto(url, timeout=30000, wait_until="domcontentloaded")
+            await page.goto(url, timeout=PAGE_NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
 
             # Wait for content to load
             try:
@@ -184,6 +405,11 @@ class BrowserTool:
             # Extract Metadata
             metadata = self._extract_metadata(soup)
             title = metadata.get("title") or await page.title()
+
+            # Fallback to domain name if title is empty or generic
+            if not title or title.strip() in ("", "Untitled", "Document"):
+                domain = urlparse(url).netloc
+                title = domain.replace("www.", "") if domain else url[:50]
 
             # Cache raw HTML if enabled
             if ENABLE_HTML_CACHE:
@@ -319,38 +545,11 @@ class BrowserTool:
     def classify_source_type(self, url: str, content: str) -> str:
         """
         Classify the type of source based on URL and content.
-        Ported from web_fetcher.py
+
+        Uses the configurable SourceTypeClassifier (TECH-027, TECH-028).
+        Supports 15+ source types with regex patterns and scoring.
         """
-        url_lower = url.lower()
-        content_lower = content.lower()
-
-        # Check for specific source types
-        if any(
-            x in url_lower for x in ["statista", "euromonitor", "nielsen", "ibisworld"]
-        ):
-            return "industry_report"
-
-        if any(x in url_lower for x in ["news", "press", "article", "blog"]):
-            return "news_article"
-
-        if any(x in url_lower for x in ["study", "research", "journal", "academic"]):
-            return "academic"
-
-        if any(
-            x in url_lower
-            for x in ["facebook", "twitter", "instagram", "linkedin", "tiktok"]
-        ):
-            return "social_media"
-
-        if any(x in url_lower for x in ["gov", "gob", "gobierno"]):
-            return "government"
-
-        if "%" in content_lower or any(
-            x in content_lower for x in ["growth", "market size", "revenue"]
-        ):
-            return "market_data"
-
-        return "web"
+        return classify_source(url, content)
 
     async def _fetch_with_semaphore(self, url: str) -> ResearchSource:
         """Fetch a page with rate limiting via semaphore."""

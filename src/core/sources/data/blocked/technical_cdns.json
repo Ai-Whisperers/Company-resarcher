@@ -1,0 +1,23 @@
+{
+  "_description": "Technical CDNs & Cloud Storage - Infrastructure URLs with no content value",
+  "amazonaws.com": {"name": "AWS", "reason": "Cloud infrastructure, no content"},
+  "cloudfront.net": {"name": "CloudFront", "reason": "CDN, no content"},
+  "googleusercontent.com": {"name": "Google User Content", "reason": "Cloud storage"},
+  "akamaized.net": {"name": "Akamai", "reason": "CDN, no content"},
+  "cloudflare.com": {"name": "Cloudflare", "reason": "CDN/security service"},
+  "fastly.net": {"name": "Fastly", "reason": "CDN, no content"},
+  "azureedge.net": {"name": "Azure CDN", "reason": "CDN, no content"},
+  "azure.com": {"name": "Azure", "reason": "Cloud infrastructure"},
+  "googlecloud.com": {"name": "Google Cloud", "reason": "Cloud infrastructure"},
+  "storage.googleapis.com": {"name": "Google Cloud Storage", "reason": "Cloud storage"},
+  "cdn.*.com": {"name": "CDN (wildcard)", "reason": "CDN subdomains", "is_pattern": true},
+  "static.*.com": {"name": "Static (wildcard)", "reason": "Static asset subdomains", "is_pattern": true},
+  "assets.*.com": {"name": "Assets (wildcard)", "reason": "Asset subdomains", "is_pattern": true},
+  "images.*.com": {"name": "Images (wildcard)", "reason": "Image subdomains", "is_pattern": true},
+  "media.*.com": {"name": "Media (wildcard)", "reason": "Media subdomains", "is_pattern": true},
+  "s3.amazonaws.com": {"name": "S3", "reason": "AWS object storage"},
+  "blob.core.windows.net": {"name": "Azure Blob", "reason": "Azure blob storage"},
+  "r2.cloudflarestorage.com": {"name": "Cloudflare R2", "reason": "Object storage"},
+  "digitaloceanspaces.com": {"name": "DigitalOcean Spaces", "reason": "Object storage"},
+  "linode.com": {"name": "Linode", "reason": "Cloud infrastructure"}
+}

@@ -1,0 +1,23 @@
+{
+  "_description": "Crypto Scam & Unreliable Crypto News - Pump-and-dump promotion, unreliable",
+  "bitcointalk.org": {"name": "BitcoinTalk", "reason": "Forum, pump-and-dump schemes"},
+  "coinmarketcap.com/community": {"name": "CoinMarketCap Community", "reason": "User-generated crypto content"},
+  "coingecko.com/community": {"name": "CoinGecko Community", "reason": "User-generated crypto content"},
+  "bitcoinist.com": {"name": "Bitcoinist", "reason": "Crypto promotion, unreliable"},
+  "newsbtc.com": {"name": "NewsBTC", "reason": "Crypto promotion"},
+  "beincrypto.com": {"name": "BeInCrypto", "reason": "Crypto promotion"},
+  "u.today": {"name": "U.Today", "reason": "Crypto promotion, clickbait"},
+  "ambcrypto.com": {"name": "AMBCrypto", "reason": "Crypto promotion"},
+  "cryptopotato.com": {"name": "CryptoPotato", "reason": "Crypto promotion"},
+  "cryptobriefing.com": {"name": "Crypto Briefing", "reason": "Crypto promotion"},
+  "dailyhodl.com": {"name": "Daily Hodl", "reason": "Crypto promotion, hype"},
+  "cryptonews.com": {"name": "CryptoNews", "reason": "Crypto promotion"},
+  "cryptoslate.com": {"name": "CryptoSlate", "reason": "Crypto promotion"},
+  "fxstreet.com/cryptocurrencies": {"name": "FXStreet Crypto", "reason": "Crypto section, promotion"},
+  "coinspeaker.com": {"name": "Coinspeaker", "reason": "Crypto promotion, paid content"},
+  "cryptodaily.co.uk": {"name": "Crypto Daily", "reason": "Crypto promotion"},
+  "coinpedia.org": {"name": "Coinpedia", "reason": "Crypto promotion, ICO coverage"},
+  "zycrypto.com": {"name": "ZyCrypto", "reason": "Crypto promotion"},
+  "nulltx.com": {"name": "NullTX", "reason": "Crypto promotion"},
+  "cryptoglobe.com": {"name": "CryptoGlobe", "reason": "Crypto promotion"}
+}

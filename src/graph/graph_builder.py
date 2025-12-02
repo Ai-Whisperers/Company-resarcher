@@ -27,7 +27,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from abc import ABC, abstractmethod
-from langchain_core.messages import HumanMessage
 
 from .state import (
     ResearchState,
@@ -48,14 +47,20 @@ logger = setup_logger("graph_builder")
 
 
 # =============================================================================
-# Constants and Configuration
+# Constants and Configuration (TECH-007, TECH-016: Configurable via environment)
 # =============================================================================
+import os
 
-DEFAULT_NODE_TIMEOUT = 300  # 5 minutes
-MAX_RETRY_ATTEMPTS = 3
-RETRY_BACKOFF_BASE = 2  # Exponential backoff base
-CIRCUIT_BREAKER_THRESHOLD = 5
-CIRCUIT_BREAKER_RESET_TIME = 60  # seconds
+# Node execution timeout in seconds (default: 5 minutes)
+DEFAULT_NODE_TIMEOUT = int(os.getenv("GRAPH_NODE_TIMEOUT_SECONDS", "300"))
+
+# Retry configuration
+MAX_RETRY_ATTEMPTS = int(os.getenv("GRAPH_MAX_RETRY_ATTEMPTS", "3"))
+RETRY_BACKOFF_BASE = float(os.getenv("GRAPH_RETRY_BACKOFF_BASE", "2"))
+
+# Circuit breaker configuration
+CIRCUIT_BREAKER_THRESHOLD = int(os.getenv("GRAPH_CIRCUIT_BREAKER_THRESHOLD", "5"))
+CIRCUIT_BREAKER_RESET_TIME = int(os.getenv("GRAPH_CIRCUIT_BREAKER_RESET_SECONDS", "60"))
 
 # Node names (GR-029: Extract hardcoded string literals)
 NODE_ORCHESTRATOR = "orchestrator"
@@ -1722,6 +1727,9 @@ class ResearchGraph:
 
     async def source_reviewer_node(self, state: ResearchState) -> Dict[str, Any]:
         """Final source review before completion."""
+        # Import here to keep LangGraph dependency isolated (GR-013)
+        from langchain_core.messages import HumanMessage
+
         logger.info("=== SOURCE REVIEWER ===")
 
         # Transition to complete

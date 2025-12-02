@@ -6,7 +6,7 @@ Generates multiple, diverse search queries to cover different angles of a topic.
 
 import json
 import re
-from typing import List, Optional, Callable, Awaitable
+from typing import List, Optional
 
 from .ai_client import BaseAIClient, get_ai_manager
 from .logger import setup_logger

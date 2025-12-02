@@ -1,0 +1,129 @@
+{
+  "_description": "Central America & Caribbean Regional Sources",
+
+  "guatemala": {
+    "_name": "Guatemala",
+    "government": {
+      "banguat.gob.gt": {"name": "Banco de Guatemala", "description": "Central bank", "authority_score": 0.94},
+      "ine.gob.gt": {"name": "INE Guatemala", "description": "National statistics", "authority_score": 0.92},
+      "sat.gob.gt": {"name": "SAT Guatemala", "description": "Tax authority", "authority_score": 0.92},
+      "mineco.gob.gt": {"name": "MINECO", "description": "Economy ministry", "authority_score": 0.91},
+      "sib.gob.gt": {"name": "SIB", "description": "Banking regulator", "authority_score": 0.92}
+    },
+    "news": {
+      "prensalibre.com": {"name": "Prensa Libre", "description": "Major newspaper", "authority_score": 0.75},
+      "soy502.com": {"name": "Soy502", "description": "Digital news", "authority_score": 0.72}
+    }
+  },
+
+  "el_salvador": {
+    "_name": "El Salvador",
+    "government": {
+      "bcr.gob.sv": {"name": "BCR El Salvador", "description": "Central bank", "authority_score": 0.93},
+      "digestyc.gob.sv": {"name": "DIGESTYC", "description": "Statistics office", "authority_score": 0.91},
+      "ssf.gob.sv": {"name": "SSF", "description": "Financial system regulator", "authority_score": 0.92},
+      "minec.gob.sv": {"name": "MINEC", "description": "Economy ministry", "authority_score": 0.90}
+    },
+    "news": {
+      "laprensagrafica.com": {"name": "La Prensa Gráfica", "description": "Major newspaper", "authority_score": 0.74},
+      "elsalvador.com": {"name": "El Diario de Hoy", "description": "National newspaper", "authority_score": 0.73}
+    }
+  },
+
+  "honduras": {
+    "_name": "Honduras",
+    "government": {
+      "bch.hn": {"name": "BCH", "description": "Central bank", "authority_score": 0.93},
+      "ine.gob.hn": {"name": "INE Honduras", "description": "Statistics institute", "authority_score": 0.91},
+      "cnbs.gob.hn": {"name": "CNBS", "description": "Banking/securities regulator", "authority_score": 0.92}
+    },
+    "news": {
+      "laprensa.hn": {"name": "La Prensa", "description": "Major newspaper", "authority_score": 0.73},
+      "elheraldo.hn": {"name": "El Heraldo", "description": "National newspaper", "authority_score": 0.72}
+    }
+  },
+
+  "nicaragua": {
+    "_name": "Nicaragua",
+    "government": {
+      "bcn.gob.ni": {"name": "BCN", "description": "Central bank", "authority_score": 0.92},
+      "inide.gob.ni": {"name": "INIDE", "description": "Statistics institute", "authority_score": 0.90},
+      "siboif.gob.ni": {"name": "SIBOIF", "description": "Banking regulator", "authority_score": 0.91}
+    },
+    "news": {
+      "laprensa.com.ni": {"name": "La Prensa", "description": "Major newspaper", "authority_score": 0.72}
+    }
+  },
+
+  "costa_rica": {
+    "_name": "Costa Rica",
+    "government": {
+      "bccr.fi.cr": {"name": "BCCR", "description": "Central bank", "authority_score": 0.94},
+      "inec.cr": {"name": "INEC Costa Rica", "description": "Statistics institute", "authority_score": 0.93},
+      "sugef.fi.cr": {"name": "SUGEF", "description": "Financial regulator", "authority_score": 0.93},
+      "sugeval.fi.cr": {"name": "SUGEVAL", "description": "Securities regulator", "authority_score": 0.92},
+      "sutel.go.cr": {"name": "SUTEL", "description": "Telecom regulator", "authority_score": 0.92},
+      "comex.go.cr": {"name": "COMEX", "description": "Trade ministry", "authority_score": 0.92}
+    },
+    "exchanges": {
+      "bolsacr.com": {"name": "BNV Costa Rica", "description": "National stock exchange", "authority_score": 0.88}
+    },
+    "news": {
+      "nacion.com": {"name": "La Nación", "description": "Major newspaper", "authority_score": 0.78},
+      "crhoy.com": {"name": "CRHoy", "description": "Digital news", "authority_score": 0.74},
+      "elmundo.cr": {"name": "El Mundo CR", "description": "Business news", "authority_score": 0.73}
+    }
+  },
+
+  "panama": {
+    "_name": "Panama",
+    "government": {
+      "bfrancegeneral.gob.pa": {"name": "Banco Nacional", "description": "National bank", "authority_score": 0.93},
+      "inec.gob.pa": {"name": "INEC Panama", "description": "Statistics institute", "authority_score": 0.92},
+      "superbancos.gob.pa": {"name": "SBP", "description": "Banking regulator", "authority_score": 0.93},
+      "smv.gob.pa": {"name": "SMV", "description": "Securities regulator", "authority_score": 0.92},
+      "mici.gob.pa": {"name": "MICI", "description": "Commerce ministry", "authority_score": 0.91},
+      "pancanal.com": {"name": "Panama Canal Authority", "description": "Canal operations data", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "panabolsa.com": {"name": "BVP", "description": "Panama stock exchange", "authority_score": 0.87}
+    },
+    "news": {
+      "prensa.com": {"name": "La Prensa", "description": "Major newspaper", "authority_score": 0.77},
+      "laestrella.com.pa": {"name": "La Estrella", "description": "National newspaper", "authority_score": 0.75},
+      "capital.com.pa": {"name": "Capital Financiero", "description": "Business news", "authority_score": 0.76}
+    }
+  },
+
+  "dominican_republic": {
+    "_name": "Dominican Republic",
+    "government": {
+      "bancentral.gov.do": {"name": "BCRD", "description": "Central bank", "authority_score": 0.94},
+      "one.gob.do": {"name": "ONE", "description": "Statistics office", "authority_score": 0.92},
+      "sib.gob.do": {"name": "SIB", "description": "Banking regulator", "authority_score": 0.93},
+      "simv.gob.do": {"name": "SIMV", "description": "Securities regulator", "authority_score": 0.92},
+      "dgii.gov.do": {"name": "DGII", "description": "Tax authority", "authority_score": 0.92}
+    },
+    "exchanges": {
+      "bvrd.com.do": {"name": "BVRD", "description": "Dominican stock exchange", "authority_score": 0.86}
+    },
+    "news": {
+      "listindiario.com": {"name": "Listín Diario", "description": "Major newspaper", "authority_score": 0.76},
+      "diariolibre.com": {"name": "Diario Libre", "description": "National newspaper", "authority_score": 0.75}
+    }
+  },
+
+  "puerto_rico": {
+    "_name": "Puerto Rico (US Territory)",
+    "government": {
+      "hacienda.pr.gov": {"name": "Hacienda PR", "description": "Treasury department", "authority_score": 0.92},
+      "estadisticas.pr": {"name": "Instituto Estadísticas", "description": "Statistics institute", "authority_score": 0.91},
+      "ocif.pr.gov": {"name": "OCIF", "description": "Financial institutions", "authority_score": 0.91},
+      "ddec.pr.gov": {"name": "DDEC", "description": "Economic development", "authority_score": 0.90}
+    },
+    "news": {
+      "elnuevodia.com": {"name": "El Nuevo Día", "description": "Major newspaper", "authority_score": 0.77},
+      "noticel.com": {"name": "NotiCel", "description": "Digital news", "authority_score": 0.74}
+    }
+  }
+}

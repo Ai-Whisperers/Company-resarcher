@@ -14,6 +14,7 @@ import asyncio
 from typing import List
 from .base import SearchProvider, SearchResult, SearchError, RateLimitError
 from ...core.logger import setup_logger
+from ...utils.url_utils import get_ddg_region
 
 logger = setup_logger("search.duckduckgo")
 
@@ -78,13 +79,20 @@ class DuckDuckGoProvider(SearchProvider):
             self._ddgs = DDGS(timeout=self.timeout, proxy=self.proxy)
         return self._ddgs
 
-    async def search(self, query: str, max_results: int = 10) -> List[SearchResult]:
+    async def search(
+        self,
+        query: str,
+        max_results: int = 10,
+        country_tld: str = None,
+    ) -> List[SearchResult]:
         """
         Execute a DuckDuckGo search.
 
         Args:
             query: Search query string
             max_results: Maximum results (default 10)
+            country_tld: Optional country TLD for region-specific search (BUG-049)
+                        e.g., "py" for Paraguay, "ar" for Argentina
 
         Returns:
             List of SearchResult objects
@@ -93,6 +101,9 @@ class DuckDuckGoProvider(SearchProvider):
             logger.warning("Empty query provided to DuckDuckGo")
             return []
 
+        # Determine region: use country_tld if provided, else default region
+        search_region = get_ddg_region(country_tld) if country_tld else self.region
+        
         try:
             ddgs = self._get_client()
 
@@ -100,13 +111,15 @@ class DuckDuckGoProvider(SearchProvider):
             # Request more results than needed to account for DuckDuckGo's
             # tendency to return fewer results (TECH-030)
             request_count = max(max_results * 2, 15)
+            
+            logger.debug(f"DuckDuckGo search region: {search_region} (BUG-049)")
 
             loop = asyncio.get_event_loop()
             raw_results = await loop.run_in_executor(
                 None,
                 lambda: list(ddgs.text(
                     query,
-                    region=self.region,
+                    region=search_region,
                     max_results=request_count,
                     safesearch="moderate",
                     backend="auto"  # Use auto backend for better result coverage (TECH-030)
@@ -133,8 +146,13 @@ class DuckDuckGoProvider(SearchProvider):
         except Exception as e:
             error_str = str(e).lower()
 
-            # Check for rate limiting
-            if "ratelimit" in error_str or "429" in error_str:
+            # Check for rate limiting (expanded patterns for BUG-053)
+            rate_limit_patterns = [
+                "ratelimit", "rate limit", "rate-limit",
+                "too many requests", "429", "throttl",
+                "blocked", "captcha",
+            ]
+            if any(p in error_str for p in rate_limit_patterns):
                 logger.warning(f"DuckDuckGo rate limited for '{query[:30]}...'")
                 raise RateLimitError(self.name, query)
 

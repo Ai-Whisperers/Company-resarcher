@@ -1,0 +1,283 @@
+{
+  "_description": "Europe Regional Sources",
+
+  "united_kingdom": {
+    "_name": "United Kingdom",
+    "government": {
+      "gov.uk": {"name": "GOV.UK", "description": "UK government portal", "authority_score": 0.97},
+      "bankofengland.co.uk": {"name": "Bank of England", "description": "Central bank", "authority_score": 0.98},
+      "ons.gov.uk": {"name": "ONS", "description": "Office for National Statistics", "authority_score": 0.97},
+      "fca.org.uk": {"name": "FCA", "description": "Financial Conduct Authority", "authority_score": 0.97},
+      "companieshouse.gov.uk": {"name": "Companies House", "description": "Company registry", "authority_score": 0.97, "api_available": true},
+      "ofcom.org.uk": {"name": "Ofcom", "description": "Communications regulator", "authority_score": 0.96},
+      "ofgem.gov.uk": {"name": "Ofgem", "description": "Energy regulator", "authority_score": 0.96},
+      "cma.gov.uk": {"name": "CMA", "description": "Competition authority", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "londonstockexchange.com": {"name": "LSE", "description": "London Stock Exchange", "authority_score": 0.98}
+    },
+    "news": {
+      "ft.com": {"name": "Financial Times", "description": "Business news", "authority_score": 0.94, "requires_subscription": true},
+      "bbc.com": {"name": "BBC", "description": "National broadcaster", "authority_score": 0.92},
+      "theguardian.com": {"name": "The Guardian", "description": "National newspaper", "authority_score": 0.88},
+      "telegraph.co.uk": {"name": "The Telegraph", "description": "National newspaper", "authority_score": 0.86},
+      "thetimes.co.uk": {"name": "The Times", "description": "National newspaper", "authority_score": 0.87, "requires_subscription": true},
+      "cityam.com": {"name": "City A.M.", "description": "London business", "authority_score": 0.80}
+    }
+  },
+
+  "germany": {
+    "_name": "Germany",
+    "government": {
+      "bundesbank.de": {"name": "Bundesbank", "description": "Central bank", "authority_score": 0.98},
+      "destatis.de": {"name": "Destatis", "description": "Federal statistics office", "authority_score": 0.97},
+      "bafin.de": {"name": "BaFin", "description": "Financial regulator", "authority_score": 0.97},
+      "handelsregister.de": {"name": "Handelsregister", "description": "Commercial register", "authority_score": 0.96},
+      "bundesnetzagentur.de": {"name": "BNetzA", "description": "Network regulator", "authority_score": 0.95},
+      "bmwk.de": {"name": "BMWK", "description": "Economy ministry", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "deutsche-boerse.com": {"name": "Deutsche Börse", "description": "Frankfurt Stock Exchange", "authority_score": 0.97},
+      "xetra.com": {"name": "Xetra", "description": "Electronic trading", "authority_score": 0.96}
+    },
+    "news": {
+      "handelsblatt.com": {"name": "Handelsblatt", "description": "Business newspaper", "authority_score": 0.88},
+      "wiwo.de": {"name": "WirtschaftsWoche", "description": "Business weekly", "authority_score": 0.85},
+      "manager-magazin.de": {"name": "Manager Magazin", "description": "Business magazine", "authority_score": 0.84},
+      "faz.net": {"name": "FAZ", "description": "National newspaper", "authority_score": 0.87},
+      "spiegel.de": {"name": "Der Spiegel", "description": "News magazine", "authority_score": 0.86}
+    }
+  },
+
+  "france": {
+    "_name": "France",
+    "government": {
+      "banque-france.fr": {"name": "Banque de France", "description": "Central bank", "authority_score": 0.97},
+      "insee.fr": {"name": "INSEE", "description": "Statistics institute", "authority_score": 0.97},
+      "amf-france.org": {"name": "AMF", "description": "Financial markets authority", "authority_score": 0.96},
+      "infogreffe.fr": {"name": "Infogreffe", "description": "Business registry", "authority_score": 0.95},
+      "arcep.fr": {"name": "ARCEP", "description": "Telecom regulator", "authority_score": 0.95},
+      "cre.fr": {"name": "CRE", "description": "Energy regulator", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "euronext.com/en/markets/paris": {"name": "Euronext Paris", "description": "Paris stock exchange", "authority_score": 0.96}
+    },
+    "news": {
+      "lesechos.fr": {"name": "Les Échos", "description": "Business newspaper", "authority_score": 0.87},
+      "latribune.fr": {"name": "La Tribune", "description": "Business news", "authority_score": 0.83},
+      "lemonde.fr": {"name": "Le Monde", "description": "National newspaper", "authority_score": 0.88},
+      "lefigaro.fr": {"name": "Le Figaro", "description": "National newspaper", "authority_score": 0.85},
+      "bfmtv.com": {"name": "BFM Business", "description": "Business TV", "authority_score": 0.80}
+    }
+  },
+
+  "spain": {
+    "_name": "Spain",
+    "government": {
+      "bde.es": {"name": "Banco de España", "description": "Central bank", "authority_score": 0.97},
+      "ine.es": {"name": "INE Spain", "description": "Statistics institute", "authority_score": 0.96},
+      "cnmv.es": {"name": "CNMV", "description": "Securities regulator", "authority_score": 0.96},
+      "registradores.org": {"name": "Registradores", "description": "Commercial registry", "authority_score": 0.95},
+      "cnmc.es": {"name": "CNMC", "description": "Competition/telecom regulator", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "bolsasymercados.es": {"name": "BME", "description": "Spanish exchanges", "authority_score": 0.95}
+    },
+    "news": {
+      "expansion.com": {"name": "Expansión", "description": "Business newspaper", "authority_score": 0.84},
+      "cincodias.elpais.com": {"name": "Cinco Días", "description": "Business news", "authority_score": 0.82},
+      "elpais.com": {"name": "El País", "description": "National newspaper", "authority_score": 0.86},
+      "elmundo.es": {"name": "El Mundo", "description": "National newspaper", "authority_score": 0.84}
+    }
+  },
+
+  "italy": {
+    "_name": "Italy",
+    "government": {
+      "bancaditalia.it": {"name": "Banca d'Italia", "description": "Central bank", "authority_score": 0.97},
+      "istat.it": {"name": "ISTAT", "description": "Statistics institute", "authority_score": 0.96},
+      "consob.it": {"name": "CONSOB", "description": "Securities regulator", "authority_score": 0.96},
+      "registroimprese.it": {"name": "Registro Imprese", "description": "Business registry", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "borsaitaliana.it": {"name": "Borsa Italiana", "description": "Italian stock exchange", "authority_score": 0.95}
+    },
+    "news": {
+      "ilsole24ore.com": {"name": "Il Sole 24 Ore", "description": "Business newspaper", "authority_score": 0.86},
+      "corriere.it": {"name": "Corriere della Sera", "description": "National newspaper", "authority_score": 0.85},
+      "repubblica.it": {"name": "La Repubblica", "description": "National newspaper", "authority_score": 0.84}
+    }
+  },
+
+  "netherlands": {
+    "_name": "Netherlands",
+    "government": {
+      "dnb.nl": {"name": "De Nederlandsche Bank", "description": "Central bank", "authority_score": 0.97},
+      "cbs.nl": {"name": "CBS", "description": "Statistics Netherlands", "authority_score": 0.96},
+      "afm.nl": {"name": "AFM", "description": "Financial markets authority", "authority_score": 0.96},
+      "kvk.nl": {"name": "KVK", "description": "Chamber of Commerce", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "euronext.com/en/markets/amsterdam": {"name": "Euronext Amsterdam", "description": "Amsterdam stock exchange", "authority_score": 0.96}
+    },
+    "news": {
+      "fd.nl": {"name": "Het Financieele Dagblad", "description": "Financial daily", "authority_score": 0.85},
+      "nrc.nl": {"name": "NRC", "description": "National newspaper", "authority_score": 0.84}
+    }
+  },
+
+  "switzerland": {
+    "_name": "Switzerland",
+    "government": {
+      "snb.ch": {"name": "SNB", "description": "Swiss National Bank", "authority_score": 0.98},
+      "bfs.admin.ch": {"name": "BFS", "description": "Federal statistics office", "authority_score": 0.96},
+      "finma.ch": {"name": "FINMA", "description": "Financial market authority", "authority_score": 0.97},
+      "zefix.ch": {"name": "Zefix", "description": "Central business registry", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "six-group.com": {"name": "SIX Swiss Exchange", "description": "Swiss stock exchange", "authority_score": 0.96}
+    },
+    "news": {
+      "nzz.ch": {"name": "NZZ", "description": "Financial newspaper", "authority_score": 0.86},
+      "finews.ch": {"name": "Finews", "description": "Financial news", "authority_score": 0.82}
+    }
+  },
+
+  "sweden": {
+    "_name": "Sweden",
+    "government": {
+      "riksbank.se": {"name": "Riksbank", "description": "Central bank", "authority_score": 0.97},
+      "scb.se": {"name": "SCB", "description": "Statistics Sweden", "authority_score": 0.96},
+      "fi.se": {"name": "Finansinspektionen", "description": "Financial regulator", "authority_score": 0.96},
+      "bolagsverket.se": {"name": "Bolagsverket", "description": "Companies registry", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "nasdaqomxnordic.com": {"name": "Nasdaq Stockholm", "description": "Stockholm stock exchange", "authority_score": 0.95}
+    },
+    "news": {
+      "di.se": {"name": "Dagens Industri", "description": "Business newspaper", "authority_score": 0.84}
+    }
+  },
+
+  "european_union": {
+    "_name": "European Union Institutions",
+    "government": {
+      "europa.eu": {"name": "Europa.eu", "description": "EU portal", "authority_score": 0.97},
+      "ecb.europa.eu": {"name": "ECB", "description": "European Central Bank", "authority_score": 0.98},
+      "ec.europa.eu": {"name": "European Commission", "description": "EU executive branch", "authority_score": 0.97},
+      "esma.europa.eu": {"name": "ESMA", "description": "Securities regulator", "authority_score": 0.97},
+      "eba.europa.eu": {"name": "EBA", "description": "Banking authority", "authority_score": 0.96},
+      "eurostat.ec.europa.eu": {"name": "Eurostat", "description": "EU statistics", "authority_score": 0.97},
+      "eiopa.europa.eu": {"name": "EIOPA", "description": "Insurance regulator", "authority_score": 0.95},
+      "epo.org": {"name": "EPO", "description": "European Patent Office", "authority_score": 0.97}
+    },
+    "exchanges": {
+      "euronext.com": {"name": "Euronext", "description": "Pan-European exchange", "authority_score": 0.97}
+    },
+    "news": {
+      "euractiv.com": {"name": "Euractiv", "description": "EU policy news", "authority_score": 0.82},
+      "politico.eu": {"name": "Politico Europe", "description": "EU politics/policy", "authority_score": 0.84}
+    }
+  },
+
+  "ireland": {
+    "_name": "Ireland",
+    "government": {
+      "centralbank.ie": {"name": "Central Bank of Ireland", "description": "Central bank", "authority_score": 0.96},
+      "cso.ie": {"name": "CSO", "description": "Central Statistics Office", "authority_score": 0.95},
+      "cro.ie": {"name": "CRO", "description": "Companies Registration Office", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "euronext.com/en/markets/dublin": {"name": "Euronext Dublin", "description": "Irish stock exchange", "authority_score": 0.93}
+    },
+    "news": {
+      "irishtimes.com": {"name": "Irish Times", "description": "National newspaper", "authority_score": 0.83},
+      "independent.ie": {"name": "Irish Independent", "description": "National newspaper", "authority_score": 0.81}
+    }
+  },
+
+  "poland": {
+    "_name": "Poland",
+    "government": {
+      "nbp.pl": {"name": "NBP", "description": "National Bank of Poland", "authority_score": 0.96},
+      "stat.gov.pl": {"name": "GUS", "description": "Statistics Poland", "authority_score": 0.95},
+      "knf.gov.pl": {"name": "KNF", "description": "Financial supervision", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "gpw.pl": {"name": "GPW", "description": "Warsaw Stock Exchange", "authority_score": 0.93}
+    },
+    "news": {
+      "parkiet.com": {"name": "Parkiet", "description": "Financial newspaper", "authority_score": 0.80},
+      "pulshr.pl": {"name": "Puls Biznesu", "description": "Business daily", "authority_score": 0.79}
+    }
+  },
+
+  "norway": {
+    "_name": "Norway",
+    "government": {
+      "norges-bank.no": {"name": "Norges Bank", "description": "Central bank", "authority_score": 0.97},
+      "ssb.no": {"name": "SSB", "description": "Statistics Norway", "authority_score": 0.96},
+      "finanstilsynet.no": {"name": "Finanstilsynet", "description": "Financial supervisory authority", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "euronext.com/en/markets/oslo": {"name": "Oslo Børs", "description": "Oslo Stock Exchange", "authority_score": 0.94}
+    },
+    "news": {
+      "dn.no": {"name": "Dagens Næringsliv", "description": "Business newspaper", "authority_score": 0.83}
+    }
+  },
+
+  "denmark": {
+    "_name": "Denmark",
+    "government": {
+      "nationalbanken.dk": {"name": "Danmarks Nationalbank", "description": "Central bank", "authority_score": 0.96},
+      "dst.dk": {"name": "Statistics Denmark", "description": "Statistics agency", "authority_score": 0.95},
+      "dfsa.dk": {"name": "Finanstilsynet", "description": "Financial supervisory authority", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "nasdaqomxnordic.com": {"name": "Nasdaq Copenhagen", "description": "Copenhagen stock exchange", "authority_score": 0.94}
+    },
+    "news": {
+      "borsen.dk": {"name": "Børsen", "description": "Business newspaper", "authority_score": 0.82}
+    }
+  },
+
+  "austria": {
+    "_name": "Austria",
+    "government": {
+      "oenb.at": {"name": "OeNB", "description": "Austrian National Bank", "authority_score": 0.96},
+      "statistik.at": {"name": "Statistik Austria", "description": "Statistics agency", "authority_score": 0.95},
+      "fma.gv.at": {"name": "FMA", "description": "Financial market authority", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "wienerborse.at": {"name": "Wiener Börse", "description": "Vienna Stock Exchange", "authority_score": 0.93}
+    }
+  },
+
+  "belgium": {
+    "_name": "Belgium",
+    "government": {
+      "nbb.be": {"name": "NBB", "description": "National Bank of Belgium", "authority_score": 0.96},
+      "statbel.fgov.be": {"name": "Statbel", "description": "Statistics Belgium", "authority_score": 0.95},
+      "fsma.be": {"name": "FSMA", "description": "Financial services authority", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "euronext.com/en/markets/brussels": {"name": "Euronext Brussels", "description": "Brussels stock exchange", "authority_score": 0.94}
+    }
+  },
+
+  "portugal": {
+    "_name": "Portugal",
+    "government": {
+      "bportugal.pt": {"name": "Banco de Portugal", "description": "Central bank", "authority_score": 0.96},
+      "ine.pt": {"name": "INE Portugal", "description": "Statistics institute", "authority_score": 0.95},
+      "cmvm.pt": {"name": "CMVM", "description": "Securities regulator", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "euronext.com/en/markets/lisbon": {"name": "Euronext Lisbon", "description": "Lisbon stock exchange", "authority_score": 0.93}
+    },
+    "news": {
+      "jornaldenegocios.pt": {"name": "Jornal de Negócios", "description": "Business newspaper", "authority_score": 0.80}
+    }
+  }
+}

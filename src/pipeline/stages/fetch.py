@@ -5,14 +5,15 @@ Converts search results into full page content.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from ...core.result import Result, Ok, Err
+from ...core.url_validator import URLValidator, URLValidationError
 
 from ..context import RequestContext
-from ..stage import Stage, StageError, StageErrorCode
+from ..stage import Stage, StageError
 
-from .search import SearchOutput, SearchResult
+from .search import SearchOutput
 
 
 # =============================================================================
@@ -160,6 +161,19 @@ class FetchStage(Stage[FetchInput, FetchOutput]):
                     )
 
                 try:
+                    # VAL-005: Re-validate URL before fetching (security)
+                    try:
+                        URLValidator.validate_url(url)
+                    except URLValidationError as e:
+                        ctx.logger.warning(f"URL validation failed", url=url, error=str(e))
+                        return FetchedContent(
+                            url=url,
+                            title="",
+                            content="",
+                            success=False,
+                            error_message=f"URL validation failed: {e}",
+                        )
+
                     result = await ctx.browser_tool.fetch_url(url)
 
                     # Handle different return types

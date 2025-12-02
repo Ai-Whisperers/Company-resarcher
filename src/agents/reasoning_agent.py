@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from .base_agent import BaseAgent
 from ..core.types import ResearchSource
 from ..core.ai_client import AIClientManager

@@ -53,6 +53,13 @@ from .research_pipeline import (
     ResearchPipelineConfig,
     create_research_pipeline,
 )
+from .smart_parallel_executor import (
+    SmartParallelExecutor,
+    TaskPriority,
+    TaskResult,
+    ExecutionMetrics,
+    execute_parallel_tasks,
+)
 
 __all__ = [
     # Context
@@ -73,4 +80,10 @@ __all__ = [
     "ResearchPipeline",
     "ResearchPipelineConfig",
     "create_research_pipeline",
+    # Smart Parallel Executor (PERF-002)
+    "SmartParallelExecutor",
+    "TaskPriority",
+    "TaskResult",
+    "ExecutionMetrics",
+    "execute_parallel_tasks",
 ]

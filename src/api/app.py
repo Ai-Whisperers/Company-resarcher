@@ -17,7 +17,7 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
 from .models import ResearchRequest, ResearchResponse, TaskStatusResponse, Task
-from ..core.config import get_settings, clear_settings, is_production
+from ..core.config import get_settings, clear_settings
 from .database import get_db, engine, Base, SessionLocal
 from ..pipeline.orchestrator import PipelineOrchestrator
 from ..core.logger import setup_logger, set_request_id, clear_request_id, get_request_id
@@ -26,17 +26,18 @@ from ..core.telemetry import (
     init_telemetry, get_metrics, record_request, record_error,
     PROMETHEUS_AVAILABLE,
 )
-from ..core.security import get_security_manager, ThreatLevel
 from src.core.constants import (
     STATUS_PENDING,
     STATUS_IN_PROGRESS,
     STATUS_COMPLETED,
     STATUS_FAILED,
-    UNKNOWN_VALUE,
-    DEFAULT_REGION,
 )
 
 logger = setup_logger("api")
+
+# Error message constants
+ERROR_INVALID_TASK_ID = "Invalid task_id format. Must be a valid UUID."
+ERROR_TASK_NOT_FOUND = "Task not found"
 
 
 # =============================================================================
@@ -152,8 +153,7 @@ async def lifespan(app: FastAPI):
 
     # Flush metrics and logs
     try:
-        metrics = get_metrics()
-        # Metrics will be flushed on process exit
+        _ = get_metrics()  # Trigger any pending metric flushes
         logger.info("Metrics flushed")
     except Exception as e:
         logger.warning(f"Error flushing metrics: {e}")
@@ -172,7 +172,78 @@ async def lifespan(app: FastAPI):
     logger.info(f"API shutdown complete (uptime: {shutdown_manager.uptime_seconds:.1f}s)")
 
 
-app = FastAPI(title="Company Researcher API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="Company Researcher API",
+    description="""
+## Overview
+
+AI-powered company research API that provides comprehensive intelligence on businesses
+including financial analysis, market positioning, competitive landscape, and brand perception.
+
+## Authentication
+
+All endpoints (except `/health/*`) require API key authentication.
+Include your API key in the `X-API-Key` header:
+
+```
+X-API-Key: your-api-key
+```
+
+## Rate Limiting
+
+- Default: 10 requests per minute per IP
+- Configurable via `RATE_LIMIT_REQUESTS_PER_MINUTE` environment variable
+- Rate limit headers included in responses: `X-RateLimit-*`
+
+## Research Workflow
+
+1. **Start Research**: `POST /api/v1/research` - Initiates async research task
+2. **Check Status**: `GET /api/v1/research/{task_id}` - Poll for task completion
+3. **Get Results**: Results included in status response when completed
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| 401 | Invalid or missing API key |
+| 404 | Research task not found |
+| 422 | Invalid request body |
+| 429 | Rate limit exceeded |
+| 500 | Internal server error |
+| 503 | Service unavailable (shutting down) |
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `API_KEYS` | Comma-separated valid API keys | None |
+| `RATE_LIMIT_REQUESTS_PER_MINUTE` | Rate limit per IP | 10 |
+| `SHUTDOWN_TIMEOUT_SECONDS` | Graceful shutdown timeout | 30 |
+""",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    openapi_tags=[
+        {
+            "name": "Research",
+            "description": "Company research operations - start, monitor, and retrieve research results",
+        },
+        {
+            "name": "Tasks",
+            "description": "Task management - list, delete, and manage research tasks",
+        },
+        {
+            "name": "Health",
+            "description": "Health check and monitoring endpoints for operations",
+        },
+        {
+            "name": "Admin",
+            "description": "Administrative operations (requires API key)",
+        },
+    ],
+    lifespan=lifespan,
+)
 
 # CORS Configuration - restrict origins in production
 import re
@@ -500,17 +571,47 @@ async def run_research_task(task_id: str, request: ResearchRequest, request_id: 
             clear_request_id(token)
 
 
-@app.post("/api/v1/research", response_model=ResearchResponse)
+@app.post(
+    "/api/v1/research",
+    response_model=ResearchResponse,
+    tags=["Research"],
+    summary="Start Company Research",
+    description="""
+Initiates a new company research task that runs asynchronously in the background.
+
+**Research Phases:**
+- Market Analysis: Market size, growth trends, positioning
+- Financial Analysis: Revenue, funding, financial health
+- Competitor Analysis: Key competitors, market share, differentiation
+- Brand Analysis: Brand perception, reputation, social presence
+- Sales Intelligence: Decision makers, buying signals, engagement
+
+**Polling for Results:**
+Use `GET /api/v1/research/{task_id}` to poll for task completion.
+Results are included in the status response when completed.
+
+**Example Request:**
+```json
+{
+    "company_name": "Acme Corporation",
+    "url": "https://acme.com",
+    "industry": "Technology"
+}
+```
+""",
+    responses={
+        200: {"description": "Research task started successfully"},
+        401: {"description": "Invalid or missing API key"},
+        422: {"description": "Invalid request body"},
+        429: {"description": "Rate limit exceeded"},
+    },
+)
 async def start_research(
     request: ResearchRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     _api_key: str = Depends(verify_api_key),
 ):
-    """
-    Start a new research task.
-    Requires valid API key in X-API-Key header.
-    """
     task_id = str(uuid.uuid4())
     # Capture request ID to propagate to background task for log tracing
     current_request_id = get_request_id()
@@ -535,26 +636,46 @@ def validate_task_id(task_id: str) -> bool:
         return False
 
 
-@app.get("/api/v1/research/{task_id}", response_model=TaskStatusResponse)
+@app.get(
+    "/api/v1/research/{task_id}",
+    response_model=TaskStatusResponse,
+    tags=["Research"],
+    summary="Get Research Task Status",
+    description="""
+Retrieve the current status of a research task.
+
+**Task Statuses:**
+- `pending` - Task is queued for processing
+- `in_progress` - Research is currently running
+- `completed` - Research finished successfully (results included)
+- `failed` - Research failed (error details included)
+- `cancelled` - Task was cancelled by user
+
+**Polling Recommendation:**
+Poll every 5-10 seconds. Most research tasks complete within 2-5 minutes.
+""",
+    responses={
+        200: {"description": "Task status retrieved successfully"},
+        400: {"description": "Invalid task_id format"},
+        401: {"description": "Invalid or missing API key"},
+        404: {"description": "Task not found"},
+    },
+)
 async def get_task_status(
     task_id: str,
     db: Session = Depends(get_db),
     _api_key: str = Depends(verify_api_key),
 ):
-    """
-    Get the status of a research task.
-    Requires valid API key in X-API-Key header.
-    """
     # Validate task_id format (BUG-029 fix)
     if not validate_task_id(task_id):
         raise HTTPException(
             status_code=400,
-            detail="Invalid task_id format. Must be a valid UUID."
+            detail=ERROR_INVALID_TASK_ID
         )
 
     task = get_task(db, task_id)
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail=ERROR_TASK_NOT_FOUND)
 
     return TaskStatusResponse(
         task_id=task_id,
@@ -569,27 +690,44 @@ _running_tasks: dict[str, asyncio.Task] = {}
 STATUS_CANCELLED = "cancelled"
 
 
-@app.delete("/api/v1/research/{task_id}")
+@app.delete(
+    "/api/v1/research/{task_id}",
+    tags=["Tasks"],
+    summary="Cancel Research Task",
+    description="""
+Cancel a running or pending research task.
+
+**Cancellable Statuses:**
+- `pending` - Task can be cancelled before starting
+- `in_progress` - Task will be interrupted and marked cancelled
+
+**Non-Cancellable Statuses:**
+- `completed` - Task already finished
+- `failed` - Task already failed
+- `cancelled` - Task already cancelled
+""",
+    responses={
+        200: {"description": "Task cancelled successfully"},
+        400: {"description": "Invalid task_id format or task cannot be cancelled"},
+        401: {"description": "Invalid or missing API key"},
+        404: {"description": "Task not found"},
+    },
+)
 async def cancel_task(
     task_id: str,
     db: Session = Depends(get_db),
     _api_key: str = Depends(verify_api_key),
 ):
-    """
-    Cancel a running research task.
-    Only tasks with status 'pending' or 'in_progress' can be cancelled.
-    Requires valid API key in X-API-Key header.
-    """
     # Validate task_id format
     if not validate_task_id(task_id):
         raise HTTPException(
             status_code=400,
-            detail="Invalid task_id format. Must be a valid UUID."
+            detail=ERROR_INVALID_TASK_ID
         )
 
     task = get_task(db, task_id)
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail=ERROR_TASK_NOT_FOUND)
 
     # Check if task can be cancelled
     if task["status"] not in (STATUS_PENDING, STATUS_IN_PROGRESS):
@@ -697,12 +835,12 @@ async def get_task_result(
     if not validate_task_id(task_id):
         raise HTTPException(
             status_code=400,
-            detail="Invalid task_id format. Must be a valid UUID."
+            detail=ERROR_INVALID_TASK_ID
         )
 
     task = get_task(db, task_id)
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail=ERROR_TASK_NOT_FOUND)
 
     if task["status"] != STATUS_COMPLETED:
         raise HTTPException(
@@ -759,12 +897,13 @@ async def get_task_result(
 # Health Check Endpoints (OPS-001-health)
 # =============================================================================
 
-@app.get("/health")
+@app.get(
+    "/health",
+    tags=["Health"],
+    summary="Basic Health Check",
+    description="Primary health check for load balancers. Returns version and uptime.",
+)
 async def health_check():
-    """
-    Basic health check endpoint with version and timestamp.
-    This is the primary health check for load balancers.
-    """
     return {
         "status": "healthy" if not shutdown_manager.is_shutting_down else "shutting_down",
         "version": "1.0.0",
@@ -773,23 +912,27 @@ async def health_check():
     }
 
 
-@app.get("/health/live")
+@app.get(
+    "/health/live",
+    tags=["Health"],
+    summary="Liveness Probe",
+    description="Kubernetes liveness probe. Returns 200 if application is alive.",
+)
 async def liveness_probe():
-    """
-    Kubernetes liveness probe.
-    Returns 200 if the application is alive (not deadlocked).
-    Simple check - just verifies the app can respond.
-    """
     return {"status": "alive"}
 
 
-@app.get("/health/ready")
+@app.get(
+    "/health/ready",
+    tags=["Health"],
+    summary="Readiness Probe",
+    description="Kubernetes readiness probe. Returns 200 only if ready to serve (DB + AI available).",
+    responses={
+        200: {"description": "Application ready to serve traffic"},
+        503: {"description": "Application not ready (dependency unavailable)"},
+    },
+)
 async def readiness_probe(db: Session = Depends(get_db)):
-    """
-    Kubernetes readiness probe.
-    Returns 200 only if the application is ready to serve traffic.
-    Checks critical dependencies (database, AI provider).
-    """
     from sqlalchemy import text
 
     # Don't accept traffic if shutting down
@@ -819,7 +962,25 @@ async def readiness_probe(db: Session = Depends(get_db)):
     return {"status": "ready"}
 
 
-@app.get("/health/detailed")
+@app.get(
+    "/health/detailed",
+    tags=["Health"],
+    summary="Detailed Health Check",
+    description="""
+Comprehensive health check with component-level status.
+
+**Components Checked:**
+- Database connectivity with latency
+- Configuration validity
+- AI provider availability
+- Cache status
+
+**Use Cases:**
+- Pre-deployment verification
+- Debugging connectivity issues
+- Monitoring dashboard integration
+""",
+)
 async def detailed_health_check(db: Session = Depends(get_db)):
     """
     Detailed health check that verifies all dependencies.
@@ -917,12 +1078,13 @@ async def detailed_health_check(db: Session = Depends(get_db)):
 # Metrics Endpoint (OPS-001)
 # =============================================================================
 
-@app.get("/metrics")
+@app.get(
+    "/metrics",
+    tags=["Health"],
+    summary="Prometheus Metrics",
+    description="Returns metrics in Prometheus exposition format for monitoring integration.",
+)
 async def metrics_endpoint():
-    """
-    Prometheus metrics endpoint.
-    Returns metrics in Prometheus exposition format.
-    """
     if not PROMETHEUS_AVAILABLE:
         return PlainTextResponse(
             content="# Prometheus client not installed\n",
@@ -936,13 +1098,17 @@ async def metrics_endpoint():
     )
 
 
-@app.post("/admin/reload-config")
+@app.post(
+    "/admin/reload-config",
+    tags=["Admin"],
+    summary="Reload Configuration",
+    description="Hot-reload configuration from environment variables. Useful for secret rotation without restart.",
+    responses={
+        200: {"description": "Configuration reloaded successfully"},
+        401: {"description": "Invalid or missing API key"},
+    },
+)
 async def reload_config(_api_key: str = Depends(verify_api_key)):
-    """
-    Reload configuration from environment variables.
-    Useful for secret rotation without restart.
-    Requires valid API key in X-API-Key header.
-    """
     clear_settings()
     logger.info("Configuration reloaded via admin endpoint")
     return {"status": "ok", "message": "Configuration reloaded successfully"}

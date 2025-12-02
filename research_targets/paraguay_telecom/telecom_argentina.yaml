@@ -1,0 +1,88 @@
+# Telecom Argentina - Parent Company Profile
+# Parent company of Personal Paraguay
+
+company:
+  name: "Telecom Argentina"
+  legal_name: "Telecom Argentina S.A."
+  website: "https://www.telecom.com.ar"
+  investor_relations: "https://inversores.telecom.com.ar"
+  industry: "Telecommunications"
+  country: "Argentina"
+
+  # Company details
+  founded: "1990"
+  headquarters: "Buenos Aires, Argentina"
+
+  # Ownership structure
+  ownership:
+    type: "Public"
+    stock_exchange: "BYMA (Buenos Aires)"
+    ticker: "TECO2"
+    adr: "NYSE: TEO"
+    major_shareholders:
+      - name: "Cablevisión Holding"
+        stake: "~39%"
+      - name: "Fintech Telecom"
+        stake: "~19%"
+
+  # Subsidiaries
+  subsidiaries:
+    - name: "Personal Argentina"
+      country: "Argentina"
+    - name: "Personal Paraguay (Nucleo S.A.)"
+      country: "Paraguay"
+      stake: "67.5%"
+    - name: "Cablevisión"
+      country: "Argentina"
+    - name: "Flow"
+      type: "Streaming platform"
+
+  # Financial overview (to be researched)
+  financials:
+    fiscal_year_end: "December"
+    currency: "ARS"
+    reporting_language: "Spanish"
+
+  # Services
+  services:
+    - "Mobile telecommunications"
+    - "Fixed-line telephony"
+    - "Broadband internet"
+    - "Cable television"
+    - "Streaming (Flow)"
+
+# Research configuration
+research:
+  focus_areas:
+    - financial
+    - market
+
+  priority_queries:
+    - "Telecom Argentina annual report 2024"
+    - "Telecom Argentina Paraguay subsidiary revenue"
+    - "Telecom Argentina investor presentation"
+    - "Telecom Argentina SEC filings 20-F"
+    - "Nucleo SA financial statements"
+
+  priority_sources:
+    - "inversores.telecom.com.ar"  # Official IR site
+    - "sec.gov"  # SEC filings (Form 20-F as foreign issuer)
+    - "cnv.gob.ar"  # Argentina securities regulator
+    - "byma.com.ar"  # Buenos Aires stock exchange
+
+  # Key documents to find
+  key_documents:
+    - "Annual Report (Memoria Anual)"
+    - "Form 20-F SEC filing"
+    - "Quarterly earnings releases"
+    - "Investor presentations"
+
+notes: |
+  Telecom Argentina is the parent company of Personal Paraguay.
+  They file Form 20-F with the SEC (NYSE: TEO).
+  Their annual reports should contain segment data for Paraguay operations.
+  Look for "Paraguay" or "Nucleo" in their financial disclosures.
+
+  Key financial filing URLs:
+  - https://inversores.telecom.com.ar/es/balance-anual.html
+  - SEC EDGAR: search for "Telecom Argentina" in 20-F filings

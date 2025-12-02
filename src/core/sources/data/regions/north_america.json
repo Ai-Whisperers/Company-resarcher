@@ -1,0 +1,99 @@
+{
+  "_description": "North America Regional Sources - USA, Canada, Mexico",
+
+  "usa": {
+    "_name": "United States",
+    "government": {
+      "sec.gov": {"name": "SEC EDGAR", "description": "Public company filings (10-K, 10-Q, 8-K)", "authority_score": 0.99, "api_available": true},
+      "treasury.gov": {"name": "US Treasury", "description": "Treasury data, bonds, fiscal policy", "authority_score": 0.98},
+      "federalreserve.gov": {"name": "Federal Reserve", "description": "Monetary policy, economic data, FRED", "authority_score": 0.99},
+      "bls.gov": {"name": "Bureau of Labor Statistics", "description": "Employment, wages, CPI data", "authority_score": 0.98},
+      "census.gov": {"name": "US Census Bureau", "description": "Demographics, economic census", "authority_score": 0.98},
+      "commerce.gov": {"name": "Dept of Commerce", "description": "Trade data, economic indicators", "authority_score": 0.97},
+      "ftc.gov": {"name": "FTC", "description": "Consumer protection, antitrust", "authority_score": 0.96},
+      "fcc.gov": {"name": "FCC", "description": "Telecom regulator", "authority_score": 0.96},
+      "energy.gov": {"name": "Dept of Energy", "description": "Energy policy, research", "authority_score": 0.96},
+      "eia.gov": {"name": "EIA", "description": "Energy statistics", "authority_score": 0.97, "api_available": true},
+      "epa.gov": {"name": "EPA", "description": "Environmental data", "authority_score": 0.96},
+      "fda.gov": {"name": "FDA", "description": "Drug/device approvals", "authority_score": 0.97},
+      "sba.gov": {"name": "SBA", "description": "Small business data", "authority_score": 0.94},
+      "usitc.gov": {"name": "US ITC", "description": "Trade data, tariffs", "authority_score": 0.95},
+      "trade.gov": {"name": "ITA", "description": "International trade data", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "nyse.com": {"name": "NYSE", "description": "New York Stock Exchange", "authority_score": 0.99},
+      "nasdaq.com": {"name": "NASDAQ", "description": "Tech-heavy exchange", "authority_score": 0.99},
+      "cboe.com": {"name": "CBOE", "description": "Options, VIX index", "authority_score": 0.96},
+      "cmegroup.com": {"name": "CME Group", "description": "Futures, commodities", "authority_score": 0.97}
+    },
+    "news": {
+      "wsj.com": {"name": "Wall Street Journal", "description": "Business news", "authority_score": 0.94, "requires_subscription": true},
+      "nytimes.com": {"name": "New York Times", "description": "National news, business", "authority_score": 0.92},
+      "washingtonpost.com": {"name": "Washington Post", "description": "National news, politics", "authority_score": 0.91},
+      "usatoday.com": {"name": "USA Today", "description": "National news", "authority_score": 0.82},
+      "latimes.com": {"name": "Los Angeles Times", "description": "West coast news", "authority_score": 0.85},
+      "chicagotribune.com": {"name": "Chicago Tribune", "description": "Midwest news", "authority_score": 0.83}
+    },
+    "business_registries": {
+      "sos.state.de.us": {"name": "Delaware SOS", "description": "Delaware corporate registry", "authority_score": 0.94},
+      "nvsos.gov": {"name": "Nevada SOS", "description": "Nevada business registry", "authority_score": 0.93}
+    }
+  },
+
+  "canada": {
+    "_name": "Canada",
+    "government": {
+      "canada.ca": {"name": "Government of Canada", "description": "Federal government portal", "authority_score": 0.97},
+      "statcan.gc.ca": {"name": "Statistics Canada", "description": "National statistics", "authority_score": 0.97},
+      "bankofcanada.ca": {"name": "Bank of Canada", "description": "Central bank, monetary policy", "authority_score": 0.98},
+      "osc.ca": {"name": "OSC", "description": "Ontario Securities Commission", "authority_score": 0.96},
+      "ic.gc.ca": {"name": "Innovation Canada", "description": "Industry, business data", "authority_score": 0.95},
+      "crtc.gc.ca": {"name": "CRTC", "description": "Telecom regulator", "authority_score": 0.95},
+      "nrcan.gc.ca": {"name": "Natural Resources Canada", "description": "Energy, mining data", "authority_score": 0.95},
+      "inspection.canada.ca": {"name": "CFIA", "description": "Food, agriculture inspection", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "tsx.com": {"name": "Toronto Stock Exchange", "description": "Main Canadian exchange", "authority_score": 0.96},
+      "tsxventure.com": {"name": "TSX Venture", "description": "Junior companies", "authority_score": 0.92}
+    },
+    "news": {
+      "theglobeandmail.com": {"name": "Globe and Mail", "description": "National business news", "authority_score": 0.88},
+      "financialpost.com": {"name": "Financial Post", "description": "Business news", "authority_score": 0.85},
+      "cbc.ca": {"name": "CBC", "description": "National broadcaster", "authority_score": 0.88},
+      "bnnbloomberg.ca": {"name": "BNN Bloomberg", "description": "Business news TV", "authority_score": 0.84}
+    },
+    "business_registries": {
+      "corporationscanada.ic.gc.ca": {"name": "Corporations Canada", "description": "Federal business registry", "authority_score": 0.95},
+      "ontario.ca/page/business": {"name": "Ontario Business Registry", "description": "Ontario companies", "authority_score": 0.93}
+    }
+  },
+
+  "mexico": {
+    "_name": "Mexico",
+    "government": {
+      "gob.mx": {"name": "Gobierno de México", "description": "Federal government portal", "authority_score": 0.96},
+      "banxico.org.mx": {"name": "Banco de México", "description": "Central bank", "authority_score": 0.97},
+      "inegi.org.mx": {"name": "INEGI", "description": "National statistics institute", "authority_score": 0.96},
+      "sat.gob.mx": {"name": "SAT", "description": "Tax authority", "authority_score": 0.95},
+      "cnbv.gob.mx": {"name": "CNBV", "description": "Banking/securities regulator", "authority_score": 0.95},
+      "ift.org.mx": {"name": "IFT", "description": "Telecom regulator", "authority_score": 0.94},
+      "cre.gob.mx": {"name": "CRE", "description": "Energy regulator", "authority_score": 0.94},
+      "economia.gob.mx": {"name": "Secretaría de Economía", "description": "Economy ministry", "authority_score": 0.95},
+      "cofece.mx": {"name": "COFECE", "description": "Competition authority", "authority_score": 0.93}
+    },
+    "exchanges": {
+      "bmv.com.mx": {"name": "BMV", "description": "Bolsa Mexicana de Valores", "authority_score": 0.94},
+      "biva.mx": {"name": "BIVA", "description": "Institutional stock exchange", "authority_score": 0.91}
+    },
+    "news": {
+      "eleconomista.com.mx": {"name": "El Economista", "description": "Business news", "authority_score": 0.82},
+      "expansion.mx": {"name": "Expansión", "description": "Business magazine", "authority_score": 0.80},
+      "elfinanciero.com.mx": {"name": "El Financiero", "description": "Financial news", "authority_score": 0.81},
+      "milenio.com": {"name": "Milenio", "description": "National news", "authority_score": 0.78},
+      "reforma.com": {"name": "Reforma", "description": "National newspaper", "authority_score": 0.80}
+    },
+    "business_registries": {
+      "rpc.economia.gob.mx": {"name": "RPC", "description": "Public registry of commerce", "authority_score": 0.93}
+    }
+  }
+}

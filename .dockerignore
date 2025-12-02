@@ -1,0 +1,124 @@
+# =============================================================================
+# Docker Build Ignore File
+# Excludes unnecessary files to minimize image size and build time
+# =============================================================================
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env.local
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+tests/
+test_*.py
+*_test.py
+conftest.py
+
+# Documentation (except prompts and templates needed at runtime)
+docs/
+*.md
+!README.md
+LICENSE
+
+# Reference/example repositories (large, not needed)
+docs/reference/
+
+# Development files
+Makefile
+.pre-commit-config.yaml
+.editorconfig
+.flake8
+setup.cfg
+tox.ini
+mypy.ini
+.mypy_cache/
+.ruff_cache/
+
+# Outputs and data (should be mounted as volumes)
+outputs/
+outputs_test/
+data/
+*.db
+*.sqlite
+*.log
+research_log.txt
+
+# Research targets (configuration only)
+research_targets/
+
+# Temporary files
+temp_repos/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Docker files (don't include in build context)
+Dockerfile*
+docker-compose*.yml
+.dockerignore

@@ -1,0 +1,51 @@
+# COPACO - State-owned Telecommunications Company
+# Paraguay's national telecommunications company
+
+company:
+  name: "COPACO"
+  legal_name: "Compania Paraguaya de Comunicaciones S.A."
+  website: "https://www.copaco.com.py"
+  industry: "Telecommunications"
+  country: "Paraguay"
+
+  # Company type
+  type: "State-owned enterprise"
+  ownership:
+    type: "Government-owned"
+    owner: "Government of Paraguay"
+
+  # History
+  founded: "1948"
+  notes: "Formerly ANTELCO, privatization attempts have been unsuccessful"
+
+  # Services offered
+  services:
+    - "Fixed-line telephony"
+    - "Internet services"
+    - "Mobile services (limited)"
+    - "International gateway"
+
+  # Market position
+  market_position:
+    segment: "Fixed-line, rural areas"
+    strength: "Government contracts, rural infrastructure"
+    weakness: "Aging infrastructure, bureaucracy"
+
+# Research configuration
+research:
+  focus_areas:
+    - market
+    - competitor
+
+  priority_queries:
+    - "COPACO Paraguay subscribers"
+    - "COPACO Paraguay privatization"
+    - "Paraguay state telecom"
+    - "COPACO infrastructure investment"
+
+notes: |
+  COPACO is the state-owned telecommunications company.
+  Primarily focused on fixed-line and rural connectivity.
+  Has struggled to compete with private mobile operators.
+  Multiple privatization attempts have failed.
+  Could be relevant for understanding rural coverage gaps.

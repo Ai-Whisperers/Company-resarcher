@@ -1,0 +1,23 @@
+{
+  "_description": "SEO Spam & Classified Sites - Low-quality local listings, spam",
+  "nearbyme-place.com": {"name": "Near By Me Place", "reason": "SEO spam local listings"},
+  "yellowpages-near.me": {"name": "Yellow Pages Near Me", "reason": "SEO spam directory"},
+  "local-business-search.com": {"name": "Local Business Search", "reason": "SEO spam directory"},
+  "business-near-me.com": {"name": "Business Near Me", "reason": "SEO spam directory"},
+  "locanto.com": {"name": "Locanto", "reason": "Classified ads"},
+  "craigslist.org": {"name": "Craigslist", "reason": "Classified ads, not business data"},
+  "backpage.com": {"name": "Backpage", "reason": "Classified ads"},
+  "oodle.com": {"name": "Oodle", "reason": "Classified aggregator"},
+  "kijiji.com": {"name": "Kijiji", "reason": "Canadian classifieds"},
+  "gumtree.com": {"name": "Gumtree", "reason": "UK/AU classifieds"},
+  "freeads.co.uk": {"name": "FreeAds UK", "reason": "UK classifieds"},
+  "vivastreet.com": {"name": "Vivastreet", "reason": "European classifieds"},
+  "localsearch.com": {"name": "Local Search", "reason": "SEO spam directory"},
+  "411.com": {"name": "411.com", "reason": "People search, not business"},
+  "whitepages.com": {"name": "Whitepages", "reason": "People search, not business"},
+  "yellowpages.com": {"name": "YellowPages", "reason": "Business directory, outdated"},
+  "manta.com": {"name": "Manta", "reason": "Low-quality business directory"},
+  "hotfrog.com": {"name": "Hotfrog", "reason": "Low-quality business directory"},
+  "brownbook.net": {"name": "Brownbook", "reason": "Low-quality directory"},
+  "spoke.com": {"name": "Spoke", "reason": "Low-quality business profiles"}
+}

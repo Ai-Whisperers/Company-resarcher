@@ -1,0 +1,23 @@
+{
+  "_description": "Video Platforms - Video content, difficult to extract business data",
+  "youtube.com": {"name": "YouTube", "reason": "Video platform, hard to cite"},
+  "vimeo.com": {"name": "Vimeo", "reason": "Video hosting"},
+  "dailymotion.com": {"name": "Dailymotion", "reason": "Video hosting"},
+  "twitch.tv": {"name": "Twitch", "reason": "Live streaming"},
+  "tiktok.com": {"name": "TikTok", "reason": "Short-form video"},
+  "instagram.com/reels": {"name": "Instagram Reels", "reason": "Short-form video"},
+  "facebook.com/watch": {"name": "Facebook Watch", "reason": "Facebook video"},
+  "snapchat.com/spotlight": {"name": "Snapchat Spotlight", "reason": "Short-form video"},
+  "peertube.io": {"name": "PeerTube", "reason": "Decentralized video"},
+  "veoh.com": {"name": "Veoh", "reason": "Video hosting"},
+  "metacafe.com": {"name": "Metacafe", "reason": "Video sharing"},
+  "vid.me": {"name": "Vidme", "reason": "Video platform"},
+  "d.tube": {"name": "DTube", "reason": "Decentralized video"},
+  "lbry.tv": {"name": "LBRY", "reason": "Blockchain video"},
+  "floatplane.com": {"name": "Floatplane", "reason": "Creator video platform"},
+  "nebula.tv": {"name": "Nebula", "reason": "Creator video platform"},
+  "curiositystream.com": {"name": "CuriosityStream", "reason": "Documentary streaming"},
+  "wistia.com": {"name": "Wistia", "reason": "Business video hosting"},
+  "brightcove.com": {"name": "Brightcove", "reason": "Enterprise video"},
+  "kaltura.com": {"name": "Kaltura", "reason": "Video platform"}
+}

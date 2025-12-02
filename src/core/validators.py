@@ -11,13 +11,13 @@ Provides centralized validation for:
 """
 
 import re
-from typing import Optional, List, Tuple, Any, Union
+from typing import Optional, List, Tuple, Any
 from pathlib import Path
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse
 from dataclasses import dataclass
 from enum import Enum
 
-from .exceptions import InputValidationError, ValidationError, ConfigValidationError
+from .exceptions import InputValidationError
 
 
 # =============================================================================
@@ -29,6 +29,7 @@ from .exceptions import InputValidationError, ValidationError, ConfigValidationE
 COMPANY_NAME_PATTERN = re.compile(r'^[\w\s\-\.\,\&\'\"\(\)\+\/\:]+$', re.UNICODE)
 COMPANY_NAME_MIN_LENGTH = 1
 COMPANY_NAME_MAX_LENGTH = 200
+COMPANY_NAME_DISPLAY_MAX = 50  # EDGE-003: Max length for display/file names
 
 # Industry validation
 INDUSTRY_PATTERN = re.compile(r'^[\w\s\-\/\&\,\.]+$', re.UNICODE)
@@ -111,6 +112,172 @@ class ValidationResult:
                 field="input",
                 value=self.original
             )
+
+
+
+# =============================================================================
+# Company Name Edge Case Handlers (EDGE-001, EDGE-002, EDGE-003)
+# =============================================================================
+
+
+def normalize_company_name(name: str) -> str:
+    """
+    Normalize a company name for consistent handling.
+    
+    Handles:
+    - EDGE-001: Non-English company names (Unicode normalization)
+    - EDGE-002: Special characters (standardization)
+    - EDGE-003: Very long names (intelligent truncation for display)
+    
+    Args:
+        name: Raw company name
+        
+    Returns:
+        Normalized company name
+    """
+    import unicodedata
+    
+    if not name:
+        return ""
+    
+    # EDGE-001: Normalize Unicode characters (NFC form for consistent comparison)
+    name = unicodedata.normalize("NFC", name)
+    
+    # EDGE-002: Standardize special characters
+    # Convert various quote styles to standard quotes
+    name = name.replace("'", "'").replace("'", "'")  # Smart quotes to straight
+    name = name.replace(""", '"').replace(""", '"')  # Smart double quotes
+    name = name.replace("–", "-").replace("—", "-")  # En/em dash to hyphen
+    name = name.replace("…", "...")  # Ellipsis
+    
+    # Normalize whitespace
+    name = " ".join(name.split())
+    
+    return name.strip()
+
+
+def truncate_company_name(name: str, max_length: int = COMPANY_NAME_DISPLAY_MAX) -> str:
+    """
+    Intelligently truncate a company name for display or file names (EDGE-003).
+    
+    Attempts to truncate at word boundaries when possible.
+    
+    Args:
+        name: Company name to truncate
+        max_length: Maximum length (default: 50)
+        
+    Returns:
+        Truncated name with ellipsis if needed
+    """
+    if len(name) <= max_length:
+        return name
+    
+    # Try to truncate at word boundary
+    truncated = name[:max_length - 3]  # Leave room for "..."
+    
+    # Find last space to avoid cutting words
+    last_space = truncated.rfind(" ")
+    if last_space > max_length // 2:  # Only if we don't lose too much
+        truncated = truncated[:last_space]
+    
+    return truncated.rstrip() + "..."
+
+
+def get_company_display_name(name: str) -> str:
+    """
+    Get a display-friendly version of a company name.
+    
+    Combines normalization and truncation for UI display.
+    
+    Args:
+        name: Raw company name
+        
+    Returns:
+        Display-friendly company name
+    """
+    normalized = normalize_company_name(name)
+    return truncate_company_name(normalized)
+
+
+def get_company_filename(name: str) -> str:
+    """
+    Convert a company name to a safe filename.
+    
+    Handles all edge cases and produces a filesystem-safe name.
+    
+    Args:
+        name: Company name
+        
+    Returns:
+        Filesystem-safe filename
+    """
+    # Normalize first
+    name = normalize_company_name(name)
+    
+    # Replace characters that are problematic in filenames
+    unsafe_chars = r'<>:"/\|?*'
+    for char in unsafe_chars:
+        name = name.replace(char, "_")
+    
+    # Replace multiple underscores/spaces with single underscore
+    name = re.sub(r"[_\s]+", "_", name)
+    
+    # Remove leading/trailing underscores
+    name = name.strip("_")
+    
+    # Truncate for filesystem limits (EDGE-003)
+    if len(name) > COMPANY_NAME_DISPLAY_MAX:
+        name = name[:COMPANY_NAME_DISPLAY_MAX]
+        name = name.rstrip("_")
+    
+    return name or "unnamed_company"
+
+
+def detect_company_name_issues(name: str) -> List[str]:
+    """
+    Detect potential issues with a company name.
+    
+    Returns a list of warnings/suggestions for edge case handling.
+    
+    Args:
+        name: Company name to check
+        
+    Returns:
+        List of issue descriptions (empty if none)
+    """
+    issues = []
+    
+    if not name:
+        return ["Company name is empty"]
+    
+    # EDGE-001: Check for non-ASCII characters
+    if not name.isascii():
+        issues.append("Contains non-ASCII characters (international name)")
+    
+    # EDGE-002: Check for special characters that might cause issues
+    special_chars = set(name) - set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -.'&")
+    if special_chars:
+        issues.append(f"Contains special characters: {', '.join(repr(c) for c in sorted(special_chars))}")
+    
+    # EDGE-003: Check for very long names
+    if len(name) > COMPANY_NAME_MAX_LENGTH:
+        issues.append(f"Exceeds maximum length ({len(name)} > {COMPANY_NAME_MAX_LENGTH})")
+    elif len(name) > COMPANY_NAME_DISPLAY_MAX:
+        issues.append(f"May be truncated for display ({len(name)} > {COMPANY_NAME_DISPLAY_MAX})")
+    
+    # Check for potential subsidiary indicators
+    subsidiary_patterns = ["LLC", "Inc.", "Corp.", "Ltd.", "GmbH", "S.A.", "S.A.S.", "B.V.", "AG"]
+    for pattern in subsidiary_patterns:
+        if pattern.lower() in name.lower():
+            issues.append(f"Contains corporate suffix '{pattern}' - may be a subsidiary (EDGE-004)")
+            break
+    
+    # Check for ambiguous names (very short or generic)
+    if len(name.strip()) < 3:
+        issues.append("Very short name - may cause search ambiguity (EDGE-005)")
+    
+    return issues
+
 
 
 # =============================================================================

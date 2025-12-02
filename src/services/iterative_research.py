@@ -13,13 +13,13 @@ This service implements a loop that:
 import asyncio
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
 
 from ..core.logger import setup_logger
 from ..core.ai_client import get_ai_manager
-from .gap_analyzer import GapAnalyzer, GapAnalysisResult, DataGap, generate_gap_report
+from .gap_analyzer import GapAnalyzer, DataGap
 
 logger = setup_logger("iterative_research")
 

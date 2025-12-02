@@ -48,11 +48,11 @@ class CachedAIClient(BaseAIClient):
         cached_response = self.cache.get(prompt, system, temperature, max_tokens)
         if cached_response:
             self.hits += 1
-            logger.info("Cache HIT")
+            logger.debug("Cache HIT")
             return cached_response
 
         self.misses += 1
-        logger.info("Cache MISS")
+        logger.debug("Cache MISS")
 
         # Generate
         response = await self.client.generate(

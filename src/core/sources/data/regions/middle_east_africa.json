@@ -1,0 +1,178 @@
+{
+  "_description": "Middle East & Africa Regional Sources",
+
+  "united_arab_emirates": {
+    "_name": "United Arab Emirates",
+    "government": {
+      "centralbank.ae": {"name": "CBUAE", "description": "Central Bank of UAE", "authority_score": 0.95},
+      "economy.gov.ae": {"name": "Ministry of Economy", "description": "Economy ministry", "authority_score": 0.93},
+      "sca.gov.ae": {"name": "SCA", "description": "Securities and Commodities Authority", "authority_score": 0.94},
+      "government.ae": {"name": "UAE Government", "description": "Federal government portal", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "adx.ae": {"name": "ADX", "description": "Abu Dhabi Securities Exchange", "authority_score": 0.93},
+      "dfm.ae": {"name": "DFM", "description": "Dubai Financial Market", "authority_score": 0.93},
+      "nasdaqdubai.com": {"name": "Nasdaq Dubai", "description": "Dubai exchange", "authority_score": 0.92}
+    },
+    "news": {
+      "thenationalnews.com": {"name": "The National", "description": "UAE newspaper", "authority_score": 0.80},
+      "khaleejtimes.com": {"name": "Khaleej Times", "description": "UAE newspaper", "authority_score": 0.78},
+      "gulfnews.com": {"name": "Gulf News", "description": "UAE newspaper", "authority_score": 0.79}
+    }
+  },
+
+  "saudi_arabia": {
+    "_name": "Saudi Arabia",
+    "government": {
+      "sama.gov.sa": {"name": "SAMA", "description": "Saudi Central Bank", "authority_score": 0.95},
+      "stats.gov.sa": {"name": "GASTAT", "description": "General Authority for Statistics", "authority_score": 0.93},
+      "cma.org.sa": {"name": "CMA", "description": "Capital Market Authority", "authority_score": 0.94},
+      "mci.gov.sa": {"name": "MCI", "description": "Commerce ministry", "authority_score": 0.93},
+      "vision2030.gov.sa": {"name": "Vision 2030", "description": "Economic transformation", "authority_score": 0.92}
+    },
+    "exchanges": {
+      "saudiexchange.sa": {"name": "Tadawul", "description": "Saudi Stock Exchange", "authority_score": 0.94}
+    },
+    "news": {
+      "arabnews.com": {"name": "Arab News", "description": "English newspaper", "authority_score": 0.78},
+      "argaam.com": {"name": "Argaam", "description": "Financial news", "authority_score": 0.77}
+    }
+  },
+
+  "qatar": {
+    "_name": "Qatar",
+    "government": {
+      "qcb.gov.qa": {"name": "QCB", "description": "Qatar Central Bank", "authority_score": 0.94},
+      "psa.gov.qa": {"name": "PSA", "description": "Planning and Statistics Authority", "authority_score": 0.93},
+      "qfcra.com": {"name": "QFCRA", "description": "QFC Regulatory Authority", "authority_score": 0.93}
+    },
+    "exchanges": {
+      "qe.com.qa": {"name": "QSE", "description": "Qatar Stock Exchange", "authority_score": 0.92}
+    },
+    "news": {
+      "thepeninsulaqatar.com": {"name": "The Peninsula", "description": "Qatar newspaper", "authority_score": 0.76},
+      "gulf-times.com": {"name": "Gulf Times", "description": "Qatar newspaper", "authority_score": 0.75}
+    }
+  },
+
+  "kuwait": {
+    "_name": "Kuwait",
+    "government": {
+      "cbk.gov.kw": {"name": "CBK", "description": "Central Bank of Kuwait", "authority_score": 0.94},
+      "cma.gov.kw": {"name": "CMA Kuwait", "description": "Capital Markets Authority", "authority_score": 0.93}
+    },
+    "exchanges": {
+      "boursakuwait.com.kw": {"name": "Boursa Kuwait", "description": "Kuwait Stock Exchange", "authority_score": 0.91}
+    }
+  },
+
+  "israel": {
+    "_name": "Israel",
+    "government": {
+      "boi.org.il": {"name": "Bank of Israel", "description": "Central bank", "authority_score": 0.96},
+      "cbs.gov.il": {"name": "CBS Israel", "description": "Central Bureau of Statistics", "authority_score": 0.95},
+      "isa.gov.il": {"name": "ISA", "description": "Israel Securities Authority", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "tase.co.il": {"name": "TASE", "description": "Tel Aviv Stock Exchange", "authority_score": 0.94}
+    },
+    "news": {
+      "globes.co.il": {"name": "Globes", "description": "Business newspaper", "authority_score": 0.82},
+      "calcalistech.com": {"name": "Calcalist", "description": "Tech/business news", "authority_score": 0.81},
+      "timesofisrael.com": {"name": "Times of Israel", "description": "English news", "authority_score": 0.80}
+    }
+  },
+
+  "egypt": {
+    "_name": "Egypt",
+    "government": {
+      "cbe.org.eg": {"name": "CBE", "description": "Central Bank of Egypt", "authority_score": 0.93},
+      "capmas.gov.eg": {"name": "CAPMAS", "description": "Statistics agency", "authority_score": 0.91},
+      "fra.gov.eg": {"name": "FRA", "description": "Financial Regulatory Authority", "authority_score": 0.92}
+    },
+    "exchanges": {
+      "egx.com.eg": {"name": "EGX", "description": "Egyptian Exchange", "authority_score": 0.90}
+    },
+    "news": {
+      "dailynewsegypt.com": {"name": "Daily News Egypt", "description": "English newspaper", "authority_score": 0.74},
+      "egypttoday.com": {"name": "Egypt Today", "description": "English magazine", "authority_score": 0.73}
+    }
+  },
+
+  "south_africa": {
+    "_name": "South Africa",
+    "government": {
+      "resbank.co.za": {"name": "SARB", "description": "South African Reserve Bank", "authority_score": 0.96},
+      "statssa.gov.za": {"name": "Stats SA", "description": "Statistics South Africa", "authority_score": 0.95},
+      "fsca.co.za": {"name": "FSCA", "description": "Financial Sector Conduct Authority", "authority_score": 0.95},
+      "cipc.co.za": {"name": "CIPC", "description": "Companies and IP Commission", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "jse.co.za": {"name": "JSE", "description": "Johannesburg Stock Exchange", "authority_score": 0.95}
+    },
+    "news": {
+      "businesslive.co.za": {"name": "Business Day", "description": "Business newspaper", "authority_score": 0.82},
+      "fin24.com": {"name": "Fin24", "description": "Financial news", "authority_score": 0.80},
+      "moneyweb.co.za": {"name": "Moneyweb", "description": "Financial news", "authority_score": 0.79}
+    }
+  },
+
+  "nigeria": {
+    "_name": "Nigeria",
+    "government": {
+      "cbn.gov.ng": {"name": "CBN", "description": "Central Bank of Nigeria", "authority_score": 0.93},
+      "nigerianstat.gov.ng": {"name": "NBS", "description": "National Bureau of Statistics", "authority_score": 0.91},
+      "sec.gov.ng": {"name": "SEC Nigeria", "description": "Securities and Exchange Commission", "authority_score": 0.92}
+    },
+    "exchanges": {
+      "ngxgroup.com": {"name": "NGX", "description": "Nigerian Exchange Group", "authority_score": 0.90}
+    },
+    "news": {
+      "businessday.ng": {"name": "BusinessDay", "description": "Business newspaper", "authority_score": 0.77},
+      "nairametrics.com": {"name": "Nairametrics", "description": "Financial news", "authority_score": 0.75}
+    }
+  },
+
+  "kenya": {
+    "_name": "Kenya",
+    "government": {
+      "centralbank.go.ke": {"name": "CBK", "description": "Central Bank of Kenya", "authority_score": 0.93},
+      "knbs.or.ke": {"name": "KNBS", "description": "Kenya National Bureau of Statistics", "authority_score": 0.91},
+      "cma.or.ke": {"name": "CMA Kenya", "description": "Capital Markets Authority", "authority_score": 0.92}
+    },
+    "exchanges": {
+      "nse.co.ke": {"name": "NSE", "description": "Nairobi Securities Exchange", "authority_score": 0.89}
+    },
+    "news": {
+      "businessdailyafrica.com": {"name": "Business Daily", "description": "Business newspaper", "authority_score": 0.77}
+    }
+  },
+
+  "morocco": {
+    "_name": "Morocco",
+    "government": {
+      "bkam.ma": {"name": "Bank Al-Maghrib", "description": "Central bank", "authority_score": 0.93},
+      "hcp.ma": {"name": "HCP", "description": "High Commission for Planning", "authority_score": 0.91},
+      "ammc.ma": {"name": "AMMC", "description": "Capital Market Authority", "authority_score": 0.92}
+    },
+    "exchanges": {
+      "casablanca-bourse.com": {"name": "Casablanca Stock Exchange", "description": "Moroccan exchange", "authority_score": 0.89}
+    }
+  },
+
+  "turkey": {
+    "_name": "Turkey",
+    "government": {
+      "tcmb.gov.tr": {"name": "TCMB", "description": "Central Bank of Turkey", "authority_score": 0.94},
+      "tuik.gov.tr": {"name": "TurkStat", "description": "Turkish Statistical Institute", "authority_score": 0.93},
+      "spk.gov.tr": {"name": "SPK", "description": "Capital Markets Board", "authority_score": 0.93}
+    },
+    "exchanges": {
+      "borsaistanbul.com": {"name": "Borsa Istanbul", "description": "Istanbul Stock Exchange", "authority_score": 0.92}
+    },
+    "news": {
+      "dailysabah.com": {"name": "Daily Sabah", "description": "English newspaper", "authority_score": 0.76},
+      "hurriyetdailynews.com": {"name": "Hurriyet Daily News", "description": "English news", "authority_score": 0.75}
+    }
+  }
+}

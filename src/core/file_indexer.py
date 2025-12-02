@@ -7,7 +7,6 @@ to local files for use in research and analysis.
 
 import asyncio
 import hashlib
-import mimetypes
 import os
 import re
 import threading
@@ -15,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional
 
 from .logger import setup_logger
 

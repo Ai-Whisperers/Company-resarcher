@@ -1,0 +1,23 @@
+{
+  "_description": "Wiki Sites - Collaborative encyclopedias, useful but not primary sources",
+  "wikipedia.org": {"name": "Wikipedia", "reason": "Collaborative encyclopedia, cite sources instead"},
+  "wikidata.org": {"name": "Wikidata", "reason": "Structured data, not narrative"},
+  "wikimedia.org": {"name": "Wikimedia", "reason": "Wiki foundation"},
+  "fandom.com": {"name": "Fandom", "reason": "Entertainment wikis"},
+  "wikia.com": {"name": "Wikia", "reason": "User-generated wikis"},
+  "wiki.com": {"name": "Wiki.com", "reason": "Generic wiki host"},
+  "wikidot.com": {"name": "Wikidot", "reason": "Wiki hosting"},
+  "wikispaces.com": {"name": "Wikispaces", "reason": "Wiki hosting"},
+  "pbworks.com": {"name": "PBworks", "reason": "Wiki hosting"},
+  "wetpaint.com": {"name": "Wetpaint", "reason": "Wiki platform"},
+  "wikihow.com": {"name": "WikiHow", "reason": "How-to wiki"},
+  "everything2.com": {"name": "Everything2", "reason": "Collaborative writing"},
+  "h2g2.com": {"name": "h2g2", "reason": "BBC collaborative encyclopedia"},
+  "citizendium.org": {"name": "Citizendium", "reason": "Expert wiki"},
+  "infogalactic.com": {"name": "Infogalactic", "reason": "Wikipedia fork"},
+  "conservapedia.com": {"name": "Conservapedia", "reason": "Biased wiki"},
+  "rationalwiki.org": {"name": "RationalWiki", "reason": "Skeptical wiki"},
+  "tvtropes.org": {"name": "TV Tropes", "reason": "Entertainment wiki"},
+  "bulbapedia.bulbagarden.net": {"name": "Bulbapedia", "reason": "Fan wiki"},
+  "wikitia.com": {"name": "Wikitia", "reason": "Biographical wiki"}
+}

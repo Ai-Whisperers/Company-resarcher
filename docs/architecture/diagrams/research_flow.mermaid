@@ -1,0 +1,123 @@
+%% Company Researcher - Research Flow
+%% This diagram shows the detailed flow of a research request
+
+flowchart TD
+    subgraph "Input"
+        A[User Request] --> B{Input Type}
+        B -->|CLI| C[YAML Profile]
+        B -->|API| D[JSON Request]
+        B -->|UI| E[Form Input]
+    end
+
+    subgraph "Initialization"
+        C --> F[Load Profile]
+        D --> F
+        E --> F
+        F --> G[Create Pipeline Context]
+        G --> H[Initialize Container]
+        H --> I[Setup AI Client]
+        I --> J[Load Prompt Templates]
+    end
+
+    subgraph "Planning Phase"
+        J --> K[Query Generator]
+        K --> L[Generate Research Queries]
+        L --> M[Hierarchical Planner]
+        M --> N[Create Research Plan]
+        N --> O{Research Phases}
+    end
+
+    subgraph "Research Phases"
+        O -->|Financial| P1[Financial Analysis]
+        O -->|Market| P2[Market Intelligence]
+        O -->|Competitive| P3[Competitive Landscape]
+        O -->|Brand| P4[Brand Strategy]
+        O -->|Sales| P5[Sales Strategy]
+    end
+
+    subgraph "Search & Collection"
+        P1 & P2 & P3 & P4 & P5 --> Q[Search Manager]
+        Q --> R{Select Provider}
+        R -->|Primary| S1[Serper API]
+        R -->|Fallback| S2[DuckDuckGo]
+        R -->|Alternative| S3[Tavily/Jina]
+
+        S1 & S2 & S3 --> T[URL Validator]
+        T -->|Valid| U[Browser Tool]
+        T -->|Invalid| V[Skip URL]
+
+        U --> W[Extract Content]
+        W --> X[Source Quality Score]
+    end
+
+    subgraph "Analysis & Synthesis"
+        X --> Y[Accumulate Sources]
+        Y --> Z[Gap Analyzer]
+        Z -->|Gaps Found| AA[Iterative Research]
+        AA --> Q
+        Z -->|Complete| AB[Deep Research Agent]
+
+        AB --> AC[Specialist Agents]
+        AC --> AD[Financial Analyst]
+        AC --> AE[Market Analyst]
+        AC --> AF[Competitive Analyst]
+        AC --> AG[Brand Strategist]
+
+        AD & AE & AF & AG --> AH[Insight Generator]
+        AH --> AI[Cross-Reference & Validate]
+    end
+
+    subgraph "Report Generation"
+        AI --> AJ[Writer Agent]
+        AJ --> AK[Generate Section Drafts]
+        AK --> AL[Critic Agent]
+        AL -->|Needs Revision| AM[Revise Draft]
+        AM --> AK
+        AL -->|Approved| AN[Template Renderer]
+
+        AN --> AO[Merge Sections]
+        AO --> AP[Add Citations]
+        AP --> AQ[Format Output]
+    end
+
+    subgraph "Output"
+        AQ --> AR{Output Format}
+        AR -->|Markdown| AS[MD Files]
+        AR -->|JSON| AT[JSON Data]
+        AR -->|API| AU[Response Object]
+
+        AS --> AV[Output Manager]
+        AT --> AV
+        AV --> AW[Save to Outputs/]
+        AV --> AX[Update Vault]
+
+        AU --> AY[Return to Client]
+    end
+
+    subgraph "Monitoring"
+        Q -.-> BA[Cost Tracker]
+        U -.-> BA
+        AB -.-> BA
+        BA --> BB[Metrics Service]
+        BB --> BC[Log Analytics]
+    end
+
+    classDef input fill:#e3f2fd,stroke:#1565c0
+    classDef init fill:#fff8e1,stroke:#f9a825
+    classDef planning fill:#f3e5f5,stroke:#7b1fa2
+    classDef research fill:#e8f5e9,stroke:#2e7d32
+    classDef search fill:#e0f7fa,stroke:#00838f
+    classDef analysis fill:#fce4ec,stroke:#c2185b
+    classDef report fill:#fff3e0,stroke:#e65100
+    classDef output fill:#eceff1,stroke:#455a64
+    classDef monitor fill:#ffebee,stroke:#c62828
+
+    class A,B,C,D,E input
+    class F,G,H,I,J init
+    class K,L,M,N,O planning
+    class P1,P2,P3,P4,P5 research
+    class Q,R,S1,S2,S3,T,U,V,W,X search
+    class Y,Z,AA,AB,AC,AD,AE,AF,AG,AH,AI analysis
+    class AJ,AK,AL,AM,AN,AO,AP,AQ report
+    class AR,AS,AT,AU,AV,AW,AX,AY output
+    class BA,BB,BC monitor

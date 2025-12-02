@@ -1,0 +1,23 @@
+{
+  "_description": "Paywalled Document Hosts - Content hidden behind paywalls with no research value",
+  "scribd.com": {"name": "Scribd", "reason": "Paywalled document hosting"},
+  "academia.edu": {"name": "Academia.edu", "reason": "Paywalled academic papers"},
+  "issuu.com": {"name": "Issuu", "reason": "Digital publishing platform"},
+  "calameo.com": {"name": "Calaméo", "reason": "Digital publishing platform"},
+  "slideshare.net": {"name": "SlideShare", "reason": "Presentation hosting, limited value"},
+  "docstoc.com": {"name": "Docstoc", "reason": "Document hosting"},
+  "docin.com": {"name": "Docin", "reason": "Chinese document hosting"},
+  "authorstream.com": {"name": "AuthorStream", "reason": "Presentation hosting"},
+  "edocr.com": {"name": "eDocr", "reason": "Document hosting"},
+  "yudu.com": {"name": "YUDU", "reason": "Digital publishing"},
+  "joomag.com": {"name": "Joomag", "reason": "Digital publishing"},
+  "myebook.com": {"name": "myeBook", "reason": "Digital publishing"},
+  "pressbooks.com": {"name": "Pressbooks", "reason": "Self-publishing platform"},
+  "pothi.com": {"name": "Pothi", "reason": "Self-publishing platform"},
+  "lulu.com": {"name": "Lulu", "reason": "Self-publishing platform"},
+  "blurb.com": {"name": "Blurb", "reason": "Self-publishing platform"},
+  "flipsnack.com": {"name": "Flipsnack", "reason": "Digital publishing"},
+  "payhip.com": {"name": "Payhip", "reason": "Digital product sales"},
+  "gumroad.com": {"name": "Gumroad", "reason": "Digital product sales"},
+  "pubhtml5.com": {"name": "PubHTML5", "reason": "Digital publishing platform"}
+}

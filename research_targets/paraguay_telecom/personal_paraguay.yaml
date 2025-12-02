@@ -1,0 +1,97 @@
+# Personal Paraguay - Primary Research Target
+# Telecommunications operator in Paraguay
+
+company:
+  name: "Personal Paraguay"
+  legal_name: "Nucleo S.A."
+  website: "https://www.personal.com.py"
+  industry: "Telecommunications"
+  country: "Paraguay"
+
+  # Company details
+  founded: "1998-06-24"
+  headquarters: "Maximo Lira 522 c/ Av. Espana, Asuncion, Paraguay"
+
+  # Ownership structure
+  ownership:
+    type: "Private (Joint Venture)"
+    parent_company: "Telecom Argentina"
+    shareholders:
+      - name: "Grupo Telecom"
+        stake: "67.5%"
+      - name: "ABC Comunicaciones"
+        stake: "32.5%"
+
+  # Market position
+  market_position:
+    rank: 2  # Second largest mobile operator
+    estimated_market_share: "~30%"
+    subscribers: "2.32 million (mid-2019)"
+
+  # Services offered
+  services:
+    - "Mobile voice and data (2G, 3G, 4G LTE)"
+    - "Prepaid and postpaid plans"
+    - "Fixed broadband (Fiber optic)"
+    - "Digital television (TuVes HD)"
+    - "International roaming"
+
+  # Key differentiators
+  usp:
+    - "Fastest fiber optic in Paraguay"
+    - "Part of Telecom Argentina group"
+    - "Flow streaming platform"
+
+  # Brand
+  tagline: "Hace + con Personal"
+  brand_archetype: "Everyman"
+
+# Competitors to cross-reference
+competitors:
+  direct:
+    - "Tigo Paraguay"
+    - "Claro Paraguay"
+  indirect:
+    - "Copaco"
+    - "Vox (MVNO)"
+  emerging:
+    - "Starlink"
+
+# Research configuration
+research:
+  focus_areas:
+    - market
+    - financial
+    - competitor
+    - brand
+    - sales
+
+  # Specific queries to prioritize
+  priority_queries:
+    - "Personal Paraguay market share 2024"
+    - "Nucleo SA financial results"
+    - "Telecom Argentina Paraguay subsidiary"
+    - "Personal Paraguay 5G rollout"
+    - "Personal Paraguay vs Tigo comparison"
+
+  # Sources to prioritize
+  priority_sources:
+    - "inversores.telecom.com.ar"  # Parent company investor relations
+    - "conatel.gov.py"              # Regulator
+    - "mordorintelligence.com"
+    - "statista.com"
+
+  # Known data gaps (from previous research)
+  data_gaps:
+    - "Exact revenue figures (company-specific, not market)"
+    - "EBITDA and profit margins"
+    - "Subscriber count (current)"
+    - "ARPU"
+    - "Churn rate"
+    - "5G rollout timeline"
+
+notes: |
+  Personal Paraguay is the second-largest mobile operator in Paraguay.
+  Financial data is difficult to find as they are a private subsidiary.
+  Best source for financials is parent company Telecom Argentina's annual reports.
+  Acquired TuVes HD (digital TV) in May 2019.

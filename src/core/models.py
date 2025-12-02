@@ -13,8 +13,8 @@ Addresses architectural issue: dict[str, Any] overuse (Issue #053)
 """
 
 from datetime import datetime
-from typing import Any, Optional, Union
-from pydantic import BaseModel, Field, field_validator
+from typing import Any, Optional
+from pydantic import BaseModel, Field
 
 
 # =============================================================================

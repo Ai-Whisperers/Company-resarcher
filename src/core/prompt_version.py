@@ -6,7 +6,6 @@ Provides storage, versioning, and retrieval of prompts with metadata.
 
 import hashlib
 import json
-import os
 import re
 import threading
 from dataclasses import dataclass, field

@@ -1,0 +1,23 @@
+{
+  "_description": "AI-Generated Spam & Content Mills - Low-quality automated content",
+  "articlebiz.com": {"name": "Article Biz", "reason": "Low-quality article directory"},
+  "goarticles.com": {"name": "Go Articles", "reason": "Article spinning site"},
+  "amazines.com": {"name": "Amazines", "reason": "Low-quality articles"},
+  "constantcontent.com": {"name": "Constant Content", "reason": "Content marketplace"},
+  "textbroker.com": {"name": "Textbroker", "reason": "Cheap content mill"},
+  "iwriter.com": {"name": "iWriter", "reason": "Cheap content mill"},
+  "essaywriter.org": {"name": "Essay Writer", "reason": "Academic content mill"},
+  "writeraccess.com": {"name": "WriterAccess", "reason": "Content marketplace"},
+  "contently.com/marketplace": {"name": "Contently Marketplace", "reason": "Content marketplace"},
+  "scripted.com/marketplace": {"name": "Scripted Marketplace", "reason": "Content marketplace"},
+  "articlegeek.com": {"name": "Article Geek", "reason": "Spun content"},
+  "articleclick.com": {"name": "Article Click", "reason": "Low-quality directory"},
+  "selfgrowth.com": {"name": "SelfGrowth", "reason": "Low-quality self-help content"},
+  "sooperarticles.com": {"name": "Sooper Articles", "reason": "Content farm"},
+  "submittall.com": {"name": "SubmitAll", "reason": "Article submission spam"},
+  "articlepool.com": {"name": "Article Pool", "reason": "Low-quality articles"},
+  "ideamarketers.com": {"name": "IdeaMarketers", "reason": "Content mill"},
+  "bukisa.com": {"name": "Bukisa", "reason": "Defunct content farm"},
+  "associatedcontent.com": {"name": "Associated Content", "reason": "Defunct content farm"},
+  "triond.com": {"name": "Triond", "reason": "Defunct content farm"}
+}

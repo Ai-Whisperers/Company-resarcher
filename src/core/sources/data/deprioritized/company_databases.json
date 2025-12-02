@@ -1,0 +1,23 @@
+{
+  "_description": "Company Databases (Free Tier) - Limited data, prefer premium or official sources",
+  "similarweb.com": {"name": "SimilarWeb", "reason": "Web traffic estimates, free tier limited"},
+  "owler.com": {"name": "Owler", "reason": "Company profiles, user-generated"},
+  "craft.co": {"name": "Craft.co", "reason": "Company profiles, aggregated"},
+  "datanyze.com": {"name": "Datanyze", "reason": "Tech stack data, limited free"},
+  "builtwith.com": {"name": "BuiltWith", "reason": "Tech detection, limited free"},
+  "wappalyzer.com": {"name": "Wappalyzer", "reason": "Tech detection"},
+  "stackshare.io": {"name": "StackShare", "reason": "Tech stack sharing"},
+  "g2stack.com": {"name": "G2 Stack", "reason": "Tech stack data"},
+  "siftery.com": {"name": "Siftery", "reason": "Tech tracking"},
+  "enlyft.com": {"name": "Enlyft", "reason": "Tech intelligence"},
+  "techmeme.com": {"name": "Techmeme", "reason": "Tech news aggregator"},
+  "crunchbase.com/free": {"name": "Crunchbase Free", "reason": "Limited free company data"},
+  "angel.co": {"name": "AngelList", "reason": "Startup directory"},
+  "wellfound.com": {"name": "Wellfound", "reason": "Startup directory"},
+  "f6s.com": {"name": "F6S", "reason": "Startup community"},
+  "startupblink.com": {"name": "StartupBlink", "reason": "Startup ecosystem rankings"},
+  "startupranking.com": {"name": "Startup Ranking", "reason": "Startup rankings"},
+  "dealroom.co/free": {"name": "Dealroom Free", "reason": "Limited free data"},
+  "tracxn.com/free": {"name": "Tracxn Free", "reason": "Limited free data"},
+  "cbinsights.com/free": {"name": "CB Insights Free", "reason": "Limited free data"}
+}

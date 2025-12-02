@@ -3,8 +3,6 @@ import numpy as np
 from typing import List, Dict, Any, Optional
 from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
-import json
-import os
 
 logger = logging.getLogger(__name__)
 

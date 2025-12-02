@@ -1,0 +1,258 @@
+{
+  "_description": "Asia Pacific Regional Sources",
+
+  "china": {
+    "_name": "China",
+    "government": {
+      "pbc.gov.cn": {"name": "PBOC", "description": "People's Bank of China", "authority_score": 0.96},
+      "stats.gov.cn": {"name": "NBS", "description": "National Bureau of Statistics", "authority_score": 0.95},
+      "csrc.gov.cn": {"name": "CSRC", "description": "Securities regulatory commission", "authority_score": 0.95},
+      "safe.gov.cn": {"name": "SAFE", "description": "State Administration of Foreign Exchange", "authority_score": 0.94},
+      "mofcom.gov.cn": {"name": "MOFCOM", "description": "Commerce ministry", "authority_score": 0.94},
+      "miit.gov.cn": {"name": "MIIT", "description": "Industry/IT ministry", "authority_score": 0.94},
+      "samr.gov.cn": {"name": "SAMR", "description": "Market regulation", "authority_score": 0.93},
+      "customs.gov.cn": {"name": "China Customs", "description": "Trade data", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "sse.com.cn": {"name": "SSE", "description": "Shanghai Stock Exchange", "authority_score": 0.96},
+      "szse.cn": {"name": "SZSE", "description": "Shenzhen Stock Exchange", "authority_score": 0.95}
+    },
+    "news": {
+      "caixin.com": {"name": "Caixin", "description": "Business news", "authority_score": 0.84},
+      "yicai.com": {"name": "Yicai", "description": "Financial news", "authority_score": 0.80},
+      "scmp.com": {"name": "SCMP", "description": "South China Morning Post", "authority_score": 0.85}
+    }
+  },
+
+  "hong_kong": {
+    "_name": "Hong Kong",
+    "government": {
+      "hkma.gov.hk": {"name": "HKMA", "description": "Monetary Authority", "authority_score": 0.97},
+      "censtatd.gov.hk": {"name": "C&SD", "description": "Census and Statistics", "authority_score": 0.95},
+      "sfc.hk": {"name": "SFC", "description": "Securities and Futures Commission", "authority_score": 0.96},
+      "cr.gov.hk": {"name": "CR", "description": "Companies Registry", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "hkex.com.hk": {"name": "HKEX", "description": "Hong Kong Exchanges", "authority_score": 0.97}
+    },
+    "news": {
+      "scmp.com": {"name": "SCMP", "description": "South China Morning Post", "authority_score": 0.85},
+      "hk01.com": {"name": "HK01", "description": "Hong Kong news", "authority_score": 0.78}
+    }
+  },
+
+  "japan": {
+    "_name": "Japan",
+    "government": {
+      "boj.or.jp": {"name": "BOJ", "description": "Bank of Japan", "authority_score": 0.98},
+      "stat.go.jp": {"name": "Statistics Bureau", "description": "National statistics", "authority_score": 0.96},
+      "fsa.go.jp": {"name": "FSA", "description": "Financial Services Agency", "authority_score": 0.97},
+      "meti.go.jp": {"name": "METI", "description": "Economy/trade/industry ministry", "authority_score": 0.96},
+      "mof.go.jp": {"name": "MOF", "description": "Ministry of Finance", "authority_score": 0.97},
+      "jpo.go.jp": {"name": "JPO", "description": "Japan Patent Office", "authority_score": 0.96},
+      "cao.go.jp": {"name": "CAO", "description": "Cabinet Office economic data", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "jpx.co.jp": {"name": "JPX", "description": "Japan Exchange Group (TSE)", "authority_score": 0.97}
+    },
+    "news": {
+      "nikkei.com": {"name": "Nikkei", "description": "Business newspaper", "authority_score": 0.90},
+      "japantimes.co.jp": {"name": "Japan Times", "description": "English news", "authority_score": 0.82},
+      "asia.nikkei.com": {"name": "Nikkei Asia", "description": "Asian business", "authority_score": 0.88}
+    }
+  },
+
+  "south_korea": {
+    "_name": "South Korea",
+    "government": {
+      "bok.or.kr": {"name": "BOK", "description": "Bank of Korea", "authority_score": 0.97},
+      "kostat.go.kr": {"name": "KOSTAT", "description": "Statistics Korea", "authority_score": 0.96},
+      "fss.or.kr": {"name": "FSS", "description": "Financial Supervisory Service", "authority_score": 0.96},
+      "fsc.go.kr": {"name": "FSC", "description": "Financial Services Commission", "authority_score": 0.96},
+      "motie.go.kr": {"name": "MOTIE", "description": "Trade/industry ministry", "authority_score": 0.95},
+      "kipo.go.kr": {"name": "KIPO", "description": "Intellectual Property Office", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "krx.co.kr": {"name": "KRX", "description": "Korea Exchange", "authority_score": 0.96}
+    },
+    "news": {
+      "koreaherald.com": {"name": "Korea Herald", "description": "English news", "authority_score": 0.82},
+      "koreatimes.co.kr": {"name": "Korea Times", "description": "English news", "authority_score": 0.80},
+      "mk.co.kr": {"name": "Maeil Business", "description": "Business news", "authority_score": 0.84}
+    }
+  },
+
+  "singapore": {
+    "_name": "Singapore",
+    "government": {
+      "mas.gov.sg": {"name": "MAS", "description": "Monetary Authority of Singapore", "authority_score": 0.98},
+      "singstat.gov.sg": {"name": "SingStat", "description": "Department of Statistics", "authority_score": 0.96},
+      "acra.gov.sg": {"name": "ACRA", "description": "Companies registry", "authority_score": 0.96},
+      "imda.gov.sg": {"name": "IMDA", "description": "Info-comm regulator", "authority_score": 0.95},
+      "edb.gov.sg": {"name": "EDB", "description": "Economic Development Board", "authority_score": 0.95},
+      "mti.gov.sg": {"name": "MTI", "description": "Trade and Industry ministry", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "sgx.com": {"name": "SGX", "description": "Singapore Exchange", "authority_score": 0.96}
+    },
+    "news": {
+      "straitstimes.com": {"name": "Straits Times", "description": "National newspaper", "authority_score": 0.85},
+      "businesstimes.com.sg": {"name": "Business Times", "description": "Business newspaper", "authority_score": 0.84},
+      "channelnewsasia.com": {"name": "CNA", "description": "News channel", "authority_score": 0.85}
+    }
+  },
+
+  "india": {
+    "_name": "India",
+    "government": {
+      "rbi.org.in": {"name": "RBI", "description": "Reserve Bank of India", "authority_score": 0.97},
+      "mospi.nic.in": {"name": "MOSPI", "description": "Statistics ministry", "authority_score": 0.95},
+      "sebi.gov.in": {"name": "SEBI", "description": "Securities regulator", "authority_score": 0.96},
+      "mca.gov.in": {"name": "MCA", "description": "Corporate Affairs ministry", "authority_score": 0.95},
+      "dot.gov.in": {"name": "DoT", "description": "Telecom department", "authority_score": 0.94},
+      "commerce.gov.in": {"name": "Commerce Ministry", "description": "Trade data", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "nseindia.com": {"name": "NSE", "description": "National Stock Exchange", "authority_score": 0.96},
+      "bseindia.com": {"name": "BSE", "description": "Bombay Stock Exchange", "authority_score": 0.95}
+    },
+    "news": {
+      "economictimes.indiatimes.com": {"name": "Economic Times", "description": "Business newspaper", "authority_score": 0.85},
+      "livemint.com": {"name": "Mint", "description": "Business news", "authority_score": 0.84},
+      "moneycontrol.com": {"name": "Moneycontrol", "description": "Financial news", "authority_score": 0.82},
+      "business-standard.com": {"name": "Business Standard", "description": "Business news", "authority_score": 0.83}
+    }
+  },
+
+  "australia": {
+    "_name": "Australia",
+    "government": {
+      "rba.gov.au": {"name": "RBA", "description": "Reserve Bank of Australia", "authority_score": 0.97},
+      "abs.gov.au": {"name": "ABS", "description": "Bureau of Statistics", "authority_score": 0.96},
+      "asic.gov.au": {"name": "ASIC", "description": "Securities and Investments Commission", "authority_score": 0.96},
+      "abr.business.gov.au": {"name": "ABR", "description": "Australian Business Register", "authority_score": 0.95},
+      "accc.gov.au": {"name": "ACCC", "description": "Competition regulator", "authority_score": 0.95},
+      "apra.gov.au": {"name": "APRA", "description": "Prudential regulator", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "asx.com.au": {"name": "ASX", "description": "Australian Securities Exchange", "authority_score": 0.96}
+    },
+    "news": {
+      "afr.com": {"name": "AFR", "description": "Australian Financial Review", "authority_score": 0.87},
+      "theaustralian.com.au": {"name": "The Australian", "description": "National newspaper", "authority_score": 0.85},
+      "smh.com.au": {"name": "Sydney Morning Herald", "description": "Major newspaper", "authority_score": 0.84}
+    }
+  },
+
+  "new_zealand": {
+    "_name": "New Zealand",
+    "government": {
+      "rbnz.govt.nz": {"name": "RBNZ", "description": "Reserve Bank of NZ", "authority_score": 0.96},
+      "stats.govt.nz": {"name": "Stats NZ", "description": "Statistics New Zealand", "authority_score": 0.95},
+      "fma.govt.nz": {"name": "FMA", "description": "Financial Markets Authority", "authority_score": 0.95},
+      "companiesoffice.govt.nz": {"name": "Companies Office", "description": "Company registry", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "nzx.com": {"name": "NZX", "description": "New Zealand Exchange", "authority_score": 0.93}
+    },
+    "news": {
+      "nzherald.co.nz": {"name": "NZ Herald", "description": "National newspaper", "authority_score": 0.82},
+      "stuff.co.nz": {"name": "Stuff", "description": "News portal", "authority_score": 0.78}
+    }
+  },
+
+  "indonesia": {
+    "_name": "Indonesia",
+    "government": {
+      "bi.go.id": {"name": "Bank Indonesia", "description": "Central bank", "authority_score": 0.95},
+      "bps.go.id": {"name": "BPS", "description": "Statistics Indonesia", "authority_score": 0.94},
+      "ojk.go.id": {"name": "OJK", "description": "Financial Services Authority", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "idx.co.id": {"name": "IDX", "description": "Indonesia Stock Exchange", "authority_score": 0.93}
+    },
+    "news": {
+      "thejakartapost.com": {"name": "Jakarta Post", "description": "English news", "authority_score": 0.80},
+      "kompas.com": {"name": "Kompas", "description": "Major newspaper", "authority_score": 0.81}
+    }
+  },
+
+  "malaysia": {
+    "_name": "Malaysia",
+    "government": {
+      "bnm.gov.my": {"name": "BNM", "description": "Bank Negara Malaysia", "authority_score": 0.96},
+      "dosm.gov.my": {"name": "DOSM", "description": "Department of Statistics", "authority_score": 0.94},
+      "sc.com.my": {"name": "SC", "description": "Securities Commission", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "bursamalaysia.com": {"name": "Bursa Malaysia", "description": "Malaysian stock exchange", "authority_score": 0.94}
+    },
+    "news": {
+      "theedgemarkets.com": {"name": "The Edge", "description": "Business news", "authority_score": 0.82},
+      "thestar.com.my": {"name": "The Star", "description": "Major newspaper", "authority_score": 0.80}
+    }
+  },
+
+  "thailand": {
+    "_name": "Thailand",
+    "government": {
+      "bot.or.th": {"name": "BOT", "description": "Bank of Thailand", "authority_score": 0.95},
+      "nso.go.th": {"name": "NSO", "description": "National Statistics Office", "authority_score": 0.93},
+      "sec.or.th": {"name": "SEC Thailand", "description": "Securities and Exchange Commission", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "set.or.th": {"name": "SET", "description": "Stock Exchange of Thailand", "authority_score": 0.93}
+    },
+    "news": {
+      "bangkokpost.com": {"name": "Bangkok Post", "description": "English newspaper", "authority_score": 0.80},
+      "nationthailand.com": {"name": "The Nation", "description": "English news", "authority_score": 0.78}
+    }
+  },
+
+  "philippines": {
+    "_name": "Philippines",
+    "government": {
+      "bsp.gov.ph": {"name": "BSP", "description": "Bangko Sentral ng Pilipinas", "authority_score": 0.95},
+      "psa.gov.ph": {"name": "PSA", "description": "Philippine Statistics Authority", "authority_score": 0.93},
+      "sec.gov.ph": {"name": "SEC Philippines", "description": "Securities regulator", "authority_score": 0.94}
+    },
+    "exchanges": {
+      "pse.com.ph": {"name": "PSE", "description": "Philippine Stock Exchange", "authority_score": 0.92}
+    },
+    "news": {
+      "inquirer.net": {"name": "Philippine Daily Inquirer", "description": "Major newspaper", "authority_score": 0.79},
+      "bworldonline.com": {"name": "BusinessWorld", "description": "Business newspaper", "authority_score": 0.78}
+    }
+  },
+
+  "vietnam": {
+    "_name": "Vietnam",
+    "government": {
+      "sbv.gov.vn": {"name": "SBV", "description": "State Bank of Vietnam", "authority_score": 0.94},
+      "gso.gov.vn": {"name": "GSO", "description": "General Statistics Office", "authority_score": 0.92},
+      "ssc.gov.vn": {"name": "SSC", "description": "State Securities Commission", "authority_score": 0.93}
+    },
+    "exchanges": {
+      "hsx.vn": {"name": "HOSE", "description": "Ho Chi Minh Stock Exchange", "authority_score": 0.91},
+      "hnx.vn": {"name": "HNX", "description": "Hanoi Stock Exchange", "authority_score": 0.90}
+    },
+    "news": {
+      "vnexpress.net": {"name": "VnExpress", "description": "Major news site", "authority_score": 0.78}
+    }
+  },
+
+  "taiwan": {
+    "_name": "Taiwan",
+    "government": {
+      "cbc.gov.tw": {"name": "CBC", "description": "Central Bank of Taiwan", "authority_score": 0.96},
+      "stat.gov.tw": {"name": "DGBAS", "description": "Directorate-General of Budget", "authority_score": 0.95},
+      "fsc.gov.tw": {"name": "FSC", "description": "Financial Supervisory Commission", "authority_score": 0.95}
+    },
+    "exchanges": {
+      "twse.com.tw": {"name": "TWSE", "description": "Taiwan Stock Exchange", "authority_score": 0.95}
+    },
+    "news": {
+      "taipeitimes.com": {"name": "Taipei Times", "description": "English newspaper", "authority_score": 0.80}
+    }
+  }
+}

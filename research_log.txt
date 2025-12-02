@@ -1,0 +1,829 @@
+16:29:52 - main - INFO - Initializing research for Personal Paraguay (https://www.personal.com.py)
+16:29:52 - main - INFO - Running in SEQUENTIAL mode
+16:29:52 - src.pipeline.orchestrator - INFO - Starting research for Personal Paraguay (https://www.personal.com.py)
+16:29:59 - ai_client - INFO - Initialized OpenAI client with model: gpt-4o
+16:29:59 - pipeline - INFO - [req-efb30046967f] Starting research for Personal Paraguay research_types=['market', 'financial', 'competitor', 'brand', 'sales'] parallel=False
+16:29:59 - pipeline - INFO - [req-efb30046967f] Starting pipeline stages=1 timeout=600.0s
+16:29:59 - pipeline - INFO - [req-efb30046967f] [sequential_research] Starting stage
+16:29:59 - pipeline - INFO - [req-efb30046967f] [sequential_research] Starting phase: market
+16:29:59 - pipeline - INFO - [req-efb30046967f] [research_market] Starting stage
+16:29:59 - pipeline - INFO - [req-efb30046967f] [query_generation_market] Starting stage
+16:29:59 - pipeline - INFO - [req-efb30046967f] [query_generation_market] Generated 4 queries for market
+16:29:59 - pipeline - INFO - [req-efb30046967f] [query_generation_market] Stage completed duration=0.00s
+16:29:59 - pipeline - INFO - [req-efb30046967f] [search_execution] Starting stage
+16:29:59 - pipeline - INFO - [req-efb30046967f] [search_execution] Executing 4 search queries max_concurrent=5
+16:29:59 - search.manager - INFO - SearchManager initialized with providers: ['duckduckgo', 'jina', 'tavily']
+16:29:59 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay market share industry...'
+16:29:59 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay industry trends...'
+16:29:59 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay target audience demographics...'
+16:29:59 - search.manager - INFO - Searching with duckduckgo: 'industry market size and growth...'
+16:30:00 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay market share industry...'
+16:30:00 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:00 - search_tool - INFO - Found 3 results for 'Personal Paraguay market share industry' (provider: duckduckgo)
+16:30:01 - browser_tool - INFO - Browser initialized
+16:30:01 - browser_tool - INFO - Browser initialized
+16:30:01 - browser_tool - INFO - Browser initialized
+16:30:01 - browser_tool - INFO - Navigating to: https://www.statista.com/outlook/cmo/beauty-personal-care/paraguay
+16:30:01 - browser_tool - INFO - Navigating to: https://www.mordorintelligence.com/industry-reports/paraguay-telecom-mno-market
+16:30:01 - browser_tool - INFO - Navigating to: https://www.trade.gov/country-commercial-guides/paraguay-market-overview
+16:30:01 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay target audience demographics...'
+16:30:01 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:01 - search_tool - INFO - Found 3 results for 'Personal Paraguay target audience demographics' (provider: duckduckgo)
+16:30:01 - browser_tool - INFO - Navigating to: https://en.wikipedia.org/wiki/Demographics_of_Paraguay
+16:30:01 - browser_tool - INFO - Navigating to: https://www.similarweb.com/website/personal.com.py/
+16:30:02 - browser_tool - INFO - Navigating to: https://tgmresearch.com/online-panel-in-paraguay.html
+16:30:02 - browser_tool - ERROR - Failed to fetch https://en.wikipedia.org/wiki/Demographics_of_Paraguay: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:03 - browser_tool - ERROR - Failed to fetch https://tgmresearch.com/online-panel-in-paraguay.html: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='academic', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:03 - browser_tool - ERROR - Failed to fetch https://www.statista.com/outlook/cmo/beauty-personal-care/paraguay: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='industry_report', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:03 - browser_tool - ERROR - Failed to fetch https://en.wikipedia.org/wiki/Demographics_of_Paraguay: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:03 - browser_tool - ERROR - Failed to fetch https://tgmresearch.com/online-panel-in-paraguay.html: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:03 - browser_tool - ERROR - Failed to fetch https://www.mordorintelligence.com/industry-reports/paraguay-telecom-mno-market: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:04 - browser_tool - ERROR - Failed to fetch https://www.trade.gov/country-commercial-guides/paraguay-market-overview: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='government', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:04 - browser_tool - ERROR - Failed to fetch https://www.trade.gov/country-commercial-guides/paraguay-market-overview: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:04 - browser_tool - ERROR - Failed to fetch https://www.mordorintelligence.com/industry-reports/paraguay-telecom-mno-market: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:04 - browser_tool - ERROR - Failed to fetch https://www.statista.com/outlook/cmo/beauty-personal-care/paraguay: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:22 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay industry trends...'
+16:30:22 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:22 - search_tool - INFO - Found 3 results for 'Personal Paraguay industry trends' (provider: duckduckgo)
+16:30:22 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'industry market size and growth...'
+16:30:22 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:22 - search_tool - INFO - Found 3 results for 'industry market size and growth' (provider: duckduckgo)
+16:30:22 - browser_tool - INFO - Navigating to: https://www.statista.com/outlook/cmo/beauty-personal-care/paraguay
+16:30:22 - browser_tool - INFO - Navigating to: https://www.wm-strategy.com/paraguay-personal-care-industry-analysis-size-trends-consumption-and-forecast
+16:30:22 - browser_tool - INFO - Navigating to: https://www.trade.gov/country-commercial-guides/paraguay-market-overview
+16:30:22 - browser_tool - INFO - Navigating to: https://www.mckinsey.com/mgi/our-research/capturing-the-next-big-arenas-of-competition-in-ten-charts
+16:30:22 - browser_tool - INFO - Navigating to: https://www.ibisworld.com/
+16:30:22 - browser_tool - ERROR - Failed to fetch https://www.mckinsey.com/mgi/our-research/capturing-the-next-big-arenas-of-competition-in-ten-charts: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://www.mckinsey.com/mgi/our-research/capturing-the-next-big-arenas-of-competition-in-ten-charts
+Call log:
+  - navigating to "https://www.mckinsey.com/mgi/our-research/capturing-the-next-big-arenas-of-competition-in-ten-charts", waiting until "domcontentloaded"
+
+16:30:23 - browser_tool - INFO - Navigating to: https://www.mordorintelligence.com/industry-reports/retail-industry
+16:30:24 - browser_tool - ERROR - Failed to fetch https://www.statista.com/outlook/cmo/beauty-personal-care/paraguay: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='industry_report', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:24 - browser_tool - ERROR - Failed to fetch https://www.trade.gov/country-commercial-guides/paraguay-market-overview: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='government', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:24 - browser_tool - ERROR - Failed to fetch https://www.statista.com/outlook/cmo/beauty-personal-care/paraguay: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:24 - browser_tool - ERROR - Failed to fetch https://www.trade.gov/country-commercial-guides/paraguay-market-overview: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:25 - browser_tool - ERROR - Failed to fetch https://www.mordorintelligence.com/industry-reports/retail-industry: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:25 - browser_tool - ERROR - Failed to fetch https://www.ibisworld.com/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='industry_report', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:25 - browser_tool - ERROR - Failed to fetch https://www.mckinsey.com/mgi/our-research/capturing-the-next-big-arenas-of-competition-in-ten-charts: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:25 - browser_tool - ERROR - Failed to fetch https://www.ibisworld.com/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:25 - browser_tool - ERROR - Failed to fetch https://www.mordorintelligence.com/industry-reports/retail-industry: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:25 - pipeline - INFO - [req-efb30046967f] [search_execution] Search completed total_sources=2 successful_queries=4 failed_queries=0
+16:30:25 - pipeline - INFO - [req-efb30046967f] [search_execution] Stage completed duration=25.64s
+16:30:25 - pipeline - INFO - [req-efb30046967f] [analysis_market] Starting stage
+16:30:25 - pipeline - INFO - [req-efb30046967f] [analysis_market] Generating market analysis
+16:30:26 - pipeline - INFO - [req-efb30046967f] [analysis_market] Stage completed duration=1.71s
+16:30:26 - pipeline - INFO - [req-efb30046967f] [report_market] Starting stage
+16:30:26 - template_renderer - INFO - Initialized template renderer from: C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\templates
+16:30:26 - pipeline - INFO - [req-efb30046967f] [report_market] Stage completed duration=0.00s
+16:30:26 - pipeline - INFO - [req-efb30046967f] [research_market] Stage completed duration=27.36s
+16:30:26 - pipeline - INFO - [req-efb30046967f] [sequential_research] Completed phase: market
+16:30:26 - pipeline - INFO - [req-efb30046967f] [sequential_research] Starting phase: financial
+16:30:26 - pipeline - INFO - [req-efb30046967f] [research_financial] Starting stage
+16:30:26 - pipeline - INFO - [req-efb30046967f] [query_generation_financial] Starting stage
+16:30:26 - pipeline - INFO - [req-efb30046967f] [query_generation_financial] Generated 4 queries for financial
+16:30:26 - pipeline - INFO - [req-efb30046967f] [query_generation_financial] Stage completed duration=0.00s
+16:30:26 - pipeline - INFO - [req-efb30046967f] [search_execution] Starting stage
+16:30:26 - pipeline - INFO - [req-efb30046967f] [search_execution] Executing 4 search queries max_concurrent=5
+16:30:26 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay financial performance...'
+16:30:26 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay annual report...'
+16:30:26 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay revenue growth...'
+16:30:26 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay stock price analysis...'
+16:30:27 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay financial performance...'
+16:30:27 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:27 - search_tool - INFO - Found 3 results for 'Personal Paraguay financial performance' (provider: duckduckgo)
+16:30:27 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay revenue growth...'
+16:30:27 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:27 - search_tool - INFO - Found 3 results for 'Personal Paraguay revenue growth' (provider: duckduckgo)
+16:30:27 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay annual report...'
+16:30:27 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:27 - search_tool - INFO - Found 3 results for 'Personal Paraguay annual report' (provider: duckduckgo)
+16:30:27 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay stock price analysis...'
+16:30:27 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:27 - search_tool - INFO - Found 3 results for 'Personal Paraguay stock price analysis' (provider: duckduckgo)
+16:30:28 - browser_tool - INFO - Navigating to: https://www.cbinsights.com/company/telecom-personal-paraguay
+16:30:28 - browser_tool - INFO - Navigating to: https://www.state.gov/reports/2024-investment-climate-statements/paraguay/
+16:30:28 - browser_tool - INFO - Navigating to: https://www.crunchbase.com/organization/personal-paraguay
+16:30:28 - browser_tool - INFO - Navigating to: https://www.ifc.org/content/dam/ifc/doc/2025/paraguay-country-private-sector-diagnostic-en.pdf
+16:30:28 - browser_tool - INFO - Navigating to: https://fee.org/articles/paraguay-punches-above-its-weight/
+16:30:28 - browser_tool - ERROR - Failed to fetch https://www.ifc.org/content/dam/ifc/doc/2025/paraguay-country-private-sector-diagnostic-en.pdf: Page.goto: Download is starting
+Call log:
+  - navigating to "https://www.ifc.org/content/dam/ifc/doc/2025/paraguay-country-private-sector-diagnostic-en.pdf", waiting until "domcontentloaded"
+
+16:30:28 - browser_tool - INFO - Navigating to: https://www.oecd.org/en/publications/revenue-statistics-in-latin-america-and-the-caribbean-2025-country-notes_111c5149-en/paraguay_2ae5d000-en.html
+16:30:28 - browser_tool - INFO - Navigating to: https://open.unicef.org/download-pdf?country-name=Paraguay&year=2024
+16:30:28 - browser_tool - INFO - Navigating to: https://www.personal.com.py/
+16:30:28 - browser_tool - INFO - Navigating to: https://py.usembassy.gov/official-reports/
+16:30:28 - browser_tool - INFO - Navigating to: https://seekingalpha.com/symbol/PYG:USD
+16:30:29 - browser_tool - ERROR - Failed to fetch https://www.personal.com.py/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:29 - browser_tool - INFO - Navigating to: https://www.tradingview.com/symbols/USDPYG/
+16:30:30 - browser_tool - ERROR - Failed to fetch https://www.state.gov/reports/2024-investment-climate-statements/paraguay/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='government', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:30 - browser_tool - ERROR - Failed to fetch https://fee.org/articles/paraguay-punches-above-its-weight/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='news_article', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:30 - browser_tool - ERROR - Failed to fetch https://www.state.gov/reports/2024-investment-climate-statements/paraguay/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:30 - browser_tool - ERROR - Failed to fetch https://www.ifc.org/content/dam/ifc/doc/2025/paraguay-country-private-sector-diagnostic-en.pdf: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:30 - browser_tool - ERROR - Failed to fetch https://fee.org/articles/paraguay-punches-above-its-weight/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:30 - browser_tool - ERROR - Failed to fetch https://py.usembassy.gov/official-reports/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='government', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:30 - browser_tool - INFO - Navigating to: https://www.theglobeandmail.com/investing/markets/stocks/USDPYG/
+16:30:30 - browser_tool - ERROR - Failed to fetch https://www.personal.com.py/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:30 - browser_tool - ERROR - Failed to fetch https://py.usembassy.gov/official-reports/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:34 - browser_tool - WARNING - Error waiting for selector 'body' on https://seekingalpha.com/symbol/PYG:USD: Page.wait_for_selector: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("body") to be visible
+    14 × locator resolved to hidden <body>…</body>
+
+16:30:34 - pipeline - INFO - [req-efb30046967f] [search_execution] Search completed total_sources=7 successful_queries=4 failed_queries=0
+16:30:34 - pipeline - INFO - [req-efb30046967f] [search_execution] Stage completed duration=7.44s
+16:30:34 - pipeline - INFO - [req-efb30046967f] [analysis_financial] Starting stage
+16:30:34 - pipeline - INFO - [req-efb30046967f] [analysis_financial] Generating financial analysis
+16:30:35 - pipeline - INFO - [req-efb30046967f] [analysis_financial] Stage completed duration=0.89s
+16:30:35 - pipeline - INFO - [req-efb30046967f] [report_financial] Starting stage
+16:30:35 - pipeline - INFO - [req-efb30046967f] [report_financial] Stage completed duration=0.00s
+16:30:35 - pipeline - INFO - [req-efb30046967f] [research_financial] Stage completed duration=8.33s
+16:30:35 - pipeline - INFO - [req-efb30046967f] [sequential_research] Completed phase: financial
+16:30:35 - pipeline - INFO - [req-efb30046967f] [sequential_research] Starting phase: competitor
+16:30:35 - pipeline - INFO - [req-efb30046967f] [research_competitor] Starting stage
+16:30:35 - pipeline - INFO - [req-efb30046967f] [query_generation_competitor] Starting stage
+16:30:35 - pipeline - INFO - [req-efb30046967f] [query_generation_competitor] Generated 4 queries for competitor
+16:30:35 - pipeline - INFO - [req-efb30046967f] [query_generation_competitor] Stage completed duration=0.00s
+16:30:35 - pipeline - INFO - [req-efb30046967f] [search_execution] Starting stage
+16:30:35 - pipeline - INFO - [req-efb30046967f] [search_execution] Executing 4 search queries max_concurrent=5
+16:30:35 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay top competitors...'
+16:30:35 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay vs competitors comparison...'
+16:30:35 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay competitive advantage...'
+16:30:35 - search.manager - INFO - Searching with duckduckgo: 'industry key players...'
+16:30:35 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay top competitors...'
+16:30:35 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:35 - search_tool - INFO - Found 3 results for 'Personal Paraguay top competitors' (provider: duckduckgo)
+16:30:36 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'industry key players...'
+16:30:36 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:36 - search_tool - INFO - Found 3 results for 'industry key players' (provider: duckduckgo)
+16:30:36 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay competitive advantage...'
+16:30:36 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:36 - search_tool - INFO - Found 3 results for 'Personal Paraguay competitive advantage' (provider: duckduckgo)
+16:30:36 - browser_tool - INFO - Navigating to: https://www.iciba.com/word?w=personal
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\logging\__init__.py", line 1154, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 47, in write
+    self.__convertor.write(text)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 177, in write
+    self.write_and_convert(text)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 202, in write_and_convert
+    self.write_plain_text(text, cursor, start)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 210, in write_plain_text
+    self.wrapped.write(text[start:end])
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 85-86: character maps to <undefined>
+Call stack:
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\main.py", line 85, in <module>
+    asyncio.run(main())
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 2050, in _run_once
+    handle._run()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 274, in _fetch_with_semaphore
+    return await self.fetch_page(url)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 70, in fetch_page
+    return await asyncio.wait_for(
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 109, in _fetch_page_internal
+    logger.info(f"Navigating to: {url}")
+Message: 'Navigating to: https://dictionary.cambridge.org/zhs/\u8bcd\u5178/\u82f1\u8bed-\u6c49\u8bed-\u7b80\u4f53/personal'
+Arguments: ()
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\logging\__init__.py", line 1154, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 100-101: character maps to <undefined>
+Call stack:
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\main.py", line 85, in <module>
+    asyncio.run(main())
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 2050, in _run_once
+    handle._run()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 274, in _fetch_with_semaphore
+    return await self.fetch_page(url)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 70, in fetch_page
+    return await asyncio.wait_for(
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 109, in _fetch_page_internal
+    logger.info(f"Navigating to: {url}")
+Message: 'Navigating to: https://dictionary.cambridge.org/zhs/\u8bcd\u5178/\u82f1\u8bed-\u6c49\u8bed-\u7b80\u4f53/personal'
+Arguments: ()
+16:30:36 - browser_tool - INFO - Navigating to: https://baike.baidu.com/item/Personal/19655771
+16:30:36 - browser_tool - INFO - Navigating to: https://ithy.com/article/major-players-industries-2025-ngo2hgdk
+16:30:36 - browser_tool - INFO - Navigating to: https://bizwizardnation.com/2024/12/14/industry-breakdown.html
+16:30:36 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay vs competitors comparison...'
+16:30:36 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:36 - search_tool - INFO - Found 3 results for 'Personal Paraguay vs competitors comparison' (provider: duckduckgo)
+16:30:38 - browser_tool - ERROR - Failed to fetch https://ithy.com/article/major-players-industries-2025-ngo2hgdk: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='news_article', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:38 - browser_tool - INFO - Navigating to: https://www.elle.com/culture/movies-tv/a69512957/industry-season-4-first-look-photos-new-cast-characters/
+16:30:38 - browser_tool - ERROR - Failed to fetch https://bizwizardnation.com/2024/12/14/industry-breakdown.html: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:38 - browser_tool - INFO - Navigating to: https://www.rediex.gov.py/en/por-que-invertir-en-paraguay/
+16:30:39 - browser_tool - INFO - Navigating to: https://www.civis.com.py/en/blog/blog-5/why-paraguay-is-latin-americas-best-kept-investment-secret-21
+16:30:39 - browser_tool - ERROR - Failed to fetch https://ithy.com/article/major-players-industries-2025-ngo2hgdk: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:39 - browser_tool - ERROR - Failed to fetch https://bizwizardnation.com/2024/12/14/industry-breakdown.html: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:39 - browser_tool - INFO - Navigating to: https://expatmoney.com/blog/paraguays-geopolitical-advantage-a-pro-business-haven
+16:30:40 - browser_tool - ERROR - Failed to fetch https://www.rediex.gov.py/en/por-que-invertir-en-paraguay/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='government', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:40 - browser_tool - INFO - Navigating to: https://www.cbinsights.com/company/telecom-personal-paraguay
+16:30:41 - browser_tool - INFO - Navigating to: https://tienda.personal.com.py/
+16:30:41 - browser_tool - ERROR - Failed to fetch https://www.civis.com.py/en/blog/blog-5/why-paraguay-is-latin-americas-best-kept-investment-secret-21: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='news_article', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:41 - browser_tool - INFO - Navigating to: https://gigago.com/personal-paraguay-sim-card/
+16:30:42 - browser_tool - ERROR - Failed to fetch https://www.iciba.com/word?w=personal: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:42 - browser_tool - ERROR - Failed to fetch https://expatmoney.com/blog/paraguays-geopolitical-advantage-a-pro-business-haven: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='news_article', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:42 - browser_tool - ERROR - Failed to fetch https://www.rediex.gov.py/en/por-que-invertir-en-paraguay/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:42 - browser_tool - ERROR - Failed to fetch https://www.civis.com.py/en/blog/blog-5/why-paraguay-is-latin-americas-best-kept-investment-secret-21: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:42 - browser_tool - ERROR - Failed to fetch https://expatmoney.com/blog/paraguays-geopolitical-advantage-a-pro-business-haven: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:42 - browser_tool - ERROR - Failed to fetch https://www.iciba.com/word?w=personal: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:43 - browser_tool - ERROR - Failed to fetch https://tienda.personal.com.py/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:43 - browser_tool - ERROR - Failed to fetch https://tienda.personal.com.py/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:43 - pipeline - INFO - [req-efb30046967f] [search_execution] Search completed total_sources=5 successful_queries=4 failed_queries=0
+16:30:43 - pipeline - INFO - [req-efb30046967f] [search_execution] Stage completed duration=8.63s
+16:30:43 - pipeline - INFO - [req-efb30046967f] [analysis_competitor] Starting stage
+16:30:43 - pipeline - INFO - [req-efb30046967f] [analysis_competitor] Generating competitor analysis
+16:30:46 - pipeline - INFO - [req-efb30046967f] [analysis_competitor] Stage completed duration=2.24s
+16:30:46 - pipeline - INFO - [req-efb30046967f] [report_competitor] Starting stage
+16:30:46 - pipeline - INFO - [req-efb30046967f] [report_competitor] Stage completed duration=0.00s
+16:30:46 - pipeline - INFO - [req-efb30046967f] [research_competitor] Stage completed duration=10.88s
+16:30:46 - pipeline - INFO - [req-efb30046967f] [sequential_research] Completed phase: competitor
+16:30:46 - pipeline - INFO - [req-efb30046967f] [sequential_research] Starting phase: brand
+16:30:46 - pipeline - INFO - [req-efb30046967f] [research_brand] Starting stage
+16:30:46 - pipeline - INFO - [req-efb30046967f] [query_generation_brand] Starting stage
+16:30:46 - pipeline - INFO - [req-efb30046967f] [query_generation_brand] Generated 4 queries for brand
+16:30:46 - pipeline - INFO - [req-efb30046967f] [query_generation_brand] Stage completed duration=0.00s
+16:30:46 - pipeline - INFO - [req-efb30046967f] [search_execution] Starting stage
+16:30:46 - pipeline - INFO - [req-efb30046967f] [search_execution] Executing 4 search queries max_concurrent=5
+16:30:46 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay brand reputation...'
+16:30:46 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay customer reviews sentiment...'
+16:30:46 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay brand values and mission...'
+16:30:46 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay marketing campaigns...'
+16:30:46 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay brand values and mission...'
+16:30:46 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:46 - search_tool - INFO - Found 3 results for 'Personal Paraguay brand values and mission' (provider: duckduckgo)
+16:30:46 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay marketing campaigns...'
+16:30:46 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:46 - search_tool - INFO - Found 3 results for 'Personal Paraguay marketing campaigns' (provider: duckduckgo)
+16:30:46 - browser_tool - INFO - Navigating to: https://www.iciba.com/word?w=personal
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\logging\__init__.py", line 1154, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 47, in write
+    self.__convertor.write(text)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 177, in write
+    self.write_and_convert(text)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 202, in write_and_convert
+    self.write_plain_text(text, cursor, start)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 210, in write_plain_text
+    self.wrapped.write(text[start:end])
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 85-86: character maps to <undefined>
+Call stack:
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\main.py", line 85, in <module>
+    asyncio.run(main())
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 2050, in _run_once
+    handle._run()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 274, in _fetch_with_semaphore
+    return await self.fetch_page(url)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 70, in fetch_page
+    return await asyncio.wait_for(
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 109, in _fetch_page_internal
+    logger.info(f"Navigating to: {url}")
+Message: 'Navigating to: https://dictionary.cambridge.org/zhs/\u8bcd\u5178/\u82f1\u8bed-\u6c49\u8bed-\u7b80\u4f53/personal'
+Arguments: ()
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\logging\__init__.py", line 1154, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 100-101: character maps to <undefined>
+Call stack:
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\main.py", line 85, in <module>
+    asyncio.run(main())
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 2050, in _run_once
+    handle._run()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 274, in _fetch_with_semaphore
+    return await self.fetch_page(url)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 70, in fetch_page
+    return await asyncio.wait_for(
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 109, in _fetch_page_internal
+    logger.info(f"Navigating to: {url}")
+Message: 'Navigating to: https://dictionary.cambridge.org/zhs/\u8bcd\u5178/\u82f1\u8bed-\u6c49\u8bed-\u7b80\u4f53/personal'
+Arguments: ()
+16:30:46 - browser_tool - INFO - Navigating to: https://baike.baidu.com/item/Personal/19655771
+16:30:47 - browser_tool - INFO - Navigating to: https://www.adsoftheworld.com/brands/personal-paraguay
+16:30:47 - browser_tool - INFO - Navigating to: https://personal.com.py/
+16:30:47 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay customer reviews sentiment...'
+16:30:47 - search.manager - INFO - Got 3 results from duckduckgo
+16:30:47 - search_tool - INFO - Found 3 results for 'Personal Paraguay customer reviews sentiment' (provider: duckduckgo)
+16:30:49 - browser_tool - ERROR - Failed to fetch https://personal.com.py/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:49 - browser_tool - INFO - Navigating to: https://www.linkedin.com/company/personalparaguay/
+16:30:49 - browser_tool - INFO - Navigating to: https://www.sentisum.com/library/sentiment-analysis-reviews
+16:30:49 - browser_tool - INFO - Navigating to: https://medium.com/@ahmettsdmr1312/customer-reviews-sentiment-analysis-two-different-techniques-21db5e67627b
+16:30:50 - browser_tool - ERROR - Failed to fetch https://www.linkedin.com/company/personalparaguay/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='social_media', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:50 - browser_tool - ERROR - Failed to fetch https://personal.com.py/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:50 - browser_tool - ERROR - Failed to fetch https://www.linkedin.com/company/personalparaguay/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:50 - browser_tool - ERROR - Failed to fetch https://www.sentisum.com/library/sentiment-analysis-reviews: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:50 - browser_tool - INFO - Navigating to: https://visionx.io/blog/customer-sentiment-analysis/
+16:30:53 - browser_tool - ERROR - Failed to fetch https://visionx.io/blog/customer-sentiment-analysis/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='news_article', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:53 - browser_tool - ERROR - Failed to fetch https://www.iciba.com/word?w=personal: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:53 - browser_tool - ERROR - Failed to fetch https://www.sentisum.com/library/sentiment-analysis-reviews: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:53 - browser_tool - ERROR - Failed to fetch https://visionx.io/blog/customer-sentiment-analysis/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:30:53 - browser_tool - ERROR - Failed to fetch https://www.iciba.com/word?w=personal: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:07 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay brand reputation...'
+16:31:07 - search.manager - INFO - Got 3 results from duckduckgo
+16:31:07 - search_tool - INFO - Found 3 results for 'Personal Paraguay brand reputation' (provider: duckduckgo)
+16:31:08 - browser_tool - INFO - Navigating to: https://www.iciba.com/word?w=personal
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\logging\__init__.py", line 1154, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 47, in write
+    self.__convertor.write(text)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 177, in write
+    self.write_and_convert(text)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 202, in write_and_convert
+    self.write_plain_text(text, cursor, start)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Alejandro\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\colorama\ansitowin32.py", line 210, in write_plain_text
+    self.wrapped.write(text[start:end])
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 85-86: character maps to <undefined>
+Call stack:
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\main.py", line 85, in <module>
+    asyncio.run(main())
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 2050, in _run_once
+    handle._run()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 274, in _fetch_with_semaphore
+    return await self.fetch_page(url)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 70, in fetch_page
+    return await asyncio.wait_for(
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 109, in _fetch_page_internal
+    logger.info(f"Navigating to: {url}")
+Message: 'Navigating to: https://dictionary.cambridge.org/zhs/\u8bcd\u5178/\u82f1\u8bed-\u6c49\u8bed-\u7b80\u4f53/personal'
+Arguments: ()
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\logging\__init__.py", line 1154, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 100-101: character maps to <undefined>
+Call stack:
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\main.py", line 85, in <module>
+    asyncio.run(main())
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_events.py", line 2050, in _run_once
+    handle._run()
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 274, in _fetch_with_semaphore
+    return await self.fetch_page(url)
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 70, in fetch_page
+    return await asyncio.wait_for(
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+  File "C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\src\tools\browser.py", line 109, in _fetch_page_internal
+    logger.info(f"Navigating to: {url}")
+Message: 'Navigating to: https://dictionary.cambridge.org/zhs/\u8bcd\u5178/\u82f1\u8bed-\u6c49\u8bed-\u7b80\u4f53/personal'
+Arguments: ()
+16:31:08 - browser_tool - INFO - Navigating to: https://baike.baidu.com/item/Personal/19655771
+16:31:13 - browser_tool - ERROR - Failed to fetch https://www.iciba.com/word?w=personal: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:13 - browser_tool - ERROR - Failed to fetch https://www.iciba.com/word?w=personal: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:13 - pipeline - INFO - [req-efb30046967f] [search_execution] Search completed total_sources=6 successful_queries=4 failed_queries=0
+16:31:13 - pipeline - INFO - [req-efb30046967f] [search_execution] Stage completed duration=27.15s
+16:31:13 - pipeline - INFO - [req-efb30046967f] [analysis_brand] Starting stage
+16:31:13 - pipeline - INFO - [req-efb30046967f] [analysis_brand] Generating brand analysis
+16:31:14 - pipeline - INFO - [req-efb30046967f] [analysis_brand] Stage completed duration=1.41s
+16:31:14 - pipeline - INFO - [req-efb30046967f] [report_brand] Starting stage
+16:31:14 - pipeline - INFO - [req-efb30046967f] [report_brand] Stage completed duration=0.00s
+16:31:14 - pipeline - INFO - [req-efb30046967f] [research_brand] Stage completed duration=28.57s
+16:31:14 - pipeline - INFO - [req-efb30046967f] [sequential_research] Completed phase: brand
+16:31:14 - pipeline - INFO - [req-efb30046967f] [sequential_research] Starting phase: sales
+16:31:14 - pipeline - INFO - [req-efb30046967f] [research_sales] Starting stage
+16:31:14 - pipeline - INFO - [req-efb30046967f] [query_generation_sales] Starting stage
+16:31:14 - pipeline - INFO - [req-efb30046967f] [query_generation_sales] Generated 4 queries for sales
+16:31:14 - pipeline - INFO - [req-efb30046967f] [query_generation_sales] Stage completed duration=0.00s
+16:31:14 - pipeline - INFO - [req-efb30046967f] [search_execution] Starting stage
+16:31:14 - pipeline - INFO - [req-efb30046967f] [search_execution] Executing 4 search queries max_concurrent=5
+16:31:14 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay sales strategy...'
+16:31:14 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay distribution channels...'
+16:31:14 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay pricing strategy...'
+16:31:14 - search.manager - INFO - Searching with duckduckgo: 'Personal Paraguay B2B clients...'
+16:31:15 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay distribution channels...'
+16:31:15 - search.manager - INFO - Got 3 results from duckduckgo
+16:31:15 - search_tool - INFO - Found 3 results for 'Personal Paraguay distribution channels' (provider: duckduckgo)
+16:31:15 - browser_tool - INFO - Navigating to: https://www.trade.gov/country-commercial-guides/paraguay-distribution-and-sales-channels
+16:31:15 - browser_tool - INFO - Navigating to: https://www.personal.com.py/
+16:31:15 - browser_tool - INFO - Navigating to: https://legacy.export.gov/article?id=Paraguay-Distribution-and-Sales-Channels
+16:31:15 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay sales strategy...'
+16:31:15 - search.manager - INFO - Got 3 results from duckduckgo
+16:31:15 - search_tool - INFO - Found 3 results for 'Personal Paraguay sales strategy' (provider: duckduckgo)
+16:31:16 - browser_tool - INFO - Navigating to: https://fastercapital.com/content/Grow-your-startup-sales-in-Paraguay.html
+16:31:16 - browser_tool - INFO - Navigating to: https://www.thesalesblog.com/blog/personal-sales-strategy-how-to-stand-out-in-competitive-market
+16:31:16 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay pricing strategy...'
+16:31:16 - search.manager - INFO - Got 3 results from duckduckgo
+16:31:16 - search_tool - INFO - Found 3 results for 'Personal Paraguay pricing strategy' (provider: duckduckgo)
+16:31:16 - browser_tool - ERROR - Failed to fetch https://www.personal.com.py/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:16 - browser_tool - INFO - Navigating to: https://www.trade.gov/country-commercial-guides/paraguay-selling-factors-and-techniques
+16:31:17 - browser_tool - ERROR - Failed to fetch https://legacy.export.gov/article?id=Paraguay-Distribution-and-Sales-Channels: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='news_article', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:17 - browser_tool - INFO - Navigating to: https://www.personal.com.py/
+16:31:17 - browser_tool - ERROR - Failed to fetch https://www.trade.gov/country-commercial-guides/paraguay-distribution-and-sales-channels: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='government', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:17 - browser_tool - ERROR - Failed to fetch https://www.trade.gov/country-commercial-guides/paraguay-distribution-and-sales-channels: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:17 - browser_tool - ERROR - Failed to fetch https://www.personal.com.py/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:17 - browser_tool - ERROR - Failed to fetch https://legacy.export.gov/article?id=Paraguay-Distribution-and-Sales-Channels: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:17 - browser_tool - ERROR - Failed to fetch https://www.thesalesblog.com/blog/personal-sales-strategy-how-to-stand-out-in-competitive-market: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='news_article', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:17 - browser_tool - INFO - Navigating to: https://getresidencyparaguay.com/mobile-phone-and-internet-services-in-paraguay-2025-guide/
+16:31:17 - browser_tool - ERROR - Failed to fetch https://fastercapital.com/content/Grow-your-startup-sales-in-Paraguay.html: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:17 - browser_tool - INFO - Navigating to: https://esimparaguay.com/operators/personal/
+16:31:18 - browser_tool - ERROR - Failed to fetch https://www.personal.com.py/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:19 - browser_tool - ERROR - Failed to fetch https://www.trade.gov/country-commercial-guides/paraguay-selling-factors-and-techniques: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='government', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:19 - browser_tool - ERROR - Failed to fetch https://fastercapital.com/content/Grow-your-startup-sales-in-Paraguay.html: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:19 - browser_tool - ERROR - Failed to fetch https://www.thesalesblog.com/blog/personal-sales-strategy-how-to-stand-out-in-competitive-market: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:19 - browser_tool - ERROR - Failed to fetch https://www.trade.gov/country-commercial-guides/paraguay-selling-factors-and-techniques: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:21 - browser_tool - ERROR - Failed to fetch https://getresidencyparaguay.com/mobile-phone-and-internet-services-in-paraguay-2025-guide/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:21 - browser_tool - ERROR - Failed to fetch https://esimparaguay.com/operators/personal/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='market_data', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:21 - browser_tool - ERROR - Failed to fetch https://www.personal.com.py/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:21 - browser_tool - ERROR - Failed to fetch https://getresidencyparaguay.com/mobile-phone-and-internet-services-in-paraguay-2025-guide/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:21 - browser_tool - ERROR - Failed to fetch https://esimparaguay.com/operators/personal/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:36 - search.duckduckgo - INFO - DuckDuckGo found 3 results for 'Personal Paraguay B2B clients...'
+16:31:36 - search.manager - INFO - Got 3 results from duckduckgo
+16:31:36 - search_tool - INFO - Found 3 results for 'Personal Paraguay B2B clients' (provider: duckduckgo)
+16:31:36 - browser_tool - INFO - Navigating to: https://www.cleverly.co/blog/how-to-get-b2b-clients-with-cold-email
+16:31:36 - browser_tool - INFO - Navigating to: https://medium.com/@gustavocalcaterra/personal-vs-claro-internet-hogar-paraguay-95a0baaddf21
+16:31:36 - browser_tool - INFO - Navigating to: https://leadstosuccess.wordpress.com/2020/05/25/5-personal-branding-tips-for-b2b-sales-to-attract-clients/
+16:31:38 - browser_tool - ERROR - Failed to fetch https://leadstosuccess.wordpress.com/2020/05/25/5-personal-branding-tips-for-b2b-sales-to-attract-clients/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='news_article', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:39 - browser_tool - ERROR - Failed to fetch https://www.cleverly.co/blog/how-to-get-b2b-clients-with-cold-email: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='news_article', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:39 - browser_tool - ERROR - Failed to fetch https://www.cleverly.co/blog/how-to-get-b2b-clients-with-cold-email: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:39 - browser_tool - ERROR - Failed to fetch https://leadstosuccess.wordpress.com/2020/05/25/5-personal-branding-tips-for-b2b-sales-to-attract-clients/: 1 validation error for ResearchSource
+source_type
+  Value error, source_type must be one of: {'api', 'web', 'social', 'financial', 'news', 'pdf'} [type=value_error, input_value='error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+16:31:39 - pipeline - INFO - [req-efb30046967f] [search_execution] Search completed total_sources=1 successful_queries=4 failed_queries=0
+16:31:39 - pipeline - INFO - [req-efb30046967f] [search_execution] Stage completed duration=24.82s
+16:31:39 - pipeline - INFO - [req-efb30046967f] [analysis_sales] Starting stage
+16:31:39 - pipeline - INFO - [req-efb30046967f] [analysis_sales] Generating sales analysis
+16:31:41 - pipeline - INFO - [req-efb30046967f] [analysis_sales] Stage completed duration=2.10s
+16:31:41 - pipeline - INFO - [req-efb30046967f] [report_sales] Starting stage
+16:31:41 - template_renderer - ERROR - Template error in '05-Sales-Strategy.md': 'company' is undefined
+16:31:41 - pipeline - INFO - [req-efb30046967f] [report_sales] Stage completed duration=0.00s
+16:31:41 - pipeline - INFO - [req-efb30046967f] [research_sales] Stage completed duration=26.92s
+16:31:41 - pipeline - INFO - [req-efb30046967f] [sequential_research] Completed phase: sales
+16:31:41 - pipeline - INFO - [req-efb30046967f] [sequential_research] Stage completed duration=102.06s
+16:31:41 - pipeline - INFO - [req-efb30046967f] Pipeline completed status=success duration=102.06s completed_stages=1
+16:31:41 - pipeline - INFO - [req-efb30046967f] Research completed for Personal Paraguay status=success phases=5
+
+--- RESEARCH COMPLETE ---
+Status: success
+Phases completed: 5
+16:31:41 - output_manager - INFO - Saving research output to: C:\Users\Alejandro\Documents\Ivan\Work\Company-resarcher\outputs\Personal Paraguay
+16:31:41 - output_manager - INFO - All research outputs saved successfully.
+16:31:41 - main - INFO - Saved 5 reports to output directory
+16:31:41 - vault - WARNING - Pinecone API Key not found. Using local JSON fallback for Vector Vault.
+16:31:41 - vault - WARNING - Neo4j URI not found. Using local JSON fallback for Graph Vault.
+16:31:41 - main - INFO - Report stored in Vault.
+Exception ignored in: <function _ProactorBasePipeTransport.__del__ at 0x000001B6450FE340>
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\proactor_events.py", line 116, in __del__
+    _warn(f"unclosed transport {self!r}", ResourceWarning, source=self)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\proactor_events.py", line 80, in __repr__
+    info.append(f'fd={self._sock.fileno()}')
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\windows_utils.py", line 102, in fileno
+    raise ValueError("I/O operation on closed pipe")
+ValueError: I/O operation on closed pipe
+Exception ignored in: <function BaseSubprocessTransport.__del__ at 0x000001B6450FC9A0>
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_subprocess.py", line 134, in __del__
+    _warn(f"unclosed transport {self!r}", ResourceWarning, source=self)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\base_subprocess.py", line 73, in __repr__
+    info.append(f'stdin={stdin.pipe}')
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\proactor_events.py", line 80, in __repr__
+    info.append(f'fd={self._sock.fileno()}')
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\windows_utils.py", line 102, in fileno
+    raise ValueError("I/O operation on closed pipe")
+ValueError: I/O operation on closed pipe
+Exception ignored in: <function _ProactorBasePipeTransport.__del__ at 0x000001B6450FE340>
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\proactor_events.py", line 116, in __del__
+    _warn(f"unclosed transport {self!r}", ResourceWarning, source=self)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\proactor_events.py", line 80, in __repr__
+    info.append(f'fd={self._sock.fileno()}')
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.2544.0_x64__qbz5n2kfra8p0\Lib\asyncio\windows_utils.py", line 102, in fileno
+    raise ValueError("I/O operation on closed pipe")
+ValueError: I/O operation on closed pipe

@@ -1,0 +1,23 @@
+{
+  "_description": "Telecom Industry Sources - Wireless, broadband, 5G coverage",
+  "gsma.com": {"name": "GSMA", "description": "Mobile industry association, 5G reports, MWC", "authority_score": 0.93},
+  "itu.int": {"name": "ITU", "description": "UN telecom agency, global standards, statistics", "authority_score": 0.94},
+  "telegeography.com": {"name": "TeleGeography", "description": "Telecom market research, submarine cables, pricing", "authority_score": 0.88, "requires_subscription": true},
+  "analysysmason.com": {"name": "Analysys Mason", "description": "Telecom consulting, market forecasts", "authority_score": 0.87},
+  "fiercewireless.com": {"name": "Fierce Wireless", "description": "Wireless industry news, 5G coverage", "authority_score": 0.78},
+  "lightreading.com": {"name": "Light Reading", "description": "Telecom news, network infrastructure", "authority_score": 0.77},
+  "commsupdate.com": {"name": "CommsUpdate", "description": "Telecom news by country, operator updates", "authority_score": 0.75},
+  "totaltele.com": {"name": "Total Telecom", "description": "Global telecom news", "authority_score": 0.76},
+  "telecoms.com": {"name": "Telecoms.com", "description": "Mobile industry news", "authority_score": 0.75},
+  "sdxcentral.com": {"name": "SDxCentral", "description": "SDN, NFV, 5G infrastructure", "authority_score": 0.78},
+  "rcrwireless.com": {"name": "RCR Wireless", "description": "Wireless industry news", "authority_score": 0.76},
+  "wirelessweek.com": {"name": "Wireless Week", "description": "Wireless carrier news", "authority_score": 0.74},
+  "telecomasia.net": {"name": "Telecom Asia", "description": "Asian telecom market", "authority_score": 0.75},
+  "developingtelecoms.com": {"name": "Developing Telecoms", "description": "Emerging market telecoms", "authority_score": 0.74},
+  "convergedigest.com": {"name": "Converge Digest", "description": "Network convergence news", "authority_score": 0.73},
+  "cablefax.com": {"name": "Cablefax", "description": "Cable industry news", "authority_score": 0.76},
+  "multichannel.com": {"name": "Multichannel News", "description": "Pay TV, streaming industry", "authority_score": 0.75},
+  "fcc.gov": {"name": "FCC", "description": "US telecom regulator", "authority_score": 0.95},
+  "ofcom.org.uk": {"name": "Ofcom", "description": "UK telecom regulator", "authority_score": 0.94},
+  "broadbandtvnews.com": {"name": "Broadband TV News", "description": "Broadband, pay TV news", "authority_score": 0.74}
+}

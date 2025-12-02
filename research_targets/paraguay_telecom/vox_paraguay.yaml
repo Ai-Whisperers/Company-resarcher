@@ -1,0 +1,45 @@
+# Vox Paraguay - MVNO Profile
+# Mobile Virtual Network Operator using Tigo's network
+
+company:
+  name: "Vox Paraguay"
+  website: "https://www.vox.com.py"
+  industry: "Telecommunications (MVNO)"
+  country: "Paraguay"
+
+  # Company type
+  type: "MVNO (Mobile Virtual Network Operator)"
+  host_network: "Tigo Paraguay"
+
+  # Market position
+  market_position:
+    rank: 4  # After the big 3
+    segment: "Budget/value-conscious consumers"
+
+  # Services offered
+  services:
+    - "Prepaid mobile plans"
+    - "Low-cost voice and data"
+
+  # Key differentiators
+  usp:
+    - "Lower prices than MNOs"
+    - "No contract required"
+    - "Simple prepaid plans"
+
+# Research configuration
+research:
+  focus_areas:
+    - market
+    - competitor
+
+  priority_queries:
+    - "Vox Paraguay subscribers"
+    - "Vox Paraguay plans pricing"
+    - "MVNO Paraguay market"
+
+notes: |
+  Vox is an MVNO operating on Tigo's network infrastructure.
+  Targets price-sensitive customers with cheaper prepaid plans.
+  Limited public financial data available.
+  Represents the emerging MVNO threat to traditional MNOs.

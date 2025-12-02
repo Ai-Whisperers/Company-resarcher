@@ -1,7 +1,8 @@
 import re
 from datetime import datetime
 from typing import List, Optional, Dict, Any, TypedDict
-from pydantic import BaseModel, Field, field_validator
+from urllib.parse import urlparse
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # =============================================================================
@@ -282,6 +283,32 @@ class ResearchSource(BaseModel):
     accessed_at: datetime = Field(default_factory=datetime.utcnow)
     reliability_score: float = Field(default=0.0, ge=0.0, le=1.0)
     metadata: Dict[str, Any] = Field(default_factory=dict)  # Additional data
+
+    # FE-010: Source quality fields
+    fetch_status: str = Field(default="success")  # success, blocked, paywall, error, empty
+    content_quality_score: float = Field(default=0.0, ge=0.0, le=1.0)  # 0-1 quality score
+
+    @model_validator(mode="after")
+    def fix_unknown_title(self) -> "ResearchSource":
+        """CODE-002: Replace 'Unknown' title with domain name fallback.
+
+        If title is 'Unknown' or empty, extract domain from URL as fallback.
+        This ensures sources always have a meaningful title for display.
+        """
+        unknown_patterns = {"unknown", "unknown source", "", "untitled", "no title"}
+
+        if self.title.lower().strip() in unknown_patterns:
+            try:
+                parsed = urlparse(self.url)
+                domain = parsed.netloc or parsed.path.split("/")[0]
+                # Clean up domain (remove www. prefix)
+                if domain.startswith("www."):
+                    domain = domain[4:]
+                self.title = domain or "Source"
+            except Exception:
+                self.title = "Source"
+
+        return self
 
     @field_validator("source_type")
     @classmethod

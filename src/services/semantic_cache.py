@@ -23,16 +23,15 @@ Example:
     await cache.set("What is the market size for AI?", response)
 """
 
-import asyncio
 import hashlib
 import json
 import os
 import re
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 from ..core.config import get_settings
 from ..core.logger import setup_logger

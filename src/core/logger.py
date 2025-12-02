@@ -515,6 +515,33 @@ def setup_logger(
     return logger
 
 
+def set_global_log_level(level: int = logging.DEBUG) -> None:
+    """Set log level for all existing loggers.
+    
+    CLI-006: Verbose logging flag support.
+    
+    Args:
+        level: Logging level (default: DEBUG for verbose mode)
+        
+    Example:
+        from src.core.logger import set_global_log_level
+        import logging
+        set_global_log_level(logging.DEBUG)  # Enable verbose output
+    """
+    # Set root logger level
+    logging.getLogger().setLevel(level)
+    
+    # Update all existing loggers
+    for name in logging.Logger.manager.loggerDict:
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+        
+    # Also set level for handlers
+    root = logging.getLogger()
+    for handler in root.handlers:
+        handler.setLevel(level)
+
+
 def get_logger(name: str) -> logging.Logger:
     """Get an existing logger or create a new one with default settings.
 
@@ -557,4 +584,5 @@ __all__ = [
     # Logger setup
     "setup_logger",
     "get_logger",
+    "set_global_log_level",  # CLI-006
 ]

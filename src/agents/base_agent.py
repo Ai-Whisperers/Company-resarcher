@@ -1,12 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
-from collections import defaultdict
 from pathlib import Path
-from urllib.parse import urlparse
 import asyncio
 import json
 import os
-import time
 
 import jinja2
 from tenacity import (
@@ -102,7 +99,6 @@ class BaseAgent(ABC):
             agent = MarketAnalyst.from_container(container)
         """
         # Import here to avoid circular imports
-        from ..core.container import Container
         from ..tools.search_tool import SearchTool
         from ..tools.browser import BrowserTool
 
@@ -257,9 +253,10 @@ class BaseAgent(ABC):
         """
         Render the report using a Jinja2 template.
         """
-        # Filter out error/dictionary/irrelevant sources (BUG-039, BUG-045)
+        # Filter out error/dictionary/irrelevant sources (BUG-039, BUG-045, BUG-049)
         target_industry = company.industry if company else None
-        usable_sources = [s for s in sources if s.is_usable(target_industry)]
+        target_country_tld = company.get_country_tld() if company else None
+        usable_sources = [s for s in sources if s.is_usable(target_industry, target_country_tld)]
         filtered_count = len(sources) - len(usable_sources)
         if filtered_count > 0:
             logger.info(f"[{self.agent_name}] Filtered {filtered_count} unusable sources from report")
@@ -300,8 +297,16 @@ class BaseAgent(ABC):
             [f"Source: {s.title}\nContent: {s.content[:2000]}" for s in sources]
         )
 
-        # 2. Load Prompt
-        prompt_path = Path(__file__).parent.parent / "prompts" / prompt_file
+        # 2. Load Prompt (VAL-003: Path traversal protection)
+        prompts_dir = (Path(__file__).parent.parent / "prompts").resolve()
+        prompt_path = (prompts_dir / prompt_file).resolve()
+        
+        # Security: ensure path is within prompts directory (prevents path traversal)
+        if not str(prompt_path).startswith(str(prompts_dir)):
+            raise ValueError(f"Invalid prompt file path: {prompt_file} (path traversal detected)")
+        if not prompt_path.exists():
+            raise FileNotFoundError(f"Prompt file not found: {prompt_file}")
+        
         with open(prompt_path, "r", encoding="utf-8") as f:
             prompt_template_str = f.read()
 

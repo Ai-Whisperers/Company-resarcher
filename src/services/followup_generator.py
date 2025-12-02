@@ -20,11 +20,10 @@ Usage:
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from ..core.logger import setup_logger
 from ..core.ai_client import get_ai_manager
-from ..core.config import get_settings
 
 logger = setup_logger("followup_generator")
 

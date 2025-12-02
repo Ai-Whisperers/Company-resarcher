@@ -7,14 +7,12 @@ Uses simple file-based sync with conflict resolution.
 
 import hashlib
 import json
-import os
-import shutil
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from .config import get_settings
 from .logger import setup_logger

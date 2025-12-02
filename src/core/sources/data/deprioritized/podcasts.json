@@ -1,0 +1,23 @@
+{
+  "_description": "Podcast Platforms - Audio content, difficult to extract business data",
+  "podcasts.apple.com": {"name": "Apple Podcasts", "reason": "Podcast directory"},
+  "open.spotify.com": {"name": "Spotify", "reason": "Audio streaming/podcasts"},
+  "podcasts.google.com": {"name": "Google Podcasts", "reason": "Podcast directory"},
+  "overcast.fm": {"name": "Overcast", "reason": "Podcast app"},
+  "pocketcasts.com": {"name": "Pocket Casts", "reason": "Podcast app"},
+  "stitcher.com": {"name": "Stitcher", "reason": "Podcast platform"},
+  "iheartradio.com": {"name": "iHeartRadio", "reason": "Radio/podcast platform"},
+  "tunein.com": {"name": "TuneIn", "reason": "Radio streaming"},
+  "podbean.com": {"name": "Podbean", "reason": "Podcast hosting"},
+  "anchor.fm": {"name": "Anchor", "reason": "Podcast creation/hosting"},
+  "buzzsprout.com": {"name": "Buzzsprout", "reason": "Podcast hosting"},
+  "libsyn.com": {"name": "Libsyn", "reason": "Podcast hosting"},
+  "spreaker.com": {"name": "Spreaker", "reason": "Podcast hosting/distribution"},
+  "simplecast.com": {"name": "Simplecast", "reason": "Podcast hosting"},
+  "transistor.fm": {"name": "Transistor", "reason": "Podcast hosting"},
+  "captivate.fm": {"name": "Captivate", "reason": "Podcast hosting"},
+  "castbox.fm": {"name": "Castbox", "reason": "Podcast app"},
+  "player.fm": {"name": "Player FM", "reason": "Podcast discovery"},
+  "podcastaddict.com": {"name": "Podcast Addict", "reason": "Podcast app"},
+  "listennotes.com": {"name": "Listen Notes", "reason": "Podcast search engine"}
+}

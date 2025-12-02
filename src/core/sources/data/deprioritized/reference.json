@@ -1,0 +1,23 @@
+{
+  "_description": "Reference Sites - Definitions and explanations, not primary research",
+  "investopedia.com": {"name": "Investopedia", "reason": "Financial definitions, not news"},
+  "britannica.com": {"name": "Britannica", "reason": "Encyclopedia, general reference"},
+  "dictionary.com": {"name": "Dictionary.com", "reason": "Word definitions only"},
+  "merriam-webster.com": {"name": "Merriam-Webster", "reason": "Dictionary"},
+  "thefreedictionary.com": {"name": "The Free Dictionary", "reason": "Dictionary aggregator"},
+  "wordreference.com": {"name": "WordReference", "reason": "Translation dictionary"},
+  "thesaurus.com": {"name": "Thesaurus.com", "reason": "Synonyms only"},
+  "vocabulary.com": {"name": "Vocabulary.com", "reason": "Word learning"},
+  "yourdictionary.com": {"name": "YourDictionary", "reason": "Dictionary"},
+  "collinsdictionary.com": {"name": "Collins Dictionary", "reason": "Dictionary"},
+  "cambridge.org/dictionary": {"name": "Cambridge Dictionary", "reason": "Dictionary"},
+  "oxfordlearnersdictionaries.com": {"name": "Oxford Learners", "reason": "Dictionary"},
+  "ldoceonline.com": {"name": "Longman Dictionary", "reason": "Dictionary"},
+  "macmillandictionary.com": {"name": "Macmillan Dictionary", "reason": "Dictionary"},
+  "reverso.net": {"name": "Reverso", "reason": "Translation/dictionary"},
+  "linguee.com": {"name": "Linguee", "reason": "Translation dictionary"},
+  "deepl.com/translator": {"name": "DeepL", "reason": "Translation service"},
+  "translate.google.com": {"name": "Google Translate", "reason": "Translation service"},
+  "lexico.com": {"name": "Lexico", "reason": "Oxford dictionary online"},
+  "onelook.com": {"name": "OneLook", "reason": "Dictionary aggregator"}
+}

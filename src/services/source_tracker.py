@@ -13,8 +13,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
-from pathlib import Path
-import hashlib
 import re
 
 from ..core.types import ResearchSource
@@ -369,6 +367,107 @@ This document lists all sources used in this section.
                 files[f"{section}/_Sources.md"] = self.generate_section_sources(section)
 
         return files
+
+
+    # =============================================================================
+    # Source Success Rate Tracking (MON-002)
+    # =============================================================================
+
+    def record_fetch_attempt(self, url: str, success: bool, error: str = None) -> None:
+        """
+        Record a source fetch attempt for success rate tracking.
+        
+        Args:
+            url: URL that was fetched
+            success: Whether the fetch succeeded
+            error: Error message if failed
+        """
+        if not hasattr(self, '_fetch_attempts'):
+            self._fetch_attempts: List[Dict[str, Any]] = []
+        
+        self._fetch_attempts.append({
+            "url": url,
+            "success": success,
+            "error": error,
+            "timestamp": datetime.now(),
+            "domain": self._extract_domain(url),
+        })
+        
+        if not success:
+            logger.debug(f"Source fetch failed: {url[:50]}... - {error}")
+
+    def get_success_rate(self) -> float:
+        """Get overall source fetch success rate."""
+        if not hasattr(self, '_fetch_attempts') or not self._fetch_attempts:
+            return 1.0  # No attempts means no failures
+        
+        successes = sum(1 for a in self._fetch_attempts if a["success"])
+        return successes / len(self._fetch_attempts)
+
+    def get_success_rate_by_domain(self) -> Dict[str, Dict[str, Any]]:
+        """Get success rates broken down by domain."""
+        if not hasattr(self, '_fetch_attempts') or not self._fetch_attempts:
+            return {}
+        
+        domain_stats: Dict[str, Dict[str, int]] = {}
+        
+        for attempt in self._fetch_attempts:
+            domain = attempt["domain"]
+            if domain not in domain_stats:
+                domain_stats[domain] = {"total": 0, "success": 0, "failed": 0}
+            
+            domain_stats[domain]["total"] += 1
+            if attempt["success"]:
+                domain_stats[domain]["success"] += 1
+            else:
+                domain_stats[domain]["failed"] += 1
+        
+        # Calculate rates
+        result = {}
+        for domain, stats in domain_stats.items():
+            result[domain] = {
+                **stats,
+                "success_rate": stats["success"] / stats["total"] if stats["total"] > 0 else 0,
+            }
+        
+        return result
+
+    def get_fetch_summary(self) -> Dict[str, Any]:
+        """Get a summary of all fetch attempts for metrics."""
+        if not hasattr(self, '_fetch_attempts') or not self._fetch_attempts:
+            return {
+                "total_attempts": 0,
+                "successful": 0,
+                "failed": 0,
+                "success_rate": 1.0,
+                "by_domain": {},
+            }
+        
+        successful = sum(1 for a in self._fetch_attempts if a["success"])
+        failed = len(self._fetch_attempts) - successful
+        
+        return {
+            "total_attempts": len(self._fetch_attempts),
+            "successful": successful,
+            "failed": failed,
+            "success_rate": self.get_success_rate(),
+            "by_domain": self.get_success_rate_by_domain(),
+            "recent_failures": [
+                {"url": a["url"][:50], "error": a["error"]}
+                for a in self._fetch_attempts[-10:]
+                if not a["success"]
+            ],
+        }
+
+    def _extract_domain(self, url: str) -> str:
+        """Extract domain from URL for statistics."""
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            return parsed.netloc or "unknown"
+        except Exception:
+            return "unknown"
+
 
     def _categorize_source(self, source: TrackedSource) -> str:
         """Categorize a source by type."""

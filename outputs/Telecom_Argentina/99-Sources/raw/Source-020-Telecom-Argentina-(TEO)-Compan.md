@@ -1,0 +1,34 @@
+# Source-020: Telecom Argentina (TEO) Company Information
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **URL** | https://www.hl.co.uk/shares/shares-search-results/t/telecom-argentina-adr-each-rep-5-b-mgt/company-information |
+| **Type** | Social |
+| **Date Accessed** | 2025-12-01 |
+| **Reliability** | Medium |
+| **Language** | Auto-detected |
+
+---
+
+## Content Classification
+
+| Field | Value |
+|-------|-------|
+| **Sections Used** | strategic_context |
+
+---
+
+## Extracted Content
+
+Telecom Argentina S.A. provides fixed-line telecommunications services in Argentina, and also provides other telephone-related services, such as international long-distance service, data transmission, information technology solutions outsourcing and Internet services. The Company's segments include Fixed Telecommunications Services (Fixed Services), Personal Mobile Telecommunications Services (Personal Mobile Services) and Nucleo Mobile Telecommunications Services (Nucleo Mobile Services). The Company, through its subsidiaries, also provides mobile telecommunications services and international wholesale services. The Fixed services segment consists of basic telephone services, interconnection services, data transmission and Internet services, information and communication technology services, and other telephone services. The Company, through its subsidiaries, such as Telecom Personal S.A. and Nucleo S.A., provides mobile services in Argentina and Paraguay, respectively.
+
+---
+
+## Quality Notes
+
+| Aspect | Assessment |
+|--------|------------|
+| **Reliability** | Medium |
+| **Content Length** | 985 characters |

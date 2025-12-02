@@ -301,3 +301,189 @@ class SalesAgent(BaseAgent):
             prompt_file=self.prompt_template,
             output_template="05-Sales-Strategy.md",
         )
+
+
+class InvestmentAgent(BaseAgent):
+    """
+    Specialist agent for investment thesis generation.
+
+    Analyzes financial data and market trends to generate investment memos
+    including risk assessment, growth potential, SWOT analysis, and recommendations.
+    """
+
+    def __init__(
+        self,
+        client: BaseAIClient = None,
+        financial_tool=None,
+        sec_tool=None,
+        **kwargs,
+    ):
+        super().__init__(
+            client=client,
+            name="investment_analyst",
+            prompt_template="investment_analysis.txt",
+            **kwargs,
+        )
+        self.financial_tool = financial_tool
+        self.sec_tool = sec_tool
+
+    def _fetch_financial_metrics(self, company_name: str) -> DataSourceResult:
+        """Fetch key financial metrics for investment analysis."""
+        if not self.financial_tool:
+            return DataSourceResult.warn({}, "Financial tool not available")
+
+        try:
+            ticker = self.financial_tool.guess_ticker_from_name(company_name)
+            if not ticker:
+                return DataSourceResult.warn({}, f"Could not determine ticker for {company_name}")
+
+            metrics = {}
+
+            # Get basic financials if available
+            if hasattr(self.financial_tool, "get_key_metrics"):
+                metrics = self.financial_tool.get_key_metrics(ticker)
+
+            if metrics:
+                return DataSourceResult.ok(metrics)
+            return DataSourceResult.warn({}, "Limited financial data available")
+        except Exception as e:
+            return DataSourceResult.fail(f"Financial metrics fetch failed: {e}")
+
+    def _fetch_sec_filings(self, company_name: str) -> DataSourceResult:
+        """Fetch SEC filings for due diligence."""
+        if not self.sec_tool:
+            return DataSourceResult.warn("", "SEC tool not available")
+
+        try:
+            # Get 10-K for annual data
+            content_10k = self.sec_tool.get_latest_10k_content(company_name)
+
+            filings_summary = []
+            if content_10k:
+                filings_summary.append(f"10-K Summary:\n{content_10k[:3000]}...")
+
+            if filings_summary:
+                return DataSourceResult.ok("\n\n".join(filings_summary))
+            return DataSourceResult.warn("", "No SEC filings found")
+        except Exception as e:
+            return DataSourceResult.fail(f"SEC filings fetch failed: {e}")
+
+    async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
+        """
+        Generate investment thesis for a company.
+
+        Returns analysis covering:
+        - Risk factors and mitigation strategies
+        - Growth potential and catalysts
+        - SWOT analysis
+        - Investment recommendation (Buy/Hold/Sell with conviction level)
+        """
+        safe_name = sanitize_company_name(company.name)
+        industry = company.industry or "industry"
+
+        # Investment-focused search queries
+        queries = [
+            f"{safe_name} investment thesis analysis",
+            f"{safe_name} stock valuation DCF",
+            f"{safe_name} growth catalysts opportunities",
+            f"{safe_name} risk factors concerns",
+            f"{safe_name} competitive moat analysis",
+            f"{safe_name} management team track record",
+            f"{safe_name} institutional investors holdings",
+            f"{industry} sector outlook forecast",
+        ]
+
+        # Track errors and warnings
+        errors = []
+        warnings = []
+
+        # 1. Fetch financial metrics
+        fin_result = self._fetch_financial_metrics(safe_name)
+        financial_metrics = fin_result.data if fin_result.data else {}
+
+        if fin_result.error:
+            errors.append(fin_result.error)
+            logger.error(fin_result.error)
+        if fin_result.warning:
+            warnings.append(fin_result.warning)
+            logger.warning(fin_result.warning)
+
+        # 2. Fetch SEC filings for due diligence
+        sec_result = self._fetch_sec_filings(safe_name)
+        sec_data = sec_result.data or ""
+
+        if sec_result.error:
+            errors.append(sec_result.error)
+            logger.error(sec_result.error)
+        if sec_result.warning:
+            warnings.append(sec_result.warning)
+            logger.warning(sec_result.warning)
+
+        result = await self.execute_research_cycle(
+            company=company,
+            queries=queries,
+            prompt_file=self.prompt_template,
+            output_template="06-Investment-Memo.md",
+            extra_context={
+                "financial_metrics": financial_metrics,
+                "sec_filings": sec_data,
+                "analysis_type": "investment_thesis",
+            },
+        )
+
+        # Add tracked errors/warnings to result
+        result.errors.extend(errors)
+        result.warnings.extend(warnings)
+        return result
+
+
+class SocialMediaAgent(BaseAgent):
+    """
+    Specialist agent for social media analysis.
+
+    Analyzes public social media footprint including:
+    - Brand presence and engagement metrics
+    - Sentiment analysis
+    - Key influencers and decision makers
+    - Social media strategy assessment
+    """
+
+    def __init__(self, client: BaseAIClient = None, **kwargs):
+        super().__init__(
+            client=client,
+            name="social_media_analyst",
+            prompt_template="social_media_analysis.txt",
+            **kwargs,
+        )
+
+    async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
+        """
+        Analyze company's social media presence and strategy.
+
+        Returns analysis covering:
+        - Platform presence (LinkedIn, Twitter/X, YouTube, etc.)
+        - Engagement metrics and trends
+        - Content strategy assessment
+        - Key personnel and influencers
+        - Sentiment analysis
+        """
+        safe_name = sanitize_company_name(company.name)
+
+        # Social media focused search queries
+        queries = [
+            f"{safe_name} LinkedIn company page followers",
+            f"{safe_name} Twitter X social media presence",
+            f"{safe_name} YouTube channel subscribers",
+            f"{safe_name} social media engagement metrics",
+            f"{safe_name} CEO executives LinkedIn Twitter",
+            f"{safe_name} brand social media sentiment",
+            f"{safe_name} company culture social media",
+            f"{safe_name} employer brand reviews Glassdoor",
+        ]
+
+        return await self.execute_research_cycle(
+            company=company,
+            queries=queries,
+            prompt_file=self.prompt_template,
+            output_template="07-Social-Media-Analysis.md",
+        )

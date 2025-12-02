@@ -4,7 +4,7 @@ import os
 import re
 import tarfile
 import io
-from typing import Optional, Tuple, Dict
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,158 @@
+# Company Researcher - Docker Compose Configuration
+#
+# Usage:
+#   Development:  docker-compose up
+#   Production:   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   With Redis:   docker-compose --profile cache up
+#
+# Environment: Copy .env.example to .env and configure API keys
+
+services:
+  # ==========================================================================
+  # Main Application
+  # ==========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: company-researcher:latest
+    container_name: company-researcher-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override defaults for Docker environment
+      - APP_ENV=production
+      - OUTPUT_DIR=/app/outputs
+      - DB_PATH=/app/data/tasks.db
+      - LOG_DIR=/app/logs
+      # Redis cache (when using cache profile)
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      # Persist outputs and data
+      - ./outputs:/app/outputs
+      - ./data:/app/data
+      - ./logs:/app/logs
+      # Mount prompts and templates for hot-reload in development
+      - ./src/prompts:/app/src/prompts:ro
+      - ./src/templates:/app/src/templates:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    networks:
+      - researcher-net
+    depends_on:
+      redis:
+        condition: service_healthy
+        required: false
+
+  # ==========================================================================
+  # CLI Runner (for batch research)
+  # ==========================================================================
+  cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: company-researcher:latest
+    container_name: company-researcher-cli
+    profiles:
+      - cli
+    env_file:
+      - .env
+    environment:
+      - OUTPUT_DIR=/app/outputs
+      - DB_PATH=/app/data/tasks.db
+    volumes:
+      - ./outputs:/app/outputs
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./research_targets:/app/research_targets:ro
+    entrypoint: ["python", "main.py"]
+    # Override command when running, e.g.:
+    # docker-compose run cli --batch research_targets/my_market/
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+    networks:
+      - researcher-net
+
+  # ==========================================================================
+  # Redis Cache (optional)
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: company-researcher-redis
+    profiles:
+      - cache
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - researcher-net
+
+  # ==========================================================================
+  # Prometheus Metrics (optional)
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: company-researcher-prometheus
+    profiles:
+      - monitoring
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - researcher-net
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  researcher-net:
+    driver: bridge
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  redis-data:
+  prometheus-data:

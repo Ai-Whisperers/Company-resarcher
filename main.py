@@ -1,15 +1,28 @@
 import asyncio
+import time
 import argparse
-import sys
-import io
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 import yaml
 
 from src.pipeline.orchestrator import PipelineOrchestrator
-from src.core.logger import setup_logger
+from src.core.logger import setup_logger, set_global_log_level
+import logging
 from src.core.output_manager import OutputManager
+from src.utils.cli import (
+    console,
+    print_header,
+    print_company_header,
+    print_success,
+    print_warning,
+    print_error,
+    print_info,
+    print_simple_batch_summary,
+    create_research_progress,
+    DryRunConfig,
+    DryRunContext,
+)
 from src.core.output_structure import (
     OutputSection,
     OUTPUT_STRUCTURE,
@@ -23,11 +36,8 @@ from src.services.gap_analyzer import GapAnalyzer, generate_gap_report
 from src.services.iterative_research import IterativeResearchService, fill_market_gaps
 from src.core.types import CompanyProfile
 
-# Fix Windows Unicode encoding issues (TECH-031)
-if sys.platform == 'win32':
-    # Force UTF-8 encoding for stdout/stderr to handle non-ASCII characters
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+# Note: Windows Unicode encoding is handled by src.core.logger module
+# via _configure_windows_encoding() and SafeStreamHandler (CRITICAL-001)
 
 logger = setup_logger("main")
 
@@ -256,6 +266,7 @@ async def run_batch_research(
     batch_path: str,
     parallel: bool = True,
     delay_between: int = 5,
+    dry_run: Optional["DryRunContext"] = None,
 ) -> Dict[str, Any]:
     """
     Run research for all companies in a market folder.
@@ -264,6 +275,7 @@ async def run_batch_research(
         batch_path: Path to the market folder
         parallel: Whether to run phases in parallel (within each company)
         delay_between: Seconds to wait between companies
+        dry_run: Optional dry-run context for simulating execution
 
     Returns:
         Summary of all research results
@@ -280,6 +292,19 @@ async def run_batch_research(
     for i, p in enumerate(profiles, 1):
         print(f"  {i}. {p['name']} ({p.get('industry', 'N/A')})")
     print(f"{'='*60}\n")
+
+    # Dry-run mode: show what would be executed without running
+    if dry_run:
+        print("DRY-RUN: Would execute the following research:")
+        for i, profile in enumerate(profiles, 1):
+            print(f"  {i}. {profile['name']}")
+            print(f"     Website: {profile.get('website', 'N/A')}")
+            print(f"     Industry: {profile.get('industry', 'N/A')}")
+            print(f"     Focus: {', '.join(profile.get('research_focus', ['market', 'financial', 'competitor', 'brand', 'sales']))}")
+        print(f"\nTotal: {len(profiles)} companies")
+        print(f"Delay between: {delay_between}s")
+        print(f"Mode: {'parallel' if parallel else 'sequential'}")
+        return {"dry_run": True, "companies": len(profiles)}
 
     results = {}
     for i, profile in enumerate(profiles, 1):
@@ -399,6 +424,208 @@ Total cross-referenced sources: {sum(c.file_count for c in competitor_caches)}
         logger.info(f"Saved enriched research for {company_name}")
 
     return result
+
+
+async def run_full_market_research(
+    batch_path: str,
+    delay_between: int = 5,
+    max_gap_iterations: int = 5,
+) -> None:
+    """
+    Run FULL market research workflow with all features enabled.
+
+    This is the most comprehensive research mode:
+    1. Comprehensive research for each company (200+ queries, 1000+ sources)
+    2. Cross-company enrichment
+    3. Gap analysis
+    4. Iterative gap filling
+    5. Market consolidation
+
+    Args:
+        batch_path: Path to the market folder
+        delay_between: Seconds between companies
+        max_gap_iterations: Maximum gap-filling iterations
+    """
+    from src.pipeline.comprehensive_research import (
+        ComprehensiveResearchService,
+        ContentGenerator,
+    )
+    from src.tools import get_shared_search_tool, get_shared_browser_tool
+    from src.core.ai_client import get_ai_manager
+
+    profiles = load_batch_profiles(batch_path)
+
+    if not profiles:
+        logger.error(f"No profiles found in {batch_path}")
+        return
+
+    print(f"\n{'='*70}")
+    print("FULL MARKET RESEARCH WORKFLOW")
+    print(f"{'='*70}")
+    print(f"Companies: {len(profiles)}")
+    print(f"Mode: Comprehensive (200+ queries per company)")
+    print(f"Features: Enrichment + Gap Analysis + Gap Filling + Consolidation")
+    print(f"{'='*70}")
+    for i, p in enumerate(profiles, 1):
+        print(f"  {i}. {p['name']} ({p.get('industry', 'N/A')})")
+    print(f"{'='*70}\n")
+
+    # Get shared tools
+    search_tool = get_shared_search_tool()
+    browser_tool = get_shared_browser_tool()
+    ai_client = get_ai_manager()
+
+    # ==========================================================================
+    # PHASE 1: Comprehensive Research for Each Company
+    # ==========================================================================
+    print("\n" + "="*70)
+    print("PHASE 1: COMPREHENSIVE RESEARCH (200+ queries per company)")
+    print("="*70 + "\n")
+
+    for i, profile in enumerate(profiles, 1):
+        company_name = profile["name"]
+        url = profile.get("website", "")
+        industry = profile.get("industry")
+
+        print(f"\n[{i}/{len(profiles)}] {company_name}")
+        print(f"  Website: {url}")
+        print(f"  Industry: {industry}")
+
+        try:
+            # Create company profile
+            company = CompanyProfile(
+                name=company_name,
+                website=url,
+                industry=industry or "General",
+                country=profile.get("country", "Global"),
+            )
+
+            # Initialize comprehensive research service
+            research_service = ComprehensiveResearchService(
+                search_tool=search_tool,
+                browser_tool=browser_tool,
+                ai_client=ai_client,
+            )
+
+            # Execute comprehensive research
+            result = await research_service.research_all_sections(company)
+
+            print(f"  Sources collected: {result.total_sources}")
+            print(f"  Queries executed: {result.total_queries}")
+            print(f"  Duration: {result.duration_seconds:.1f}s")
+
+            # Generate content for all files
+            content_generator = ContentGenerator(ai_client=ai_client)
+            drafts = await content_generator.generate_all_files(result)
+
+            # Save output
+            output_manager = OutputManager()
+            output_manager.save_research_output(company_name, drafts)
+
+            logger.info(f"Saved {len(drafts)} files for {company_name}")
+
+        except Exception as e:
+            logger.error(f"Comprehensive research failed for {company_name}: {e}")
+            # Fall back to standard research
+            print(f"  Falling back to standard research...")
+            try:
+                await run_profile_research(profile, parallel=True)
+            except Exception as e2:
+                logger.error(f"Fallback also failed: {e2}")
+
+        if i < len(profiles) and delay_between > 0:
+            print(f"  Waiting {delay_between}s before next company...")
+            await asyncio.sleep(delay_between)
+
+    # ==========================================================================
+    # PHASE 2: Cross-Company Enrichment
+    # ==========================================================================
+    print("\n" + "="*70)
+    print("PHASE 2: CROSS-COMPANY ENRICHMENT")
+    print("="*70 + "\n")
+
+    all_company_names = [p["name"] for p in profiles]
+
+    for i, profile in enumerate(profiles, 1):
+        print(f"\n[{i}/{len(profiles)}] Enriching: {profile['name']}")
+        try:
+            await run_enriched_research(
+                profile,
+                related_companies=all_company_names,
+                parallel=True,
+            )
+        except Exception as e:
+            logger.error(f"Enrichment failed for {profile['name']}: {e}")
+
+        if i < len(profiles) and delay_between > 0:
+            await asyncio.sleep(delay_between)
+
+    # ==========================================================================
+    # PHASE 3: Gap Analysis
+    # ==========================================================================
+    print("\n" + "="*70)
+    print("PHASE 3: GAP ANALYSIS")
+    print("="*70 + "\n")
+
+    try:
+        analyzer = GapAnalyzer()
+        gap_results = analyzer.analyze_market(all_company_names)
+
+        # Generate and save report
+        report = generate_gap_report(gap_results)
+        report_path = Path(batch_path) / "_gap_analysis.md"
+        report_path.write_text(report, encoding="utf-8")
+
+        total_gaps = sum(r.total_gaps for r in gap_results.values())
+        print(f"Total gaps found: {total_gaps}")
+        print(f"Report saved to: {report_path}")
+        for company, result in gap_results.items():
+            print(f"  {company}: {result.total_gaps} gaps")
+    except Exception as e:
+        logger.error(f"Gap analysis failed: {e}")
+
+    # ==========================================================================
+    # PHASE 4: Iterative Gap Filling
+    # ==========================================================================
+    print("\n" + "="*70)
+    print(f"PHASE 4: ITERATIVE GAP FILLING (max {max_gap_iterations} iterations)")
+    print("="*70 + "\n")
+
+    try:
+        fill_results = await fill_market_gaps(batch_path, max_iterations=max_gap_iterations)
+
+        total_initial = sum(r.initial_gaps for r in fill_results.values())
+        total_final = sum(r.final_gaps for r in fill_results.values())
+        total_filled = sum(r.total_filled for r in fill_results.values())
+
+        print(f"Gaps filled: {total_initial} -> {total_final} ({total_filled} filled)")
+        for company, result in fill_results.items():
+            status = "OK" if result.success else "PARTIAL"
+            print(f"  [{status}] {company}: {result.initial_gaps} -> {result.final_gaps}")
+    except Exception as e:
+        logger.error(f"Gap filling failed: {e}")
+
+    # ==========================================================================
+    # PHASE 5: Market Consolidation
+    # ==========================================================================
+    print("\n" + "="*70)
+    print("PHASE 5: MARKET CONSOLIDATION")
+    print("="*70 + "\n")
+
+    try:
+        await run_consolidate_market(batch_path, None)
+    except Exception as e:
+        logger.error(f"Consolidation failed: {e}")
+
+    # ==========================================================================
+    # COMPLETE
+    # ==========================================================================
+    print("\n" + "="*70)
+    print("FULL MARKET RESEARCH COMPLETE")
+    print("="*70)
+    print(f"Companies researched: {len(profiles)}")
+    print(f"Output folder: outputs/")
+    print("="*70 + "\n")
 
 
 async def run_two_phase_batch(
@@ -640,10 +867,69 @@ async def main():
         help="Maximum gap-filling iterations (default: 5)",
     )
 
+    # CLI enhancement arguments (CLI-003)
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be executed without running actual research",
+    )
+
+    # CLI-006: Verbose logging flag
+    parser.add_argument(
+        "-v", "--verbose",
+        action="count",
+        default=0,
+        help="Increase output verbosity (-v for INFO, -vv for DEBUG)",
+    )
+
+    # Full workflow mode - comprehensive research with all features
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Run FULL workflow: comprehensive research (200+ queries) + verbose logging + "
+             "gap analysis + gap filling + enrichment + consolidation. "
+             "This is the most thorough research mode available.",
+    )
+
     args = parser.parse_args()
+
+    # CLI-006: Handle verbose flag
+    # --full mode automatically enables DEBUG logging
+    if args.full or args.verbose >= 2:
+        set_global_log_level(logging.DEBUG)
+        logger.info("Verbose mode: DEBUG level enabled")
+    elif args.verbose == 1:
+        set_global_log_level(logging.INFO)
+        logger.info("Verbose mode: INFO level enabled")
 
     # Sequential flag overrides parallel
     parallel = not args.sequential
+
+    # Mode FULL: Complete market research with all features
+    if args.full and args.batch:
+        logger.info(f"Running FULL market research from: {args.batch}")
+        await run_full_market_research(
+            args.batch,
+            delay_between=args.delay,
+            max_gap_iterations=args.max_iterations,
+        )
+        return
+
+    # Mode FULL with single profile: Comprehensive research for one company
+    if args.full and args.profile:
+        logger.info(f"Running FULL comprehensive research for: {args.profile}")
+        profile = load_company_profile(args.profile)
+        company_name = profile["name"]
+        url = profile.get("website", "")
+        industry = profile.get("industry")
+        await run_comprehensive_research(company_name, url, industry)
+        return
+
+    # Mode FULL with CLI args: Comprehensive research
+    if args.full and args.name:
+        logger.info(f"Running FULL comprehensive research for: {args.name}")
+        await run_comprehensive_research(args.name, args.url or "", args.industry)
+        return
 
     # Mode 0: Two-phase research (full workflow)
     if args.two_phase and args.batch:
@@ -729,7 +1015,12 @@ async def main():
     # Mode 1: Batch research from folder
     if args.batch:
         logger.info(f"Running BATCH research from: {args.batch}")
-        await run_batch_research(args.batch, parallel=parallel, delay_between=args.delay)
+        # Setup dry-run context if requested (CLI-003)
+        dry_run = None
+        if args.dry_run:
+            dry_run = DryRunContext(DryRunConfig(enabled=True))
+            print_header("Dry-Run Mode", "Showing planned operations without executing")
+        await run_batch_research(args.batch, parallel=parallel, delay_between=args.delay, dry_run=dry_run)
         return
 
     # Mode 2: Single company from profile

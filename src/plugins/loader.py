@@ -6,7 +6,6 @@ Automatically discovers and loads plugins from the plugins directory.
 
 import importlib.util
 import json
-import os
 import sys
 import threading
 from pathlib import Path

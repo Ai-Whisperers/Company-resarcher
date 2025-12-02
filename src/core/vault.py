@@ -32,6 +32,9 @@ MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 # Batch size for bulk operations
 BATCH_SIZE = int(os.getenv("VAULT_BATCH_SIZE", "100"))
 
+# Vault storage path (TECH-008: Configurable via environment)
+VAULT_STORAGE_PATH = os.getenv("VAULT_STORAGE_PATH", "data/vault")
+
 # File names for local storage
 VECTORS_FILE = "vectors.jsonl"
 GRAPH_FILE = "graph.jsonl"
@@ -57,7 +60,7 @@ class VaultManager:
         self.use_pinecone = bool(self.pinecone_api_key)
         self.use_neo4j = bool(self.neo4j_uri)
 
-        self.local_storage_path = Path("data/vault")
+        self.local_storage_path = Path(VAULT_STORAGE_PATH)
         self.local_storage_path.mkdir(parents=True, exist_ok=True)
 
         # File locks for thread-safe operations

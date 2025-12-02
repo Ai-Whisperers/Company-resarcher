@@ -1,0 +1,23 @@
+{
+  "_description": "User-Generated Content Sites - Unverified crowdsourced content",
+  "reddit.com": {"name": "Reddit", "reason": "User-generated, unverified content"},
+  "quora.com": {"name": "Quora", "reason": "User-generated answers, varying quality"},
+  "answers.yahoo.com": {"name": "Yahoo Answers", "reason": "User-generated, often unreliable"},
+  "wikihow.com": {"name": "WikiHow", "reason": "User-generated how-to guides"},
+  "instructables.com": {"name": "Instructables", "reason": "User-generated projects"},
+  "stack-exchange-network.com": {"name": "Stack Exchange", "reason": "User-generated Q&A"},
+  "forums.*.com": {"name": "Forums (wildcard)", "reason": "User-generated forum content", "is_pattern": true},
+  "community.*.com": {"name": "Community sites (wildcard)", "reason": "User-generated community content", "is_pattern": true},
+  "stackoverflow.com": {"name": "Stack Overflow", "reason": "User-generated Q&A, code snippets"},
+  "superuser.com": {"name": "Super User", "reason": "User-generated tech support"},
+  "serverfault.com": {"name": "Server Fault", "reason": "User-generated server Q&A"},
+  "askubuntu.com": {"name": "Ask Ubuntu", "reason": "User-generated Linux Q&A"},
+  "tripadvisor.com": {"name": "TripAdvisor", "reason": "User-generated travel reviews"},
+  "producthunt.com": {"name": "Product Hunt", "reason": "User-generated product listings"},
+  "hackaday.io": {"name": "Hackaday.io", "reason": "User-generated hardware projects"},
+  "thingiverse.com": {"name": "Thingiverse", "reason": "User-generated 3D models"},
+  "github.com/discussions": {"name": "GitHub Discussions", "reason": "User-generated discussions"},
+  "gitlab.com/explore": {"name": "GitLab Explore", "reason": "User-generated code repos"},
+  "bitbucket.org": {"name": "Bitbucket", "reason": "User-generated code repos"},
+  "goodreads.com": {"name": "Goodreads", "reason": "User-generated book reviews"}
+}

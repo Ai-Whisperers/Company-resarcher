@@ -36,17 +36,20 @@ SEARCH_TIMEOUT_SECONDS = int(os.getenv("SEARCH_TIMEOUT_SECONDS", "30"))
 MAX_QUERY_LENGTH = 500
 
 
-def sanitize_search_query(query: str) -> str:
+def sanitize_search_query(query: str, safe_mode: bool = True) -> str:
     """
     Sanitize search query to prevent injection and abuse.
 
     - Limits length to prevent DoS
-    - Removes search operator keywords that could be abused
+    - Removes search operator keywords that could be abused (if safe_mode=True)
     - Normalizes whitespace
     - Removes control characters
 
     Args:
         query: Raw search query string
+        safe_mode: If True (default), removes advanced search operators.
+                   If False, allows operators like site:, filetype:, etc.
+                   Only trusted agents (e.g., DeepResearchAgent) should use safe_mode=False.
 
     Returns:
         Sanitized query string
@@ -57,11 +60,12 @@ def sanitize_search_query(query: str) -> str:
     # Remove control characters
     query = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', query)
 
-    # Remove common search operators that could be abused
+    # Remove common search operators that could be abused (unless safe_mode is disabled)
     # These can leak internal data or manipulate results
-    operators = ['site:', 'inurl:', 'filetype:', 'intitle:', 'intext:', 'cache:', 'related:']
-    for op in operators:
-        query = re.sub(re.escape(op), '', query, flags=re.IGNORECASE)
+    if safe_mode:
+        operators = ['site:', 'inurl:', 'filetype:', 'intitle:', 'intext:', 'cache:', 'related:']
+        for op in operators:
+            query = re.sub(re.escape(op), '', query, flags=re.IGNORECASE)
 
     # Normalize whitespace
     query = ' '.join(query.split())
@@ -82,15 +86,24 @@ class SearchTool:
     Automatically falls back to next provider if one fails.
     """
 
-    def __init__(self, preferred_provider: Optional[str] = None):
+    def __init__(
+        self,
+        preferred_provider: Optional[str] = None,
+        safe_mode: bool = True,
+    ):
         """
         Initialize SearchTool.
 
         Args:
             preferred_provider: Force a specific provider (optional).
                                Options: "duckduckgo", "jina", "serper", "tavily"
+            safe_mode: If True (default), removes advanced search operators
+                       (site:, filetype:, etc.) from queries. Set to False
+                       for trusted agents like DeepResearchAgent that need
+                       these operators for targeted research.
         """
         self.preferred_provider = preferred_provider
+        self.safe_mode = safe_mode
         self._manager: Optional[SearchManager] = None
 
     @property
@@ -134,7 +147,7 @@ class SearchTool:
             return []
 
         # Sanitize query to prevent injection
-        query = sanitize_search_query(query)
+        query = sanitize_search_query(query, safe_mode=self.safe_mode)
         if not query:
             logger.warning("Query empty after sanitization")
             return []
@@ -225,7 +238,7 @@ class SearchTool:
             return Err(ResultSearchError.invalid_query(query or "", "Empty or invalid query"))
 
         # Sanitize query to prevent injection
-        query = sanitize_search_query(query)
+        query = sanitize_search_query(query, safe_mode=self.safe_mode)
         if not query:
             return Err(ResultSearchError.invalid_query(query, "Query empty after sanitization"))
 
@@ -290,6 +303,75 @@ class SearchTool:
 
         # Use map to transform Ok values while preserving Err
         return raw_result.map(lambda results: SearchResults.from_list(query, results))
+
+    async def search_paginated(
+        self,
+        query: str,
+        results_per_page: int = 10,
+        max_pages: int = 3,
+        page_delay_seconds: float = 1.0,
+        deduplicate: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """
+        Execute a paginated search across multiple pages (TECH-003).
+
+        This method fetches results across multiple "pages" to get deeper
+        search results beyond the first page.
+
+        Args:
+            query: Search query string
+            results_per_page: Results per page (default 10)
+            max_pages: Maximum pages to fetch (default 3)
+            page_delay_seconds: Delay between pages for rate limiting
+            deduplicate: Remove duplicate URLs (default True)
+
+        Returns:
+            List of search result dictionaries from all pages
+        """
+        if not query or not isinstance(query, str) or not query.strip():
+            logger.warning("Empty or invalid search query provided")
+            return []
+
+        query = sanitize_search_query(query, safe_mode=self.safe_mode)
+        if not query:
+            logger.warning("Query empty after sanitization")
+            return []
+
+        try:
+            results = await asyncio.wait_for(
+                self.manager.search_paginated(
+                    query,
+                    results_per_page=results_per_page,
+                    max_pages=max_pages,
+                    page_delay_seconds=page_delay_seconds,
+                    preferred_provider=self.preferred_provider,
+                    deduplicate=deduplicate,
+                ),
+                timeout=SEARCH_TIMEOUT_SECONDS * max_pages  # Longer timeout for multiple pages
+            )
+
+            # Convert to dictionaries for backward compatibility
+            dict_results = []
+            for r in results:
+                dict_results.append({
+                    "url": r.url,
+                    "title": r.title,
+                    "content": r.snippet,
+                    "snippet": r.snippet,
+                    "source": r.source,
+                    "published_date": r.published_date,
+                    "score": r.score,
+                })
+
+            logger.info(f"Paginated search found {len(dict_results)} total results for '{query}'")
+            return dict_results
+
+        except asyncio.TimeoutError:
+            logger.error(f"Paginated search timed out for '{query}'")
+            return []
+        except Exception as e:
+            logger.error(f"Paginated search error for '{query}': {e}")
+            return []
 
     def get_available_providers(self) -> List[str]:
         """Get list of available search providers."""

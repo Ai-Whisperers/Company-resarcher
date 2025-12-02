@@ -5,13 +5,12 @@ Notifies agents when files are created, modified, or deleted.
 """
 
 import asyncio
-import os
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Set
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from .config import get_settings
 from .events import EventType, get_event_stream

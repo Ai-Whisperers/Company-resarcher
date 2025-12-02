@@ -1,14 +1,14 @@
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import StaticPool
-from src.core.constants import DB_PATH
+from src.core.config import get_settings
 from src.core.logger import setup_logger
 
 logger = setup_logger("database")
 
-# Support external database URL (PostgreSQL, etc.) or default to SQLite
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
+# Get database configuration from centralized settings (ARCH-004)
+settings = get_settings()
+DATABASE_URL = settings.database.url
 
 # Configure engine based on database type
 if DATABASE_URL.startswith("sqlite"):
@@ -22,8 +22,8 @@ if DATABASE_URL.startswith("sqlite"):
     logger.info("Using SQLite database with StaticPool for thread safety")
 else:
     # PostgreSQL/MySQL - proper connection pooling for production
-    pool_size = int(os.getenv("DB_POOL_SIZE", "5"))
-    max_overflow = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+    pool_size = settings.database.pool_size
+    max_overflow = settings.database.max_overflow
     engine = create_engine(
         DATABASE_URL,
         pool_size=pool_size,

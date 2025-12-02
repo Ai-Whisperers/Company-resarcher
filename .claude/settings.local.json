@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(ls:*)",
+      "Bash(python main.py:*)",
+      "Bash(tree:*)",
+      "Bash(dir:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(exit 0)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

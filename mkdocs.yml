@@ -37,6 +37,26 @@ plugins:
   - search:
       lang: en
   - tags
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            docstring_style: google
+            merge_init_into_class: true
+            show_if_no_docstring: false
+            inherited_members: false
+            members_order: source
+            separate_signature: true
+            unwrap_annotated: true
+            filters:
+              - "!^_"
+            heading_level: 2
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -70,6 +90,12 @@ nav:
     - Contributing: guides/CONTRIBUTING.md
   - API Reference:
     - REST API: api/API_REFERENCE.md
+    - Python API:
+      - Core: api/python/core.md
+      - Agents: api/python/agents.md
+      - Tools: api/python/tools.md
+      - Services: api/python/services.md
+      - Pipeline: api/python/pipeline.md
   - Architecture:
     - Overview: architecture/patterns/README.md
     - Diagrams: architecture/diagrams/ARCHITECTURE_DIAGRAMS.md

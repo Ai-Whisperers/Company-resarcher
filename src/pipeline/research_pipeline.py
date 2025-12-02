@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from ..core.result import Result, Ok, Err
@@ -37,7 +36,7 @@ from ..core.types import CompanyProfile, ResearchPhaseResult
 
 from .context import RequestContext, create_context
 from .pipeline import Pipeline, PipelineConfig, PipelineResult, PipelineStatus
-from .stage import Stage, StageError, StageResult, ParallelStage
+from .stage import Stage, StageError
 from .stages.research import (
     ResearchInput,
     ResearchOutput,

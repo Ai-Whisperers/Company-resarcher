@@ -1,7 +1,7 @@
 import logging
 import markdown
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict
 
 try:
     from docx import Document
@@ -10,12 +10,19 @@ try:
 except ImportError:
     HAS_DOCX = False
 
+try:
+    from weasyprint import HTML, CSS
+
+    HAS_WEASYPRINT = True
+except ImportError:
+    HAS_WEASYPRINT = False
+
 logger = logging.getLogger(__name__)
 
 
 class ReportGenerator:
     """
-    Generates reports in multiple formats (Markdown, HTML, Docx).
+    Generates reports in multiple formats (Markdown, HTML, Docx, PDF).
     """
 
     def __init__(self, output_dir: str = "output"):
@@ -43,6 +50,10 @@ class ReportGenerator:
                 elif fmt == "docx":
                     path = self._save_docx(content, base_name)
                     saved_files["docx"] = str(path)
+                elif fmt == "pdf":
+                    path = self._save_pdf(content, base_name)
+                    if path:
+                        saved_files["pdf"] = str(path)
                 else:
                     logger.warning(f"Unsupported format: {fmt}")
             except Exception as e:
@@ -116,3 +127,148 @@ class ReportGenerator:
         doc.save(path)
         logger.info(f"Saved Docx report to {path}")
         return path
+
+    def _save_pdf(self, content: str, base_name: str) -> Path:
+        """
+        Convert Markdown content to a professionally styled PDF.
+
+        Uses WeasyPrint for high-quality PDF generation with CSS styling.
+        Falls back gracefully if WeasyPrint is not installed.
+        """
+        if not HAS_WEASYPRINT:
+            logger.warning(
+                "weasyprint not installed, skipping PDF generation. "
+                "Install with: pip install weasyprint"
+            )
+            return Path("")
+
+        path = self.output_dir / f"{base_name}.pdf"
+
+        # Convert Markdown to HTML with extensions for tables and code
+        html_content = markdown.markdown(
+            content,
+            extensions=["tables", "fenced_code", "toc"],
+        )
+
+        # Professional PDF styling
+        pdf_css = CSS(
+            string="""
+            @page {
+                size: A4;
+                margin: 2cm;
+                @top-center {
+                    content: string(title);
+                    font-size: 10pt;
+                    color: #666;
+                }
+                @bottom-center {
+                    content: "Page " counter(page) " of " counter(pages);
+                    font-size: 9pt;
+                    color: #666;
+                }
+            }
+            body {
+                font-family: 'Helvetica Neue', Arial, sans-serif;
+                font-size: 11pt;
+                line-height: 1.6;
+                color: #333;
+            }
+            h1 {
+                string-set: title content();
+                color: #1a1a2e;
+                border-bottom: 2px solid #4a90d9;
+                padding-bottom: 0.3em;
+                margin-top: 1.5em;
+            }
+            h2 {
+                color: #16213e;
+                border-bottom: 1px solid #ddd;
+                padding-bottom: 0.2em;
+                margin-top: 1.2em;
+            }
+            h3 {
+                color: #0f3460;
+                margin-top: 1em;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 1em 0;
+                font-size: 10pt;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            th {
+                background-color: #4a90d9;
+                color: white;
+            }
+            tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+            code {
+                background: #f4f4f4;
+                padding: 2px 5px;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+                font-size: 10pt;
+            }
+            pre {
+                background: #f8f8f8;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 1em;
+                overflow-x: auto;
+                font-size: 9pt;
+            }
+            blockquote {
+                border-left: 4px solid #4a90d9;
+                margin: 1em 0;
+                padding-left: 1em;
+                color: #666;
+                font-style: italic;
+            }
+            ul, ol {
+                margin: 0.5em 0;
+                padding-left: 2em;
+            }
+            li {
+                margin: 0.3em 0;
+            }
+            a {
+                color: #4a90d9;
+                text-decoration: none;
+            }
+            .toc {
+                background: #f9f9f9;
+                border: 1px solid #ddd;
+                padding: 1em;
+                margin: 1em 0;
+            }
+        """
+        )
+
+        # Wrap in full HTML document
+        full_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>{base_name}</title>
+        </head>
+        <body>
+            {html_content}
+        </body>
+        </html>
+        """
+
+        try:
+            html_doc = HTML(string=full_html)
+            html_doc.write_pdf(path, stylesheets=[pdf_css])
+            logger.info(f"Saved PDF report to {path}")
+            return path
+        except Exception as e:
+            logger.error(f"Failed to generate PDF: {e}")
+            return Path("")

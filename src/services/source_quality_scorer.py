@@ -4,19 +4,19 @@ Source Quality Scorer - Evaluates and scores sources by quality and relevance.
 Scores sources based on:
 - Domain authority (known high-quality sources)
 - Content quality (length, structure)
-- Recency (publication date)
+- Recency (publication date) with data freshness indicators (QUAL-006)
 - Geographic relevance
 - Industry relevance
 """
 
 import re
-from typing import Optional, List, Dict, Any
+from enum import Enum
+from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from ..utils.url_utils import (
     get_domain,
-    extract_country_tld,
     is_global_business_domain,
     calculate_source_relevance_score,
 )
@@ -24,52 +24,22 @@ from ..utils.url_utils import (
 
 # Domain authority scores are now centralized in source_registry.py
 # Import from there for consistency
-from ..core.source_registry import (
-    get_domain_authority as _get_registry_authority,
-    is_blacklisted,
-    is_low_priority,
-)
 
 # Legacy compatibility: Build DOMAIN_AUTHORITY_SCORES from registry
 # This ensures backward compatibility while using the centralized registry
 def _build_authority_scores() -> Dict[str, float]:
     """Build authority scores dict from centralized registry."""
     from ..core.source_registry import (
-        PREMIUM_MARKET_RESEARCH,
-        CONSULTING_SOURCES,
-        FINANCIAL_NEWS_SOURCES,
-        COMPANY_DATA_SOURCES,
-        FINANCIAL_DATA_SOURCES,
-        NEWS_WIRE_SOURCES,
-        TELECOM_SOURCES,
-        TECHNOLOGY_SOURCES,
-        BANKING_FINANCE_SOURCES,
-        HEALTHCARE_SOURCES,
-        RETAIL_ECOMMERCE_SOURCES,
-        ENERGY_SOURCES,
-        LATAM_SOURCES,
+        get_all_tier1_sources,
+        get_all_tier2_sources,
         LOW_PRIORITY_DOMAINS,
         BLACKLISTED_DOMAINS,
     )
 
     scores = {}
 
-    # Add all sources from registry
-    for source_dict in [
-        PREMIUM_MARKET_RESEARCH,
-        CONSULTING_SOURCES,
-        FINANCIAL_NEWS_SOURCES,
-        COMPANY_DATA_SOURCES,
-        FINANCIAL_DATA_SOURCES,
-        NEWS_WIRE_SOURCES,
-        TELECOM_SOURCES,
-        TECHNOLOGY_SOURCES,
-        BANKING_FINANCE_SOURCES,
-        HEALTHCARE_SOURCES,
-        RETAIL_ECOMMERCE_SOURCES,
-        ENERGY_SOURCES,
-        LATAM_SOURCES,
-    ]:
+    # Add all Tier 1 and Tier 2 sources from registry
+    for source_dict in [get_all_tier1_sources(), get_all_tier2_sources()]:
         for domain, info in source_dict.items():
             scores[domain] = info.authority_score
 
@@ -120,6 +90,288 @@ HIGH_QUALITY_INDICATORS = [
     r"industry\s+report",
     r"research\s+report",
 ]
+
+
+# =============================================================================
+# Recency Scoring (QUAL-006)
+# =============================================================================
+
+
+class RecencyCategory(str, Enum):
+    """Human-readable data freshness categories."""
+
+    FRESH = "fresh"  # < 30 days - Highly current
+    RECENT = "recent"  # 30-90 days - Recent data
+    CURRENT_YEAR = "current_year"  # 90-365 days - Within this year
+    DATED = "dated"  # 1-2 years - Getting old
+    STALE = "stale"  # 2-3 years - May be outdated
+    OUTDATED = "outdated"  # > 3 years - Likely outdated
+
+
+# Common date patterns for extraction from content
+DATE_PATTERNS = [
+    # ISO format: 2024-01-15
+    (r"\b(\d{4})-(\d{2})-(\d{2})\b", "%Y-%m-%d"),
+    # US format: 01/15/2024 or 1/15/2024
+    (r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b", "US"),
+    # European format: 15/01/2024
+    (r"\b(\d{2})/(\d{2})/(\d{4})\b", "EU"),
+    # Long format: January 15, 2024 or Jan 15, 2024
+    (r"\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}),?\s+(\d{4})\b", "LONG"),
+    # Year only: 2024
+    (r"\b(20\d{2})\b", "YEAR"),
+]
+
+# Relative date patterns
+RELATIVE_DATE_PATTERNS = [
+    (r"(\d+)\s+days?\s+ago", "days"),
+    (r"(\d+)\s+weeks?\s+ago", "weeks"),
+    (r"(\d+)\s+months?\s+ago", "months"),
+    (r"(\d+)\s+years?\s+ago", "years"),
+    (r"yesterday", "yesterday"),
+    (r"today", "today"),
+    (r"last\s+week", "last_week"),
+    (r"last\s+month", "last_month"),
+    (r"last\s+year", "last_year"),
+]
+
+# Month name mapping
+MONTH_MAP = {
+    "january": 1, "jan": 1,
+    "february": 2, "feb": 2,
+    "march": 3, "mar": 3,
+    "april": 4, "apr": 4,
+    "may": 5,
+    "june": 6, "jun": 6,
+    "july": 7, "jul": 7,
+    "august": 8, "aug": 8,
+    "september": 9, "sep": 9,
+    "october": 10, "oct": 10,
+    "november": 11, "nov": 11,
+    "december": 12, "dec": 12,
+}
+
+
+def _parse_relative_date(match: re.Match, unit: str, now: datetime) -> Optional[datetime]:
+    """Parse a relative date match into a datetime."""
+    unit_handlers = {
+        "today": lambda: now,
+        "yesterday": lambda: now - timedelta(days=1),
+        "last_week": lambda: now - timedelta(weeks=1),
+        "last_month": lambda: now - timedelta(days=30),
+        "last_year": lambda: now - timedelta(days=365),
+    }
+
+    if unit in unit_handlers:
+        return unit_handlers[unit]()
+
+    try:
+        value = int(match.group(1))
+        if unit == "days":
+            return now - timedelta(days=value)
+        elif unit == "weeks":
+            return now - timedelta(weeks=value)
+        elif unit == "months":
+            return now - timedelta(days=value * 30)
+        elif unit == "years":
+            return now - timedelta(days=value * 365)
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def _parse_absolute_date(match: re.Match, fmt: str) -> Optional[datetime]:
+    """Parse an absolute date match into a datetime."""
+    try:
+        if fmt == "%Y-%m-%d":
+            return datetime.strptime(match.group(0), fmt)
+        elif fmt == "US":
+            month, day, year = int(match.group(1)), int(match.group(2)), int(match.group(3))
+            return datetime(year, month, day)
+        elif fmt == "EU":
+            day, month, year = int(match.group(1)), int(match.group(2)), int(match.group(3))
+            return datetime(year, month, day)
+        elif fmt == "LONG":
+            month_name = match.group(1).lower()
+            day, year = int(match.group(2)), int(match.group(3))
+            month = MONTH_MAP.get(month_name, 1)
+            return datetime(year, month, day)
+        elif fmt == "YEAR":
+            return datetime(int(match.group(1)), 1, 1)
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def extract_date_from_content(content: str) -> Optional[datetime]:
+    """
+    Extract the most likely publication date from content.
+
+    Looks for date patterns in content and returns the most recent valid date.
+    Prioritizes dates found early in the content (likely publication date).
+
+    Args:
+        content: Page content to search
+
+    Returns:
+        Extracted datetime or None if no date found
+    """
+    if not content:
+        return None
+
+    now = datetime.now()
+    search_text = content[:2000].lower()
+
+    # Try relative date patterns first
+    for pattern, unit in RELATIVE_DATE_PATTERNS:
+        match = re.search(pattern, search_text, re.IGNORECASE)
+        if match:
+            date = _parse_relative_date(match, unit, now)
+            if date:
+                return date
+
+    # Try absolute date patterns
+    found_dates: List[Tuple[int, datetime]] = []
+    for pattern, fmt in DATE_PATTERNS:
+        for match in re.finditer(pattern, content[:3000], re.IGNORECASE):
+            date = _parse_absolute_date(match, fmt)
+            if date and date <= now and date.year >= 2000:
+                found_dates.append((match.start(), date))
+
+    if not found_dates:
+        return None
+
+    # Sort by position (earlier = more likely publication date)
+    found_dates.sort(key=lambda x: x[0])
+
+    # Prefer specific dates over year-only
+    for pos, date in found_dates:
+        if date.month != 1 or date.day != 1:
+            return date
+
+    return found_dates[0][1]
+
+
+def get_recency_category(age_days: int) -> RecencyCategory:
+    """
+    Get human-readable recency category from age in days.
+
+    Args:
+        age_days: Age of content in days
+
+    Returns:
+        RecencyCategory enum value
+    """
+    if age_days < 30:
+        return RecencyCategory.FRESH
+    elif age_days < 90:
+        return RecencyCategory.RECENT
+    elif age_days < 365:
+        return RecencyCategory.CURRENT_YEAR
+    elif age_days < 730:
+        return RecencyCategory.DATED
+    elif age_days < 1095:
+        return RecencyCategory.STALE
+    else:
+        return RecencyCategory.OUTDATED
+
+
+def get_recency_description(category: RecencyCategory) -> str:
+    """Get human-readable description of recency category."""
+    descriptions = {
+        RecencyCategory.FRESH: "Highly current (< 30 days)",
+        RecencyCategory.RECENT: "Recent data (1-3 months)",
+        RecencyCategory.CURRENT_YEAR: "Current year data",
+        RecencyCategory.DATED: "Getting dated (1-2 years)",
+        RecencyCategory.STALE: "May be outdated (2-3 years)",
+        RecencyCategory.OUTDATED: "Likely outdated (> 3 years)",
+    }
+    return descriptions.get(category, "Unknown freshness")
+
+
+@dataclass
+class RecencyInfo:
+    """Detailed recency information for a source."""
+
+    score: float  # 0-1 recency score
+    category: RecencyCategory
+    description: str
+    age_days: int
+    source_date: Optional[datetime]
+    date_source: str  # "published", "extracted", "accessed", "unknown"
+
+    @classmethod
+    def from_dates(
+        cls,
+        published_date: Optional[str] = None,
+        accessed_at: Optional[datetime] = None,
+        content: Optional[str] = None,
+    ) -> "RecencyInfo":
+        """Create RecencyInfo from available date information."""
+        now = datetime.now()
+        source_date = None
+        date_source = "unknown"
+
+        # Priority 1: Explicit published date
+        if published_date:
+            for fmt in ["%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%B %d, %Y", "%Y"]:
+                try:
+                    source_date = datetime.strptime(published_date, fmt)
+                    date_source = "published"
+                    break
+                except ValueError:
+                    continue
+
+        # Priority 2: Extract from content
+        if source_date is None and content:
+            extracted = extract_date_from_content(content)
+            if extracted:
+                source_date = extracted
+                date_source = "extracted"
+
+        # Priority 3: Access date
+        if source_date is None and accessed_at:
+            source_date = accessed_at
+            date_source = "accessed"
+
+        # Calculate age
+        if source_date:
+            age_days = (now - source_date).days
+        else:
+            age_days = 365  # Default to 1 year if unknown
+            date_source = "unknown"
+
+        # Get category and score
+        category = get_recency_category(age_days)
+        description = get_recency_description(category)
+        score = _calculate_recency_score_from_age(age_days)
+
+        return cls(
+            score=score,
+            category=category,
+            description=description,
+            age_days=age_days,
+            source_date=source_date,
+            date_source=date_source,
+        )
+
+
+def _calculate_recency_score_from_age(age_days: int) -> float:
+    """Calculate recency score from age in days."""
+    if age_days < 30:
+        return 1.0
+    elif age_days < 90:
+        return 0.9
+    elif age_days < 180:
+        return 0.8
+    elif age_days < 365:
+        return 0.7
+    elif age_days < 730:
+        return 0.5
+    elif age_days < 1095:
+        return 0.3
+    else:
+        return 0.2
 
 
 @dataclass
@@ -208,19 +460,19 @@ def calculate_data_richness_score(content: str) -> float:
     score = 0.0
 
     # Check for numbers (data-rich content)
-    number_count = len(re.findall(r"\\b\\d+[,.]?\\d*\\b", content))
+    number_count = len(re.findall(r"\b\d+[,.]?\d*\b", content))
     if number_count > 10:
         score += 0.2
     if number_count > 30:
         score += 0.2
 
     # Check for currency mentions (financial data)
-    currency_count = len(re.findall(r"(\\$|USD|EUR|£|€)\\s*\\d", content))
+    currency_count = len(re.findall(r"(\$|USD|EUR|£|€)\s*\d", content))
     if currency_count > 3:
         score += 0.2
 
     # Check for percentage mentions (statistics)
-    pct_count = len(re.findall(r"\\d+\\.?\\d*\\s*%", content))
+    pct_count = len(re.findall(r"\d+\.?\d*\s*%", content))
     if pct_count > 3:
         score += 0.2
 
@@ -239,7 +491,7 @@ def calculate_citation_score(content: str) -> float:
     score = 0.0
 
     # Check for common citation patterns
-    if re.search(r"\\[\\d+\\]", content):  # [1], [2]
+    if re.search(r"\[\d+\]", content):  # [1], [2]
         score += 0.4
     if "References" in content or "Bibliography" in content:
         score += 0.3
@@ -355,7 +607,7 @@ def calculate_recency_score(
     Returns:
         Recency score from 0.0 to 1.0
     """
-    now = datetime.utcnow()
+    now = datetime.now()
 
     # Try to parse published date
     pub_date = None

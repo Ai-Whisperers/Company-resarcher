@@ -3,7 +3,6 @@ Token counting utility for LLM prompt management.
 """
 
 import tiktoken
-from typing import Optional
 from .logger import setup_logger
 
 logger = setup_logger("token_counter")

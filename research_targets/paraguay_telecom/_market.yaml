@@ -1,0 +1,58 @@
+# Paraguay Telecommunications Market Research
+# This file defines the market context for all companies in this folder
+
+market:
+  name: "Paraguay Telecommunications"
+  country: "Paraguay"
+  region: "Latin America"
+  industry: "Telecommunications"
+
+  # Market size data (from research)
+  market_size:
+    value_2025: "USD 699 million"
+    value_2030: "USD 784.32 million"
+    cagr: "2.33%"
+    source: "Mordor Intelligence"
+
+  # Key market segments
+  segments:
+    - name: "Mobile Data Services"
+      share: "45.80%"
+      growth: "2.88% CAGR"
+    - name: "Consumer Segment"
+      share: "84.19%"
+    - name: "Fixed Broadband"
+      revenue_2024: "USD 251.1 million"
+      revenue_2029: "USD 324.1 million"
+
+  # Regulatory environment
+  regulator: "CONATEL"
+
+  # Key market dynamics
+  dynamics:
+    concentration: "High"
+    price_competition: "Medium"
+    barriers_to_entry:
+      - "High upfront costs"
+      - "Regulatory hurdles"
+      - "Spectrum licensing"
+
+# Companies to research in this market
+companies:
+  primary:
+    - personal_paraguay.yaml
+  competitors:
+    - tigo_paraguay.yaml
+    - claro_paraguay.yaml
+  parent_companies:
+    - telecom_argentina.yaml
+  mvnos:
+    - vox_paraguay.yaml
+
+# Research priorities for this market
+research_focus:
+  - "Market share distribution"
+  - "5G rollout timeline"
+  - "Infrastructure investment"
+  - "Price competition trends"
+  - "Rural coverage expansion"

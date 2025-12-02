@@ -1,0 +1,105 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+# QUAL-001: Pre-commit Hooks Setup
+
+default_language_version:
+  python: python3.10
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(outputs|outputs_test|data|temp_repos)/
+      - id: end-of-file-fixer
+        exclude: ^(outputs|outputs_test|data|temp_repos)/
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-json
+        exclude: ^(outputs|outputs_test|data|temp_repos)/
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: debug-statements
+      - id: check-ast
+
+  # Ruff - Fast Python linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      # Linting
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        exclude: ^(outputs|outputs_test|data|temp_repos)/
+      # Formatting (replaces black)
+      - id: ruff-format
+        exclude: ^(outputs|outputs_test|data|temp_repos)/
+
+  # Black - Code formatter (optional, ruff-format is faster)
+  # Uncomment if you prefer black over ruff-format
+  # - repo: https://github.com/psf/black
+  #   rev: 23.12.1
+  #   hooks:
+  #     - id: black
+  #       exclude: ^(outputs|outputs_test|data|temp_repos)/
+
+  # MyPy - Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.0
+          - types-requests
+          - types-PyYAML
+        args: [--ignore-missing-imports, --no-error-summary]
+        exclude: ^(tests|outputs|outputs_test|data|temp_repos)/
+
+  # Security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.7
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml, -ll]
+        additional_dependencies: ["bandit[toml]"]
+        exclude: ^(tests|outputs|outputs_test|data|temp_repos)/
+
+  # Detect secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: ^(\.env\.example|outputs|outputs_test|data|temp_repos)/
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        args: [--fix, --disable, MD013, MD033, MD041]
+        exclude: ^(outputs|outputs_test|data|temp_repos|docs/reference)/
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        args: [-d, "{extends: relaxed, rules: {line-length: disable}}"]
+        exclude: ^(outputs|outputs_test|data|temp_repos)/
+
+# CI configuration
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: [mypy]  # Skip mypy in CI (run separately with full type stubs)
+  submodules: false

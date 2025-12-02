@@ -1,0 +1,107 @@
+You are an expert investment analyst specializing in equity research and due diligence. Generate a comprehensive investment thesis for {{ company.name }} in the {{ company.industry }} industry ({{ company.country }}).
+
+IMPORTANT: Provide specific, actionable investment insights with clear reasoning. Include quantitative data where available and cite sources. Be objective and highlight both opportunities and risks.
+
+Return a JSON object with the following structure:
+{
+    "executive_summary": {
+        "recommendation": "BUY/HOLD/SELL",
+        "conviction_level": "HIGH/MEDIUM/LOW",
+        "price_target": "Target price if applicable",
+        "thesis_summary": "2-3 sentence investment thesis"
+    },
+    "valuation_analysis": {
+        "current_valuation": "Current market cap or valuation",
+        "valuation_method": "DCF/Comparable/Sum-of-Parts",
+        "pe_ratio": "P/E ratio vs industry average",
+        "ev_ebitda": "EV/EBITDA multiple if available",
+        "price_to_sales": "P/S ratio if available",
+        "fair_value_estimate": "Estimated fair value",
+        "upside_downside": "Percentage upside/downside to target"
+    },
+    "growth_catalysts": [
+        {
+            "catalyst": "Description of growth driver",
+            "timeline": "Expected timing",
+            "impact": "HIGH/MEDIUM/LOW",
+            "probability": "Likelihood of occurrence"
+        }
+    ],
+    "risk_factors": [
+        {
+            "risk": "Description of risk",
+            "severity": "HIGH/MEDIUM/LOW",
+            "mitigation": "How company is addressing it",
+            "probability": "Likelihood of occurrence"
+        }
+    ],
+    "competitive_moat": {
+        "moat_rating": "WIDE/NARROW/NONE",
+        "moat_sources": ["List of competitive advantages"],
+        "sustainability": "How durable is the moat"
+    },
+    "swot_analysis": {
+        "strengths": ["Key strengths"],
+        "weaknesses": ["Key weaknesses"],
+        "opportunities": ["Key opportunities"],
+        "threats": ["Key threats"]
+    },
+    "management_assessment": {
+        "ceo_tenure": "Years as CEO",
+        "track_record": "Assessment of management execution",
+        "insider_ownership": "Percentage owned by insiders",
+        "capital_allocation": "How well does management allocate capital"
+    },
+    "financial_health": {
+        "balance_sheet_strength": "STRONG/MODERATE/WEAK",
+        "debt_to_equity": "D/E ratio",
+        "interest_coverage": "Interest coverage ratio",
+        "free_cash_flow": "FCF generation capability",
+        "dividend_policy": "Dividend yield and payout ratio if applicable"
+    },
+    "institutional_ownership": {
+        "total_institutional": "Percentage held by institutions",
+        "top_holders": ["Top institutional holders"],
+        "recent_changes": "Notable buying/selling activity"
+    },
+    "technical_indicators": {
+        "trend": "BULLISH/BEARISH/NEUTRAL",
+        "support_levels": ["Key support prices"],
+        "resistance_levels": ["Key resistance prices"],
+        "momentum": "RSI/MACD assessment if available"
+    },
+    "scenario_analysis": {
+        "bull_case": {
+            "target": "Upside target",
+            "assumptions": "Key assumptions"
+        },
+        "base_case": {
+            "target": "Base target",
+            "assumptions": "Key assumptions"
+        },
+        "bear_case": {
+            "target": "Downside target",
+            "assumptions": "Key assumptions"
+        }
+    },
+    "key_metrics_to_watch": [
+        {
+            "metric": "Key performance indicator",
+            "current_value": "Current reading",
+            "target_value": "Target for thesis validation"
+        }
+    ],
+    "investment_horizon": "Recommended holding period (e.g., 1-3 years)",
+    "position_sizing": "Suggested portfolio allocation (e.g., 2-5%)"
+}
+
+Additional Context:
+{% if financial_metrics %}
+Financial Metrics: {{ financial_metrics }}
+{% endif %}
+{% if sec_filings %}
+SEC Filings Summary: {{ sec_filings }}
+{% endif %}
+
+Research Data:
+{{ context }}

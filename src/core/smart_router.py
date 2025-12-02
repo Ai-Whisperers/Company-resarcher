@@ -17,7 +17,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Any
+from typing import Any
 
 from .ai_client import BaseAIClient, OpenAIClient
 from .logger import setup_logger
@@ -114,45 +114,72 @@ class ComplexityAnalyzer:
     - Prompt length and structure
     - Response format requirements
     - Domain-specific indicators
+
+    Performance: Uses precompiled patterns and set operations for O(1) lookups.
     """
 
-    # Keywords indicating different complexity levels
-    PREMIUM_KEYWORDS = frozenset([
+    # Single-word keywords for O(1) set lookup
+    PREMIUM_SINGLE = frozenset([
         "synthesize", "critique", "evaluate", "strategic", "recommend",
-        "compare and contrast", "in-depth analysis", "comprehensive",
-        "nuanced", "implications", "trade-offs", "multi-faceted",
-        "critical analysis", "deep dive", "thorough examination",
+        "comprehensive", "nuanced", "implications", "trade-offs", "multi-faceted",
     ])
 
-    BALANCED_KEYWORDS = frozenset([
+    BALANCED_SINGLE = frozenset([
         "analyze", "assess", "explain", "research", "investigate",
-        "identify patterns", "correlate", "interpret", "classify",
-        "determine", "evaluate options", "review",
+        "correlate", "interpret", "classify", "determine", "review",
     ])
 
-    FAST_KEYWORDS = frozenset([
+    FAST_SINGLE = frozenset([
         "summarize", "list", "extract", "find", "format",
         "convert", "translate", "rewrite", "simplify",
         "shorten", "expand", "paraphrase",
     ])
 
-    ULTRA_FAST_KEYWORDS = frozenset([
+    ULTRA_FAST_SINGLE = frozenset([
         "json", "parse", "validate", "check", "count",
-        "format as", "extract field", "clean", "normalize",
+        "clean", "normalize",
     ])
 
-    # Domain complexity indicators
-    COMPLEX_DOMAINS = frozenset([
+    # Domain single words
+    COMPLEX_DOMAIN_SINGLE = frozenset([
         "financial", "legal", "medical", "scientific",
-        "technical architecture", "security analysis",
-        "competitive intelligence", "market analysis",
     ])
 
     def __init__(self):
-        # Compile regex patterns for efficiency
+        # Compile regex patterns for efficiency (PERF-002)
         self._question_pattern = re.compile(r'\?')
         self._list_pattern = re.compile(r'(list|enumerate|bullet|numbered)', re.I)
         self._json_pattern = re.compile(r'(json|structured|schema)', re.I)
+
+        # Precompile multi-word phrase patterns for O(1) regex matching
+        self._premium_phrases = re.compile(
+            r'(compare and contrast|in-depth analysis|critical analysis|deep dive|thorough examination)',
+            re.I
+        )
+        self._balanced_phrases = re.compile(
+            r'(identify patterns|evaluate options)',
+            re.I
+        )
+        self._fast_phrases = re.compile(
+            r'(format as|extract field)',
+            re.I
+        )
+        self._domain_phrases = re.compile(
+            r'(technical architecture|security analysis|competitive intelligence|market analysis)',
+            re.I
+        )
+
+    def _tokenize_to_set(self, text: str) -> frozenset[str]:
+        """
+        Tokenize text into a set of lowercase words for O(1) lookup.
+        Uses simple word boundary splitting for speed.
+        """
+        # Split on non-alphanumeric, filter empty, convert to set
+        return frozenset(word for word in re.split(r'\W+', text.lower()) if word)
+
+    def _count_phrase_matches(self, pattern: re.Pattern, text: str) -> int:
+        """Count matches of a precompiled phrase pattern."""
+        return len(pattern.findall(text))
 
     def estimate_tokens(self, text: str) -> int:
         """Rough token estimation (4 chars per token for English)."""
@@ -169,29 +196,42 @@ class ComplexityAnalyzer:
         Analyze prompt to determine complexity tier.
 
         Returns TaskComplexity with tier recommendation and reasons.
+
+        Performance: O(n) where n is text length, using set intersection
+        for keyword matching instead of O(n*m) substring searches.
         """
-        combined = f"{prompt} {system or ''}".lower()
+        combined = f"{prompt} {system or ''}"
+        combined_lower = combined.lower()
         reasons = []
         score = 0.0
+
+        # Tokenize once for O(1) set lookups
+        words = self._tokenize_to_set(combined)
 
         # Token estimation
         estimated_input_tokens = self.estimate_tokens(combined)
         estimated_output_tokens = min(max_tokens, 2000)  # Conservative estimate
 
-        # Check for premium indicators
-        premium_matches = sum(1 for kw in self.PREMIUM_KEYWORDS if kw in combined)
+        # Check for premium indicators using set intersection O(min(n,m))
+        premium_single = len(words & self.PREMIUM_SINGLE)
+        premium_phrases = self._count_phrase_matches(self._premium_phrases, combined_lower)
+        premium_matches = premium_single + premium_phrases
         if premium_matches >= 2:
             score += 0.4
             reasons.append(f"Premium keywords found ({premium_matches})")
 
         # Check for balanced indicators
-        balanced_matches = sum(1 for kw in self.BALANCED_KEYWORDS if kw in combined)
+        balanced_single = len(words & self.BALANCED_SINGLE)
+        balanced_phrases = self._count_phrase_matches(self._balanced_phrases, combined_lower)
+        balanced_matches = balanced_single + balanced_phrases
         if balanced_matches >= 2:
             score += 0.25
             reasons.append(f"Analysis keywords found ({balanced_matches})")
 
         # Check for domain complexity
-        domain_matches = sum(1 for d in self.COMPLEX_DOMAINS if d in combined)
+        domain_single = len(words & self.COMPLEX_DOMAIN_SINGLE)
+        domain_phrases = self._count_phrase_matches(self._domain_phrases, combined_lower)
+        domain_matches = domain_single + domain_phrases
         if domain_matches > 0:
             score += 0.15 * domain_matches
             reasons.append(f"Complex domain detected ({domain_matches})")
@@ -211,17 +251,19 @@ class ComplexityAnalyzer:
             reasons.append(f"Multiple questions ({question_count})")
 
         # JSON output usually simpler
-        if response_format == "json" or self._json_pattern.search(combined):
+        if response_format == "json" or self._json_pattern.search(combined_lower):
             score -= 0.1
             reasons.append("Structured output requested")
 
-        # Simple task indicators reduce score
-        fast_matches = sum(1 for kw in self.FAST_KEYWORDS if kw in combined)
+        # Simple task indicators reduce score using set intersection
+        fast_single = len(words & self.FAST_SINGLE)
+        fast_phrases = self._count_phrase_matches(self._fast_phrases, combined_lower)
+        fast_matches = fast_single + fast_phrases
         if fast_matches >= 2:
             score -= 0.2
             reasons.append(f"Simple task keywords ({fast_matches})")
 
-        ultra_fast_matches = sum(1 for kw in self.ULTRA_FAST_KEYWORDS if kw in combined)
+        ultra_fast_matches = len(words & self.ULTRA_FAST_SINGLE)
         if ultra_fast_matches >= 2:
             score -= 0.3
             reasons.append(f"Ultra-simple task keywords ({ultra_fast_matches})")

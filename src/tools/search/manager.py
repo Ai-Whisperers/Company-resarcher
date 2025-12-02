@@ -372,22 +372,31 @@ class SearchManager:
                 logger.info(f"Got {len(results)} results from {provider.name}")
                 return results
 
-            # No results or error, continue to next provider if fallback enabled
+            # Record that this provider returned no results (BUG-053 fix)
+            health = self._get_health(provider.name)
+            if not health.is_healthy or health.rate_limit_hits > 0:
+                errors.append((provider.name, "error", "Failed or rate limited"))
+            else:
+                errors.append((provider.name, "empty", "No results"))
+
+            # Continue to next provider if fallback enabled
             if not self.enable_fallback:
+                logger.warning(f"Fallback disabled, stopping after {provider.name}")
                 break
 
         # All providers failed
         if errors:
             error_summary = "; ".join([f"{p}: {t}" for p, t, _ in errors])
-            logger.error(f"All search providers failed: {error_summary}")
+            logger.error(f"All search providers failed (BUG-053): {error_summary}")
             raise SearchError(
                 f"All providers failed: {error_summary}",
                 "manager",
                 query
             )
 
-        # No providers available
-        logger.error("No search providers available")
+        # No providers available (all skipped due to missing API keys)
+        available = [p.name for p in self.providers if p.is_available()]
+        logger.error(f"No search providers available. Checked: {[p.name for p in self.providers]}, Available: {available}")
         return []
 
     async def search_with_provider(
@@ -476,6 +485,92 @@ class SearchManager:
         else:
             for name in self._provider_health:
                 self._provider_health[name] = ProviderHealth(name=name)
+
+    async def search_paginated(
+        self,
+        query: str,
+        results_per_page: int = 10,
+        max_pages: int = 3,
+        page_delay_seconds: float = 1.0,
+        preferred_provider: Optional[str] = None,
+        deduplicate: bool = True,
+    ) -> List[SearchResult]:
+        """
+        Execute a paginated search across multiple pages (TECH-003).
+
+        Simulates pagination by making multiple search requests with
+        increasing result counts and deduplicating results.
+
+        Args:
+            query: The search query
+            results_per_page: Results to fetch per page
+            max_pages: Maximum number of pages to fetch
+            page_delay_seconds: Delay between page requests
+            preferred_provider: Force a specific provider
+            deduplicate: Remove duplicate URLs (default True)
+
+        Returns:
+            Combined list of SearchResult objects from all pages
+
+        Note:
+            Many search providers don't support true pagination.
+            This implementation requests larger result sets to simulate
+            pagination behavior.
+        """
+        settings = get_settings()
+        page_delay = page_delay_seconds or settings.search.page_delay_seconds
+
+        all_results: List[SearchResult] = []
+        seen_urls: set = set()
+
+        for page in range(max_pages):
+            try:
+                # Calculate how many results to request
+                # Each page requests more results to get "deeper" in search
+                total_to_fetch = results_per_page * (page + 1)
+
+                logger.info(f"Fetching page {page + 1}/{max_pages} for '{query[:30]}...' (requesting {total_to_fetch} results)")
+
+                results = await self.search(
+                    query,
+                    max_results=total_to_fetch,
+                    preferred_provider=preferred_provider,
+                )
+
+                # Extract new results (skip ones we already have)
+                new_results = []
+                for result in results:
+                    if deduplicate:
+                        if result.url not in seen_urls:
+                            seen_urls.add(result.url)
+                            new_results.append(result)
+                    else:
+                        new_results.append(result)
+
+                # Only add results beyond what we already have
+                start_idx = len(all_results)
+                all_results.extend(new_results[start_idx:])
+
+                logger.info(f"Page {page + 1}: got {len(new_results)} new results (total: {len(all_results)})")
+
+                # If no new results, stop pagination
+                if len(new_results) <= len(all_results) - results_per_page:
+                    logger.info(f"No new results on page {page + 1}, stopping pagination")
+                    break
+
+                # Rate limiting between pages
+                if page < max_pages - 1:
+                    await asyncio.sleep(page_delay)
+
+            except SearchError as e:
+                logger.warning(f"Failed to fetch page {page + 1}: {e}")
+                break
+            except Exception as e:
+                logger.error(f"Unexpected error fetching page {page + 1}: {e}")
+                break
+
+        logger.info(f"Paginated search complete: {len(all_results)} total results from {max_pages} pages")
+        return all_results
 
 
 # Singleton pattern for shared instance

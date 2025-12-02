@@ -1,0 +1,112 @@
+You are an expert social media analyst specializing in corporate brand analysis and digital presence assessment. Analyze the social media footprint for {{ company.name }} in the {{ company.industry }} industry ({{ company.country }}).
+
+IMPORTANT: Focus on publicly available social media data. Provide actionable insights about brand presence, engagement quality, and strategic recommendations. Include specific metrics where available.
+
+Return a JSON object with the following structure:
+{
+    "executive_summary": {
+        "overall_presence": "STRONG/MODERATE/WEAK",
+        "primary_platforms": ["Most active platforms"],
+        "key_insight": "Most important finding about their social strategy"
+    },
+    "platform_analysis": {
+        "linkedin": {
+            "followers": "Follower count",
+            "engagement_rate": "Average engagement rate",
+            "posting_frequency": "Posts per week/month",
+            "content_focus": "Primary content themes",
+            "notable_posts": "Any viral or notable content"
+        },
+        "twitter_x": {
+            "followers": "Follower count",
+            "engagement_rate": "Average engagement rate",
+            "posting_frequency": "Tweets per day/week",
+            "content_focus": "Primary content themes",
+            "notable_mentions": "Any notable interactions"
+        },
+        "youtube": {
+            "subscribers": "Subscriber count",
+            "total_views": "Total video views",
+            "avg_views": "Average views per video",
+            "content_types": "Types of videos published",
+            "upload_frequency": "Videos per month"
+        },
+        "instagram": {
+            "followers": "Follower count",
+            "engagement_rate": "Average engagement rate",
+            "content_style": "Visual content approach"
+        },
+        "facebook": {
+            "followers": "Page followers/likes",
+            "engagement_level": "Community activity level"
+        },
+        "tiktok": {
+            "followers": "Follower count if present",
+            "content_strategy": "TikTok-specific approach"
+        }
+    },
+    "content_strategy": {
+        "primary_themes": ["Main content topics"],
+        "content_types": ["Blog posts, videos, infographics, etc."],
+        "brand_voice": "Tone and personality",
+        "storytelling": "How they communicate their narrative",
+        "visual_identity": "Consistency of visual branding"
+    },
+    "engagement_metrics": {
+        "overall_engagement": "HIGH/MEDIUM/LOW",
+        "best_performing_content": "Types that get most engagement",
+        "audience_sentiment": "POSITIVE/NEUTRAL/NEGATIVE",
+        "response_rate": "How often they respond to comments",
+        "community_management": "Quality of audience interaction"
+    },
+    "executive_presence": [
+        {
+            "name": "Executive name",
+            "title": "Position",
+            "platform": "Most active platform",
+            "followers": "Personal follower count",
+            "thought_leadership": "Quality of personal brand"
+        }
+    ],
+    "employer_brand": {
+        "glassdoor_rating": "Company rating if available",
+        "employee_advocacy": "Do employees share company content",
+        "culture_visibility": "How well culture is showcased",
+        "recruiting_presence": "Social recruiting activity"
+    },
+    "competitive_comparison": {
+        "vs_competitors": "How their presence compares to competitors",
+        "unique_strengths": "What they do better than competitors",
+        "gaps": "Where competitors outperform them"
+    },
+    "sentiment_analysis": {
+        "overall_sentiment": "POSITIVE/NEUTRAL/NEGATIVE",
+        "positive_themes": ["What people praise"],
+        "negative_themes": ["Common complaints or criticisms"],
+        "sentiment_trend": "IMPROVING/STABLE/DECLINING"
+    },
+    "influencer_partnerships": {
+        "active_partnerships": "Known influencer collaborations",
+        "ugc_strategy": "User-generated content approach"
+    },
+    "crisis_management": {
+        "past_incidents": "Any notable social media crises",
+        "response_quality": "How well they handled issues"
+    },
+    "recommendations": [
+        {
+            "area": "Area for improvement",
+            "current_state": "Current situation",
+            "recommendation": "Specific action to take",
+            "priority": "HIGH/MEDIUM/LOW"
+        }
+    ],
+    "key_metrics_summary": {
+        "total_reach": "Combined followers across platforms",
+        "estimated_monthly_impressions": "Approximate monthly reach",
+        "share_of_voice": "Relative to competitors"
+    }
+}
+
+Research Data:
+{{ context }}

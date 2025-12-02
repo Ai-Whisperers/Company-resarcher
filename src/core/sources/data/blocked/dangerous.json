@@ -1,0 +1,23 @@
+{
+  "_description": "Dangerous & Extremist Sites - Hate speech, extremism, harmful content",
+  "4chan.org": {"name": "4chan", "reason": "Anonymous board, extremist content"},
+  "8kun.top": {"name": "8kun", "reason": "Extremist content, QAnon"},
+  "kiwifarms.net": {"name": "Kiwi Farms", "reason": "Harassment, doxing"},
+  "8ch.net": {"name": "8chan", "reason": "Extremist content"},
+  "voat.co": {"name": "Voat", "reason": "Extremist Reddit alternative"},
+  "gab.com": {"name": "Gab", "reason": "Extremist social network"},
+  "parler.com": {"name": "Parler", "reason": "Extremist social network"},
+  "gettr.com": {"name": "GETTR", "reason": "Extremist social network"},
+  "truthsocial.com": {"name": "Truth Social", "reason": "Extremist social network"},
+  "minds.com": {"name": "Minds", "reason": "Alt-tech social network"},
+  "bitchute.com": {"name": "BitChute", "reason": "Extremist video platform"},
+  "rumble.com": {"name": "Rumble", "reason": "Alt-tech video platform"},
+  "odysee.com": {"name": "Odysee", "reason": "Alt-tech video platform"},
+  "brandnewtube.com": {"name": "BrandNewTube", "reason": "Conspiracy video platform"},
+  "brighteon.com": {"name": "Brighteon", "reason": "Conspiracy video platform"},
+  "dlive.tv": {"name": "DLive", "reason": "Alt-tech streaming platform"},
+  "banned.video": {"name": "Banned Video", "reason": "Conspiracy content platform"},
+  "frankspeech.com": {"name": "Frank Speech", "reason": "Extremist platform"},
+  "cozy.tv": {"name": "Cozy TV", "reason": "Alt-tech streaming platform"},
+  "thinkspot.com": {"name": "ThinkSpot", "reason": "Alt-tech platform"}
+}

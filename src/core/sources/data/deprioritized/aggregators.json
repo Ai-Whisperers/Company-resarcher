@@ -1,0 +1,23 @@
+{
+  "_description": "News & Financial Aggregators - Aggregated content, prefer original sources",
+  "news.google.com": {"name": "Google News", "reason": "News aggregator, cite sources"},
+  "finance.yahoo.com": {"name": "Yahoo Finance", "reason": "Financial aggregator"},
+  "marketwatch.com": {"name": "MarketWatch", "reason": "Financial news aggregator"},
+  "seekingalpha.com": {"name": "Seeking Alpha", "reason": "User-generated analysis"},
+  "fool.com": {"name": "Motley Fool", "reason": "Investment advice site"},
+  "barchart.com": {"name": "Barchart", "reason": "Financial data aggregator"},
+  "tipranks.com": {"name": "TipRanks", "reason": "Analyst rating aggregator"},
+  "stocktwits.com": {"name": "StockTwits", "reason": "Social trading, user-generated"},
+  "finviz.com": {"name": "Finviz", "reason": "Stock screener, aggregated data"},
+  "tradingview.com": {"name": "TradingView", "reason": "Charting, user analysis"},
+  "investing.com": {"name": "Investing.com", "reason": "Financial aggregator"},
+  "stockcharts.com": {"name": "StockCharts", "reason": "Technical analysis"},
+  "moneycontrol.com": {"name": "MoneyControl", "reason": "Indian financial aggregator"},
+  "gurufocus.com": {"name": "GuruFocus", "reason": "Value investing aggregator"},
+  "simplywall.st": {"name": "Simply Wall St", "reason": "Stock analysis aggregator"},
+  "wallmine.com": {"name": "Wallmine", "reason": "Stock data aggregator"},
+  "macroaxis.com": {"name": "Macroaxis", "reason": "Portfolio analysis"},
+  "zacks.com": {"name": "Zacks", "reason": "Stock research aggregator"},
+  "thestreet.com": {"name": "TheStreet", "reason": "Financial news/analysis"},
+  "benzinga.com": {"name": "Benzinga", "reason": "Financial news aggregator"}
+}

@@ -17,7 +17,6 @@ from enum import Enum
 
 from ..templates.report_schema import (
     ResearchReport,
-    QualityMetrics,
     ContentQuality,
     ReportSection,
     create_report_from_drafts,

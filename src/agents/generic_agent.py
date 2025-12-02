@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import Dict, Any
 from datetime import datetime
 from .base_agent import BaseAgent
 from ..core.types import CompanyProfile, ResearchPhaseResult
@@ -112,7 +112,6 @@ class GenericResearchAgent(BaseAgent):
         elif "Marketing-Execution" in self.phase_id:
             prompt += '\nEnsure you extract "channels" (list), "content_pillars", and "funnel_architecture".'
 
-        import json
         from ..services.json_parser_helper import robust_json_parse
 
         # Initialize before try block to avoid NameError in exception handler

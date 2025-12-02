@@ -1,0 +1,23 @@
+{
+  "_description": "Major Stock Exchanges - Official exchange websites with market data",
+  "nyse.com": {"name": "New York Stock Exchange", "description": "US equities, listings, market data", "authority_score": 0.99},
+  "nasdaq.com": {"name": "NASDAQ", "description": "US tech-heavy exchange, market data", "authority_score": 0.99},
+  "londonstockexchange.com": {"name": "London Stock Exchange", "description": "UK/European equities, FTSE indices", "authority_score": 0.98},
+  "jpx.co.jp": {"name": "Japan Exchange Group (Tokyo)", "description": "Tokyo Stock Exchange, Nikkei", "authority_score": 0.97},
+  "hkex.com.hk": {"name": "Hong Kong Exchanges", "description": "Hong Kong exchange, Hang Seng", "authority_score": 0.97},
+  "sse.com.cn": {"name": "Shanghai Stock Exchange", "description": "Chinese A-shares, SSE Composite", "authority_score": 0.96},
+  "euronext.com": {"name": "Euronext", "description": "Pan-European exchange (Paris, Amsterdam, Brussels)", "authority_score": 0.97},
+  "deutsche-boerse.com": {"name": "Deutsche Börse", "description": "German exchange, DAX index", "authority_score": 0.97},
+  "six-group.com": {"name": "SIX Swiss Exchange", "description": "Swiss exchange, SMI index", "authority_score": 0.96},
+  "tsx.com": {"name": "Toronto Stock Exchange", "description": "Canadian equities, TSX index", "authority_score": 0.96},
+  "asx.com.au": {"name": "Australian Securities Exchange", "description": "Australian equities, ASX 200", "authority_score": 0.96},
+  "bseindia.com": {"name": "Bombay Stock Exchange", "description": "Indian equities, SENSEX", "authority_score": 0.95},
+  "nseindia.com": {"name": "National Stock Exchange of India", "description": "Indian equities, NIFTY", "authority_score": 0.95},
+  "jse.co.za": {"name": "Johannesburg Stock Exchange", "description": "South African equities", "authority_score": 0.94},
+  "b3.com.br": {"name": "B3 Brasil Bolsa Balcão", "description": "Brazilian stock exchange, Bovespa", "authority_score": 0.95},
+  "bmv.com.mx": {"name": "Bolsa Mexicana de Valores", "description": "Mexican stock exchange, IPC", "authority_score": 0.94},
+  "bolsadesantiago.com": {"name": "Bolsa de Santiago", "description": "Chilean stock exchange", "authority_score": 0.93},
+  "byma.com.ar": {"name": "BYMA (Buenos Aires)", "description": "Argentine stock exchange", "authority_score": 0.92},
+  "bvl.com.pe": {"name": "Bolsa de Valores de Lima", "description": "Peruvian stock exchange", "authority_score": 0.92},
+  "bvc.com.co": {"name": "Bolsa de Valores de Colombia", "description": "Colombian stock exchange", "authority_score": 0.92}
+}

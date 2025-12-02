@@ -7,7 +7,6 @@ Defines the interface that all search providers must implement.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
-from datetime import datetime
 
 
 class SearchError(Exception):

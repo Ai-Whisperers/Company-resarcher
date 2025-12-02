@@ -1,0 +1,23 @@
+{
+  "_description": "Link Farms & Low-Quality Press Release Sites - SEO manipulation",
+  "prlog.org": {"name": "PRLog", "reason": "Free press release distribution"},
+  "pr.com": {"name": "PR.com", "reason": "Low-quality press releases"},
+  "free-press-release.com": {"name": "Free Press Release", "reason": "Spam press releases"},
+  "pressreleasepoint.com": {"name": "Press Release Point", "reason": "Low-quality distribution"},
+  "1888pressrelease.com": {"name": "1888 Press Release", "reason": "Low-quality distribution"},
+  "24-7pressrelease.com": {"name": "24-7 Press Release", "reason": "Low-quality distribution"},
+  "einpresswire.com": {"name": "EIN Presswire", "reason": "Low-quality press releases"},
+  "newswiretoday.com": {"name": "Newswire Today", "reason": "Low-quality distribution"},
+  "openpr.com": {"name": "OpenPR", "reason": "Free press release spam"},
+  "prfire.com": {"name": "PRFire", "reason": "Low-quality distribution"},
+  "prurgent.com": {"name": "PRUrgent", "reason": "Low-quality distribution"},
+  "sbwire.com": {"name": "SBWire", "reason": "Low-quality distribution"},
+  "webwire.com": {"name": "WebWire", "reason": "Low-quality distribution"},
+  "i-newswire.com": {"name": "i-Newswire", "reason": "Low-quality distribution"},
+  "clickpress.com": {"name": "ClickPress", "reason": "Low-quality distribution"},
+  "express-press-release.net": {"name": "Express Press Release", "reason": "Spam press releases"},
+  "prweb.com": {"name": "PRWeb", "reason": "Pay-to-play press releases"},
+  "przoom.com": {"name": "PRZoom", "reason": "Low-quality distribution"},
+  "pr-inside.com": {"name": "PR Inside", "reason": "Low-quality distribution"},
+  "prleap.com": {"name": "PRLeap", "reason": "Low-quality distribution"}
+}

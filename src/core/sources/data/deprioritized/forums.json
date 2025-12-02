@@ -1,0 +1,23 @@
+{
+  "_description": "Forums & Discussion Sites - Community discussions, not authoritative sources",
+  "hackernews.com": {"name": "Hacker News (wrong domain)", "reason": "Incorrect domain"},
+  "news.ycombinator.com": {"name": "Hacker News", "reason": "Tech community discussion"},
+  "slashdot.org": {"name": "Slashdot", "reason": "Tech news/discussion"},
+  "lobste.rs": {"name": "Lobsters", "reason": "Tech link aggregator"},
+  "lemmy.world": {"name": "Lemmy", "reason": "Federated discussion"},
+  "tildes.net": {"name": "Tildes", "reason": "Discussion community"},
+  "digg.com": {"name": "Digg", "reason": "News aggregator"},
+  "stumbleupon.com": {"name": "StumbleUpon", "reason": "Defunct content discovery"},
+  "delicious.com": {"name": "Delicious", "reason": "Defunct bookmarking"},
+  "metafilter.com": {"name": "MetaFilter", "reason": "Community weblog"},
+  "boingboing.net": {"name": "Boing Boing", "reason": "Tech culture blog"},
+  "fark.com": {"name": "Fark", "reason": "News aggregator/commentary"},
+  "kuro5hin.org": {"name": "Kuro5hin", "reason": "Defunct discussion site"},
+  "hubski.com": {"name": "Hubski", "reason": "Community discussion"},
+  "voat.co": {"name": "Voat", "reason": "Defunct Reddit alternative"},
+  "saidit.net": {"name": "Saidit", "reason": "Reddit alternative"},
+  "raddle.me": {"name": "Raddle", "reason": "Discussion forum"},
+  "snapzu.com": {"name": "Snapzu", "reason": "Community platform"},
+  "steemit.com": {"name": "Steemit", "reason": "Blockchain-based forum"},
+  "mastodon.social": {"name": "Mastodon", "reason": "Federated social network"}
+}

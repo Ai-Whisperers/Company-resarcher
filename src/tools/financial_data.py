@@ -202,3 +202,210 @@ class FinancialDataTool:
             f"Could not guess ticker for '{company_name}'. Consider using a ticker lookup service."
         )
         return None
+
+    # INT-008: Enhanced yfinance features
+
+    async def get_institutional_holders(self, ticker: str) -> Dict[str, Any]:
+        """
+        Get institutional holders data for a stock.
+
+        Args:
+            ticker: Stock ticker symbol
+
+        Returns:
+            Dictionary with major holders and institutional holders data
+        """
+        try:
+            stock = await asyncio.to_thread(yf.Ticker, ticker)
+
+            # Get major holders percentages
+            major_holders = await asyncio.to_thread(lambda: stock.major_holders)
+            institutional = await asyncio.to_thread(lambda: stock.institutional_holders)
+
+            result = {
+                "ticker": ticker,
+                "major_holders": (
+                    major_holders.to_dict() if major_holders is not None else {}
+                ),
+                "institutional_holders": [],
+            }
+
+            if institutional is not None and not institutional.empty:
+                # Convert DataFrame to list of dicts
+                for _, row in institutional.head(20).iterrows():
+                    holder = {
+                        "holder": row.get("Holder", ""),
+                        "shares": int(row.get("Shares", 0)),
+                        "date_reported": str(row.get("Date Reported", "")),
+                        "pct_out": float(row.get("% Out", 0)) if row.get("% Out") else None,
+                        "value": float(row.get("Value", 0)) if row.get("Value") else None,
+                    }
+                    result["institutional_holders"].append(holder)
+
+            logger.info(f"Fetched institutional holders for {ticker}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to fetch institutional holders for {ticker}: {str(e)}")
+            return {"ticker": ticker, "error": str(e)}
+
+    async def get_analyst_recommendations(self, ticker: str) -> Dict[str, Any]:
+        """
+        Get analyst recommendations and price targets.
+
+        Args:
+            ticker: Stock ticker symbol
+
+        Returns:
+            Dictionary with analyst recommendations, upgrades/downgrades, and targets
+        """
+        try:
+            stock = await asyncio.to_thread(yf.Ticker, ticker)
+
+            recommendations = await asyncio.to_thread(lambda: stock.recommendations)
+            upgrades_downgrades = await asyncio.to_thread(lambda: stock.upgrades_downgrades)
+            info = await asyncio.to_thread(lambda: stock.info)
+
+            result = {
+                "ticker": ticker,
+                "current_recommendation": info.get("recommendationKey"),
+                "recommendation_mean": info.get("recommendationMean"),
+                "number_of_analysts": info.get("numberOfAnalystOpinions"),
+                "target_high": info.get("targetHighPrice"),
+                "target_low": info.get("targetLowPrice"),
+                "target_mean": info.get("targetMeanPrice"),
+                "target_median": info.get("targetMedianPrice"),
+                "recent_recommendations": [],
+                "upgrades_downgrades": [],
+            }
+
+            # Recent recommendations
+            if recommendations is not None and not recommendations.empty:
+                for idx, row in recommendations.tail(10).iterrows():
+                    rec = {
+                        "date": str(idx),
+                        "firm": row.get("Firm", ""),
+                        "to_grade": row.get("To Grade", ""),
+                        "from_grade": row.get("From Grade", ""),
+                        "action": row.get("Action", ""),
+                    }
+                    result["recent_recommendations"].append(rec)
+
+            # Upgrades/downgrades
+            if upgrades_downgrades is not None and not upgrades_downgrades.empty:
+                for idx, row in upgrades_downgrades.tail(10).iterrows():
+                    change = {
+                        "date": str(idx),
+                        "firm": row.get("Firm", ""),
+                        "to_grade": row.get("ToGrade", ""),
+                        "from_grade": row.get("FromGrade", ""),
+                        "action": row.get("Action", ""),
+                    }
+                    result["upgrades_downgrades"].append(change)
+
+            logger.info(f"Fetched analyst recommendations for {ticker}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to fetch analyst recommendations for {ticker}: {str(e)}")
+            return {"ticker": ticker, "error": str(e)}
+
+    async def get_esg_scores(self, ticker: str) -> Dict[str, Any]:
+        """
+        Get ESG (Environmental, Social, Governance) scores.
+
+        Args:
+            ticker: Stock ticker symbol
+
+        Returns:
+            Dictionary with ESG scores and sustainability data
+        """
+        try:
+            stock = await asyncio.to_thread(yf.Ticker, ticker)
+            sustainability = await asyncio.to_thread(lambda: stock.sustainability)
+
+            if sustainability is None or sustainability.empty:
+                logger.warning(f"No ESG data available for {ticker}")
+                return {
+                    "ticker": ticker,
+                    "available": False,
+                    "message": "ESG data not available for this ticker"
+                }
+
+            # Convert sustainability DataFrame to dict
+            esg_data = sustainability.to_dict()
+
+            result = {
+                "ticker": ticker,
+                "available": True,
+                "scores": {},
+                "controversy_level": None,
+                "peer_comparison": {},
+            }
+
+            # Extract key ESG scores
+            if "Value" in esg_data:
+                values = esg_data["Value"]
+                result["scores"] = {
+                    "total_esg": values.get("totalEsg"),
+                    "environment_score": values.get("environmentScore"),
+                    "social_score": values.get("socialScore"),
+                    "governance_score": values.get("governanceScore"),
+                    "esg_performance": values.get("esgPerformance"),
+                }
+                result["controversy_level"] = values.get("highestControversy")
+                result["peer_comparison"] = {
+                    "peer_count": values.get("peerCount"),
+                    "peer_group": values.get("peerGroup"),
+                    "peer_esg_score_performance": values.get("peerEsgScorePerformance"),
+                    "peer_governance_performance": values.get("peerGovernancePerformance"),
+                    "peer_social_performance": values.get("peerSocialPerformance"),
+                    "peer_environment_performance": values.get("peerEnvironmentPerformance"),
+                }
+
+            logger.info(f"Fetched ESG scores for {ticker}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to fetch ESG scores for {ticker}: {str(e)}")
+            return {"ticker": ticker, "error": str(e)}
+
+    async def get_comprehensive_data(self, ticker: str) -> Dict[str, Any]:
+        """
+        Get comprehensive financial data including all enhanced features.
+
+        Combines company info, financials, institutional holders,
+        analyst recommendations, and ESG scores.
+
+        Args:
+            ticker: Stock ticker symbol
+
+        Returns:
+            Dictionary with all available financial data
+        """
+        try:
+            # Fetch all data concurrently
+            company_info, statements, holders, recommendations, esg = await asyncio.gather(
+                self.get_company_info(ticker),
+                self.get_financial_statements(ticker),
+                self.get_institutional_holders(ticker),
+                self.get_analyst_recommendations(ticker),
+                self.get_esg_scores(ticker),
+                return_exceptions=True
+            )
+
+            result = {
+                "ticker": ticker,
+                "company_info": company_info if not isinstance(company_info, Exception) else {"error": str(company_info)},
+                "financial_statements": statements if not isinstance(statements, Exception) else {"error": str(statements)},
+                "institutional_holders": holders if not isinstance(holders, Exception) else {"error": str(holders)},
+                "analyst_recommendations": recommendations if not isinstance(recommendations, Exception) else {"error": str(recommendations)},
+                "esg_scores": esg if not isinstance(esg, Exception) else {"error": str(esg)},
+            }
+
+            logger.info(f"Fetched comprehensive data for {ticker}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to fetch comprehensive data for {ticker}: {str(e)}")
+            return {"ticker": ticker, "error": str(e)}
