@@ -372,7 +372,7 @@ class SmartAIRouter(BaseAIClient):
         expensive_model = os.getenv("ROUTER_EXPENSIVE_MODEL", "gpt-4-turbo-preview")
 
         if use_ollama:
-            from ..ai import OllamaClient
+            from .. import OllamaClient
             self._clients[ModelTier.ULTRA_FAST] = OllamaClient(model="llama3.1:8b")
 
         self._clients[ModelTier.FAST] = OpenAIClient(api_key, model=cheap_model)
