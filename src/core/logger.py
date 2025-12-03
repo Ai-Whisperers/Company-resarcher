@@ -504,7 +504,13 @@ def setup_logger(
         # Create directory if needed
         log_file.parent.mkdir(parents=True, exist_ok=True)
 
-        file_handler = logging.FileHandler(log_file)
+        # P2 Fix: Explicitly set UTF-8 encoding for file handler to prevent
+        # UnicodeEncodeError with special characters on Windows
+        file_handler = logging.FileHandler(
+            log_file,
+            encoding='utf-8',
+            errors='backslashreplace'  # Show \uXXXX for unencodable chars
+        )
         # Use JSON formatter for file logs in production, otherwise SanitizingFormatter
         if json_output:
             file_handler.setFormatter(StructuredJSONFormatter())

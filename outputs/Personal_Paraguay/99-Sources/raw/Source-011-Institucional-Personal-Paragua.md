@@ -4,9 +4,9 @@
 
 | Field | Value |
 |-------|-------|
-| **URL** | https://www.personal.com.py/institucional/ |
+| **URL** | https://www.personal.com.py/institucional/index.html |
 | **Type** | Social |
-| **Date Accessed** | 2025-12-01 |
+| **Date Accessed** | 2025-12-02 |
 | **Reliability** | Medium |
 | **Language** | Auto-detected |
 

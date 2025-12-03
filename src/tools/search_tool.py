@@ -29,8 +29,8 @@ from .search.base import SearchError as ProviderSearchError, RateLimitError
 logger = setup_logger("search_tool")
 settings = get_settings()
 
-# Configurable search timeout (default 30 seconds)
-SEARCH_TIMEOUT_SECONDS = int(os.getenv("SEARCH_TIMEOUT_SECONDS", "30"))
+# Configurable search timeout (default 45 seconds - increased from 30 for better success rate)
+SEARCH_TIMEOUT_SECONDS = int(os.getenv("SEARCH_TIMEOUT_SECONDS", "45"))
 
 # Maximum query length to prevent abuse
 MAX_QUERY_LENGTH = 500

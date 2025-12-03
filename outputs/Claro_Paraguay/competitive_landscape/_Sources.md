@@ -8,148 +8,113 @@ This document lists all sources used in this section.
 
 | ID | Title | Type | Reliability |
 |----|-------|------|-------------|
-| 001 | Telecomunicación - Wikipedia, la enciclopedia libr... | Web | Medium |
-| 002 | Telecommunications - Wikipedia | Web | Medium |
-| 003 | List of heads of state of Paraguay - Wikipedia | Web | Medium |
-| 004 | What is Telecommunications (Telecom)? | Definition... | Web | Medium |
-| 005 | Claro (Paraguay) - Wikipedia, la enciclopedia libr... | Social | Medium |
-| 008 | Claro Paraguay | Powertec Information Portal | Financial | Medium |
-| 011 | How to Get and Activate Claro Paraguay SIM card an... | Web | Medium |
-| 016 | Truth About Claro paraguay. Is Claro paraguay the ... | Web | Medium |
-| 023 | Navigation Failed | Web | Medium |
-| 024 | Claro Paraguay Risk Report | Riskify | Web | Medium |
-| 025 | Paraguay Telecommunication Market Report (2020-202... | Web | Medium |
-| 028 | Paraguay Telecom MNO Market Size, Share, 2025-2030... | Financial | Medium |
-| 030 | Paraguay Telecom Operators Country Report 2025 | F... | News | Medium |
-| 037 | Paraguay’s Internet Access in 2025: Shocking Facts... | News | Medium |
-| 039 | Estadísticas: telecomunicaciones en Paraguay – Tel... | Web | Medium |
-| 044 | Planes de Internet WiFi por Fibra óptica y TV HD |... | Social | Medium |
-| 055 | Paraguay Mobile Operators: Which One is the Best i... | Web | Medium |
-| 056 | Claro - Paraguay - Wireless Frequency Bands and De... | Social | Medium |
-| 057 | Best Claro SIM Cards and eSIM for Tourists 2025 | Web | Medium |
-| 080 | Paraguay Telecom Operators Country Report 2025 | F... | Financial | Medium |
+| 002 | Claro (Paraguay) - Wikipedia, la enciclopedia libr... | Social | Medium |
+| 006 | Claro Paraguay | Powertec Information Portal | Financial | Medium |
+| 007 | Claro - Paraguay - Wireless Frequency Bands and De... | Social | Medium |
+| 018 | How to Get and Activate Claro Paraguay SIM card an... | Web | Medium |
+| 020 | Claro Paraguay Risk Report | Riskify | Web | Medium |
+| 033 | Business messaging, AMX (now Claro) | Paraguay | Social | Medium |
+| 034 | SIM Cards in Paraguay: The Best Prepaid Plans | 20... | Web | Medium |
+| 037 | Claro y Nubicom, oferentes en la licitación 5G de ... | Social | Medium |
+| 038 | Claro, Personal y Tigo Paraguay anuncian SIM Swap ... | Social | Medium |
+| 039 | Portabilidad: Planes Claro con más gigas! | Claro ... | Web | Medium |
+| 040 | Business messaging, Claro | Paraguay | Social | Medium |
+| 041 | Claro Paraguay - Mobile Top-Up, Bill Pay, Instant ... | Web | Medium |
+| 042 | Top Up Paraguay Claro Paraguay Prepaid Mobile -  S... | Social | Medium |
+| 065 | Paraguay’s Internet Access in 2025: Shocking Facts... | News | Medium |
+| 072 | El Grupo ClarÃ­n cederá sus negocios en Paraguay p... | Web | Medium |
 
 ---
 
 ## Detailed Source Breakdown
 
-### Source-001: Telecomunicación - Wikipedia, la enciclopedia libre
-
-- **URL:** https://es.wikipedia.org/wiki/Telecomunicaci%C3%B3n
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-002: Telecommunications - Wikipedia
-
-- **URL:** https://en.wikipedia.org/wiki/Telecommunications
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-003: List of heads of state of Paraguay - Wikipedia
-
-- **URL:** https://en.wikipedia.org/wiki/List_of_heads_of_state_of_Paraguay
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-004: What is Telecommunications (Telecom)? | Definition from Tech
-
-- **URL:** https://www.techtarget.com/searchnetworking/definition/telecommunications-telecom
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-005: Claro (Paraguay) - Wikipedia, la enciclopedia libre
+### Source-002: Claro (Paraguay) - Wikipedia, la enciclopedia libre
 
 - **URL:** https://es.wikipedia.org/wiki/Claro_(Paraguay)
-- **Date Accessed:** 2025-12-01
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-008: Claro Paraguay | Powertec Information Portal
+### Source-006: Claro Paraguay | Powertec Information Portal
 
 - **URL:** https://portal.powertec.com.au/industry-resources/companies/claro-paraguay
-- **Date Accessed:** 2025-12-01
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-011: How to Get and Activate Claro Paraguay SIM card and eSIM 202
+### Source-007: Claro - Paraguay - Wireless Frequency Bands and Device Compa
+
+- **URL:** https://www.frequencycheck.com/carriers/claro-paraguay
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-018: How to Get and Activate Claro Paraguay SIM card and eSIM 202
 
 - **URL:** https://gigago.com/claro-paraguay-sim-card/
-- **Date Accessed:** 2025-12-01
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-016: Truth About Claro paraguay. Is Claro paraguay the Right Choi
-
-- **URL:** https://trustburn.com/reviews/claro-paraguay
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-023: Navigation Failed
-
-- **URL:** https://stackpointer.ai/business/claro.com.py
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-024: Claro Paraguay Risk Report | Riskify
+### Source-020: Claro Paraguay Risk Report | Riskify
 
 - **URL:** https://www.riskify.net/company/claro-paraguay
-- **Date Accessed:** 2025-12-01
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-025: Paraguay Telecommunication Market Report (2020-2025)
+### Source-033: Business messaging, AMX (now Claro) | Paraguay
 
-- **URL:** https://www.globalmonitor.us/product/paraguay-telecommunication-market-report
-- **Date Accessed:** 2025-12-01
+- **URL:** https://messaggio.com/messaging/carriers/paraguay/amx/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-028: Paraguay Telecom MNO Market Size, Share, 2025-2030 Outlook
+### Source-034: SIM Cards in Paraguay: The Best Prepaid Plans | 2025 Guide -
 
-- **URL:** https://www.mordorintelligence.com/industry-reports/paraguay-telecom-mno-market
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.phonetravelwiz.com/buying-a-sim-card-in-paraguay-guide/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-030: Paraguay Telecom Operators Country Report 2025 | Fixed
+### Source-037: Claro y Nubicom, oferentes en la licitación 5G de Paraguay
 
-- **URL:** https://www.globenewswire.com/news-release/2025/04/29/3069930/28124/en/Paraguay-Telecom-Operators-Country-Report-2025-Fixed-Broadband-Service-Revenue-to-Reach-324-1-Million-in-2029-as-Operators-Invest-in-Fixed-Infrastructure-to-Support-Fiber-and-Cable.html
-- **Date Accessed:** 2025-12-01
+- **URL:** https://mobiletime.la/noticias/11/08/2025/licitacion-5g-de-paraguay/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-037: Paraguay’s Internet Access in 2025: Shocking Facts about Con
+### Source-038: Claro, Personal y Tigo Paraguay anuncian SIM Swap - Inversor
+
+- **URL:** https://inversorlatam.com/claro-personal-y-tigo-paraguay-anuncian-sim-swap/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-039: Portabilidad: Planes Claro con más gigas! | Claro Paraguay
+
+- **URL:** https://www.claro.com.py/personas/portabilidad
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-040: Business messaging, Claro | Paraguay
+
+- **URL:** https://messaggio.com/messaging/carriers/paraguay/claro/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-041: Claro Paraguay - Mobile Top-Up, Bill Pay, Instant Recharge &
+
+- **URL:** https://topupbill.com/en_gb/topup/claro-paraguay/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-042: Top Up Paraguay Claro Paraguay Prepaid Mobile -  SEAGM
+
+- **URL:** https://www.seagm.com/mobile-recharge/Paraguay/Claro-Paraguay
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-065: Paraguay’s Internet Access in 2025: Shocking Facts about Con
 
 - **URL:** https://ts2.tech/en/paraguays-internet-access-in-2025-shocking-facts-about-connectivity-providers-and-the-starlink-effect/
-- **Date Accessed:** 2025-12-01
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-039: Estadísticas: telecomunicaciones en Paraguay – TeleSemana.co
+### Source-072: El Grupo ClarÃ­n cederá sus negocios en Paraguay por USD 150
 
-- **URL:** https://www.telesemana.com/panorama-de-mercado/paraguay/
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-044: Planes de Internet WiFi por Fibra óptica y TV HD | Claro Par
-
-- **URL:** https://www.claro.com.py/personas/internet
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-055: Paraguay Mobile Operators: Which One is the Best in 2025
-
-- **URL:** https://esimparaguay.com/operators/
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-056: Claro - Paraguay - Wireless Frequency Bands and Device Compa
-
-- **URL:** https://www.frequencycheck.com/carriers/claro-paraguay?c_id=465380
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-057: Best Claro SIM Cards and eSIM for Tourists 2025
-
-- **URL:** https://esimparaguay.com/operators/claro/
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-080: Paraguay Telecom Operators Country Report 2025 | Fixed Broad
-
-- **URL:** https://finance.yahoo.com/news/paraguay-telecom-operators-country-report-090700718.html
-- **Date Accessed:** 2025-12-01
+- **URL:** https://diariocorreocomercial.com.py/el-grupo-claran-cedera-sus-negocios-en-paraguay-por-usd-150-millones/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 

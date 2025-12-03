@@ -8,64 +8,120 @@ This document lists all sources used in this section.
 
 | ID | Title | Type | Reliability |
 |----|-------|------|-------------|
-| 001 | Personal Paraguay Company Overview, Contact Detail... | Social | Medium |
-| 002 | Personal Paraguay | Internet Fibra + Flow | Planes... | Web | Medium |
-| 024 | Telecomunicación - Wikipedia, la enciclopedia libr... | Web | Medium |
-| 025 | Telecommunications - Wikipedia | Web | Medium |
-| 032 | Paraguay Telecom Operators Country Report 2025 | F... | Financial | Medium |
-| 040 | What is Telecommunications (Telecom)? | Definition... | Web | Medium |
-| 065 | Registrarse | LinkedIn | Social | High |
-| 068 | Growth | Social | Medium |
+| 003 | Personal SIM Cards and eSIM 2025: a Comprehensive ... | Web | Medium |
+| 004 | Personal Paraguay | Internet Fibra + Flow | Planes... | Web | Medium |
+| 005 | Personal Paraguay | Internet Fibra + Flow | Planes... | Web | Medium |
+| 006 | Personal (Paraguay) - Wikipedia, la enciclopedia l... | Social | Medium |
+| 007 | Personal Paraguay | Powertec Information Portal | Web | Medium |
+| 008 | Personal Paraguay - YouTube | Social | Medium |
+| 009 | Tienda Personal | Personal Paraguay | Social | Medium |
+| 013 | SIM Cards in Paraguay: The Best Prepaid Plans | 20... | Web | Medium |
+| 016 | Personal Paraguay - Television and Telecom - Datax... | Financial | Medium |
+| 017 | Personal Paraguay Company Overview, Contact Detail... | Social | Medium |
+| 037 | Personal Paraguay | Internet Fibra + Flow | Planes... | Web | Medium |
+| 038 | Paraguay Telecommunication Market Report (2020-202... | Web | Medium |
+| 043 | LTE en Paraguay - El Blog de Personal | Social | Medium |
+| 044 | Paraguay avanza hacia el 5G: fechas clave y requis... | Web | Medium |
+| 045 | Personal Paraguay - YouTube | Social | Medium |
+| 046 | Personal Data Protection in the Private Sector in ... | Web | Medium |
 
 ---
 
 ## Detailed Source Breakdown
 
-### Source-001: Personal Paraguay Company Overview, Contact Details & Compet
+### Source-003: Personal SIM Cards and eSIM 2025: a Comprehensive Guide for 
 
-- **URL:** https://leadiq.com/c/personal-paraguay/5a1d972c230000520085bea0
-- **Date Accessed:** 2025-12-01
+- **URL:** https://gigago.com/personal-paraguay-sim-card/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-002: Personal Paraguay | Internet Fibra + Flow | Planes | Celular
+### Source-004: Personal Paraguay | Internet Fibra + Flow | Planes | Celular
 
 - **URL:** https://www.personal.com.py/
-- **Date Accessed:** 2025-12-01
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-024: Telecomunicación - Wikipedia, la enciclopedia libre
+### Source-005: Personal Paraguay | Internet Fibra + Flow | Planes | Celular
 
-- **URL:** https://es.wikipedia.org/wiki/Telecomunicaci%C3%B3n
-- **Date Accessed:** 2025-12-01
+- **URL:** https://personal.com.py/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-025: Telecommunications - Wikipedia
+### Source-006: Personal (Paraguay) - Wikipedia, la enciclopedia libre
 
-- **URL:** https://en.wikipedia.org/wiki/Telecommunications
-- **Date Accessed:** 2025-12-01
+- **URL:** https://es.wikipedia.org/wiki/Personal_(Paraguay)
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-032: Paraguay Telecom Operators Country Report 2025 | Fixed Broad
+### Source-007: Personal Paraguay | Powertec Information Portal
 
-- **URL:** https://finance.yahoo.com/news/paraguay-telecom-operators-country-report-090700718.html?fr=sycsrp_catchall
-- **Date Accessed:** 2025-12-01
+- **URL:** https://portal.powertec.com.au/industry-resources/companies/personal-paraguay
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-040: What is Telecommunications (Telecom)? | Definition from Tech
+### Source-008: Personal Paraguay - YouTube
 
-- **URL:** https://www.techtarget.com/searchnetworking/definition/telecommunications-telecom
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.youtube.com/channel/UC4yLqL1NMCz5i5qoGLzEcSQ
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-065: Registrarse | LinkedIn
+### Source-009: Tienda Personal | Personal Paraguay
 
-- **URL:** https://pn.linkedin.com/company/personalparaguay
-- **Date Accessed:** 2025-12-01
-- **Reliability:** High
+- **URL:** https://tienda.personal.com.py/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
 
-### Source-068: Growth
+### Source-013: SIM Cards in Paraguay: The Best Prepaid Plans | 2025 Guide -
 
-- **URL:** https://www.growthdigital.biz/casos-exito/caso-de-exito-personal-paraguay/
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.phonetravelwiz.com/buying-a-sim-card-in-paraguay-guide/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-016: Personal Paraguay - Television and Telecom - Dataxis
+
+- **URL:** https://dataxis.com/product/actor-profile/personal-paraguay-television-and-telecom/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-017: Personal Paraguay Company Overview, Contact Details & Compet
+
+- **URL:** https://leadiq.com/c/personal-paraguay/5a1d972c230000520085bea0
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-037: Personal Paraguay | Internet Fibra + Flow | Planes | Celular
+
+- **URL:** https://w3.ataiva.com/personal.com.py
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-038: Paraguay Telecommunication Market Report (2020-2025)
+
+- **URL:** https://www.globalmonitor.us/product/paraguay-telecommunication-market-report
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-043: LTE en Paraguay - El Blog de Personal
+
+- **URL:** https://blog.personal.com.py/lte-en-paraguay/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-044: Paraguay avanza hacia el 5G: fechas clave y requisitos de la
+
+- **URL:** https://www.latribuna.com.py/ciencia-y-tecnologia/243745-licitacion-5g-paraguay-2024
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-045: Personal Paraguay - YouTube
+
+- **URL:** https://www.youtube.com/c/personalcompy/videos
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-046: Personal Data Protection in the Private Sector in Paraguay: 
+
+- **URL:** https://www.tedic.org/en/datospersonales_empresas/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 

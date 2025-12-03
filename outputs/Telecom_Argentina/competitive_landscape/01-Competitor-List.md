@@ -2,7 +2,7 @@
 
 **Company:** Telecom Argentina
 **Industry:** Telecommunications
-**Date:** 2025-12-01 22:32:08
+**Date:** 2025-12-02 20:54:56
 
 ## Direct Competitors
 
@@ -31,30 +31,32 @@
 ## Sources
 
 
-- [Top telecom.com.ar competitors & alternatives - AhrefsTop](https://ahrefstop.com/websites/telecom.com.ar/competitors)
-
-- [Telecom Argentina - 2025 Company Profile, Funding & Competitors - Tracxn](https://tracxn.com/d/companies/telecom-argentina/__yr4M8MoTGV1W2fwK-cDUCUcqicpp5T0u5sHghTD5Yg0)
-
-- [List of companies of Argentina - Wikipedia](https://en.wikipedia.org/wiki/List_of_companies_of_Argentina)
-
-- [12 Top Companies in Argentina to Know | Built In](https://builtin.com/articles/argentina-companies)
-
 - [Argentina Telecom Market - Companies, Share, Report & Size](https://www.mordorintelligence.com/industry-reports/argentina-telecom-market)
 
-- [Error 403 - Bolddata.nl](https://companydata.com/companies/argentina/telecom-companies/)
+- [Argentina Telecom Market – Size, Share, Trends, Analysis & Forecast 2025–2034 2025-2034 | Size,Share, Growth](https://markwideresearch.com/argentina-telecom-market/)
 
-- [Telecomunicación - Wikipedia, la enciclopedia libre](https://es.wikipedia.org/wiki/Telecomunicaci%C3%B3n)
+- [Cómo comunicarse con Claro Argentina para reclamar, consultar o instalar algún servicio](https://www.xataka.com.ar/basics/como-comunicarse-claro-argentina)
 
-- [Telecommunications - Wikipedia](https://en.wikipedia.org/wiki/Telecommunications)
+- [Telecom Argentina’s Q1 Sales Soar 28% Following Strategic Movistar Acquisition! - thenewsguy.net](https://thenewsguy.net/2025/05/14/telecom-argentinas-q1-sales-soar-28-following-strategic-movistar-acquisition/)
 
-- [What is Telecommunications (Telecom)? | Definition from TechTarget](https://www.techtarget.com/searchnetworking/definition/telecommunications-telecom)
+- [Argentina Telecom Operators Country Intelligence Report](https://www.globaldata.com/store/report/argentina-telecom-operators-market-analysis/)
 
-- [Competition concerns over Telefónica's sale to Telecom Argentina](https://btw.media/all/it-infrastructure/competition-concerns-over-telefonicas-sale-to-telecom-argentina/)
+- [Argentina - Information and Communications Technology](https://www.trade.gov/country-commercial-guides/argentina-information-and-communications-technology)
+
+- [Argentina telecom market set for modest growth through 2029 – Intelligent CIO LATAM](https://www.intelligentcio.com/latam/2025/10/23/argentina-telecom-market-set-for-modest-growth-through-2029/)
+
+- [Telecom Argentina expands 5G, data centers](https://www.rcrwireless.com/20250908/5g/telecom-argentina-5g)
+
+- [Annual earnings | Telecom Argentina](https://inversores.telecom.com.ar/en/annual-earnings.html)
+
+- [Telecom Argentina Earnings Q3 2025 | TEO News & Analysis](https://www.panabee.com/news/telecom-argentina-earnings-q3-2025)
+
+- [DirecTV Argentina - Television and Telecom - Dataxis](https://dataxis.com/product/actor-profile/directv-argentina-television-and-telecom/)
 
 - [Inversores | Telecom Argentina](https://inversores.telecom.com.ar/es/informacion-general.html)
 
-- [Registrarse | LinkedIn](https://de.linkedin.com/company/telecom-argentina)
+- [Telecom Argentina - 2025 Company Profile, Funding & Competitors - Tracxn](https://tracxn.com/d/companies/telecom-argentina/__yr4M8MoTGV1W2fwK-cDUCUcqicpp5T0u5sHghTD5Yg0)
 
-- [List of telecommunications companies in the Americas - Wikipedia](https://en.wikipedia.org/wiki/List_of_telecommunications_companies_in_the_Americas)
+- [Kochava Media Index - Telecom Argentina Competitors, Reviews, Marketing Contacts, Traffic, & Advertising Data in 2025](https://media-index.kochava.com/buyers/telecom-argentina)
 
-- [Largest Argentinian listed companies 2024| Statista](https://www.statista.com/statistics/1401968/largest-listed-companies-in-argentina/)
+- [Telecom Argentina acquires local Telefonica operation](https://www.rcrwireless.com/20250227/featured/telecom-acquires-telefonica)

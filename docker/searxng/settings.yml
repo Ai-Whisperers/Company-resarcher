@@ -1,0 +1,112 @@
+# SearXNG Configuration for Company Researcher
+# Self-hosted meta search engine
+
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "Company Researcher Search"
+  privacypolicy_url: false
+  donation_url: false
+  contact_url: false
+  enable_metrics: true
+
+search:
+  safe_search: 0
+  autocomplete: "google"
+  default_lang: "en"
+  formats:
+    - html
+    - json
+
+server:
+  port: 8080
+  bind_address: "0.0.0.0"
+  secret_key: "change-this-secret-key-in-production"
+  limiter: false
+  image_proxy: true
+
+ui:
+  static_use_hash: true
+  default_theme: simple
+  theme_args:
+    simple_style: auto
+
+outgoing:
+  request_timeout: 10.0
+  max_request_timeout: 30.0
+  useragent_suffix: "CompanyResearcher"
+  pool_connections: 100
+  pool_maxsize: 20
+
+engines:
+  - name: google
+    engine: google
+    shortcut: g
+    disabled: false
+
+  - name: bing
+    engine: bing
+    shortcut: b
+    disabled: false
+
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    disabled: false
+
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: w
+    disabled: false
+
+  - name: wikidata
+    engine: wikidata
+    shortcut: wd
+    disabled: false
+
+  - name: google news
+    engine: google_news
+    shortcut: gn
+    disabled: false
+
+  - name: yahoo news
+    engine: yahoo_news
+    shortcut: yn
+    disabled: false
+
+  - name: arxiv
+    engine: arxiv
+    shortcut: arx
+    disabled: false
+    categories: science
+
+  - name: google scholar
+    engine: google_scholar
+    shortcut: gs
+    disabled: false
+    categories: science
+
+  - name: github
+    engine: github
+    shortcut: gh
+    disabled: false
+    categories: it
+
+  - name: stackoverflow
+    engine: stackoverflow
+    shortcut: so
+    disabled: false
+    categories: it
+
+  - name: currency
+    engine: currency_convert
+    shortcut: cur
+    disabled: false
+    categories: general
+
+  - name: wolframalpha
+    engine: wolframalpha_api
+    shortcut: wa
+    disabled: true
+    # Requires API key: api_key: "YOUR_KEY"

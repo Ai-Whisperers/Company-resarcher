@@ -17,6 +17,7 @@ import re
 
 from ..core.types import ResearchSource
 from ..core.logger import setup_logger
+from ..core.content_data_extractor import get_content_extractor, ExtractionResult
 
 logger = setup_logger("source_tracker")
 
@@ -78,14 +79,19 @@ class SourceTracker:
         source: ResearchSource,
         section: str,
         reliability: Optional[str] = None,
+        extract_data_types: bool = True,
     ) -> TrackedSource:
         """
         Track a source and associate it with a section.
+
+        P0 Fix: Now also extracts data types from content and assigns source
+        to additional sections based on what data it contains.
 
         Args:
             source: The research source to track
             section: The section that uses this source (e.g., "00-Strategic-Context")
             reliability: Override reliability assessment
+            extract_data_types: Whether to extract data types for multi-section mapping
 
         Returns:
             The tracked source (may be existing if URL already tracked)
@@ -113,6 +119,16 @@ class SourceTracker:
         )
         tracked.add_section(section)
 
+        # P0 Fix: Extract data types and map to additional sections
+        if extract_data_types and source.content:
+            additional_sections = self._extract_and_map_sections(source, section)
+            for extra_section in additional_sections:
+                tracked.add_section(extra_section)
+                logger.debug(
+                    f"Source {source_id} also mapped to {extra_section} "
+                    f"(extracted data type)"
+                )
+
         # Store
         self._sources[source_id] = tracked
         self._url_to_id[source.url] = source_id
@@ -120,6 +136,44 @@ class SourceTracker:
         logger.debug(f"Tracked source {source_id}: {source.title[:50]}...")
 
         return tracked
+
+    def _extract_and_map_sections(
+        self,
+        source: ResearchSource,
+        current_section: str,
+    ) -> Set[str]:
+        """
+        P0 Fix: Extract data types from content and return additional sections.
+
+        This ensures sources containing financial data, market share, etc.
+        are mapped to appropriate sections beyond just the query's target.
+        """
+        try:
+            extractor = get_content_extractor()
+            result = extractor.extract(source.url, source.content or "")
+
+            # Map extracted data type sections to actual folder names
+            section_name_mapping = {
+                "data_room": "data_room",
+                "investment_analysis": "investment_analysis",
+                "competitive_landscape": "competitive_landscape",
+                "market_intelligence": "market_intelligence",
+                "strategic_context": "strategic_context",
+                "sales_intelligence": "sales_intelligence",
+                "marketing_execution": "marketing_execution",
+            }
+
+            additional = set()
+            for section_key in result.sections_to_add:
+                mapped = section_name_mapping.get(section_key, section_key)
+                if mapped != current_section:
+                    additional.add(mapped)
+
+            return additional
+
+        except Exception as e:
+            logger.warning(f"Error extracting data types: {e}")
+            return set()
 
     def track_sources(
         self,

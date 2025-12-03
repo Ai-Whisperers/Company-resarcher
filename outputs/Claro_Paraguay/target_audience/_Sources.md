@@ -8,71 +8,57 @@ This document lists all sources used in this section.
 
 | ID | Title | Type | Reliability |
 |----|-------|------|-------------|
-| 001 | Telecomunicación - Wikipedia, la enciclopedia libr... | Web | Medium |
-| 002 | Telecommunications - Wikipedia | Web | Medium |
-| 004 | What is Telecommunications (Telecom)? | Definition... | Web | Medium |
-| 025 | Paraguay Telecommunication Market Report (2020-202... | Web | Medium |
-| 026 | Mobile Phone and Internet Services in Paraguay (20... | Web | Medium |
-| 027 | Telecommunication in Paraguay | Social | Medium |
-| 028 | Paraguay Telecom MNO Market Size, Share, 2025-2030... | Financial | Medium |
-| 058 | Telecom Customer Journey Mapping | Web | Medium |
-| 072 | a-data-driven-approach-to-improve-customer-churn-p... | Web | Medium |
+| 002 | Claro (Paraguay) - Wikipedia, la enciclopedia libr... | Social | Medium |
+| 012 | Truth About Claro paraguay. Is Claro paraguay the ... | Web | Medium |
+| 017 | Best jobs for you | Web | Medium |
+| 022 | 8-de-cada-10-personas-utiliza-internet-en-paraguay | Social | High |
+| 023 | Paraguay cuenta con más de 380 puntos de WiFi grat... | Social | High |
+| 029 | Precios, términos y condiciones Prepago | Claro Pa... | Web | Medium |
+| 030 | Encuesta | Claro Paraguay | Social | Medium |
 
 ---
 
 ## Detailed Source Breakdown
 
-### Source-001: Telecomunicación - Wikipedia, la enciclopedia libre
+### Source-002: Claro (Paraguay) - Wikipedia, la enciclopedia libre
 
-- **URL:** https://es.wikipedia.org/wiki/Telecomunicaci%C3%B3n
-- **Date Accessed:** 2025-12-01
+- **URL:** https://es.wikipedia.org/wiki/Claro_(Paraguay)
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-002: Telecommunications - Wikipedia
+### Source-012: Truth About Claro paraguay. Is Claro paraguay the Right Choi
 
-- **URL:** https://en.wikipedia.org/wiki/Telecommunications
-- **Date Accessed:** 2025-12-01
+- **URL:** https://trustburn.com/reviews/claro-paraguay
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-004: What is Telecommunications (Telecom)? | Definition from Tech
+### Source-017: Best jobs for you
 
-- **URL:** https://www.techtarget.com/searchnetworking/definition/telecommunications-telecom
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.zippia.com/claro-paraguay-careers-1525774/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-025: Paraguay Telecommunication Market Report (2020-2025)
+### Source-022: 8-de-cada-10-personas-utiliza-internet-en-paraguay
 
-- **URL:** https://www.globalmonitor.us/product/paraguay-telecommunication-market-report
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.ine.gov.py/noticias/2436/8-de-cada-10-personas-utiliza-internet-en-paraguay
+- **Date Accessed:** 2025-12-02
+- **Reliability:** High
+
+### Source-023: Paraguay cuenta con más de 380 puntos de WiFi gratis, proveí
+
+- **URL:** https://mitic.gov.py/paraguay-cuenta-con-mas-de-380-puntos-de-wifi-gratis-proveidos-por-mitic/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** High
+
+### Source-029: Precios, términos y condiciones Prepago | Claro Paraguay
+
+- **URL:** https://www.claro.com.py/personas/planes-prepago-pospago/terminos-condiciones-prepago
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-026: Mobile Phone and Internet Services in Paraguay (2025 Guide) 
+### Source-030: Encuesta | Claro Paraguay
 
-- **URL:** https://getresidencyparaguay.com/mobile-phone-and-internet-services-in-paraguay-2025-guide/
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-027: Telecommunication in Paraguay
-
-- **URL:** https://www.worlddata.info/america/paraguay/telecommunication.php
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-028: Paraguay Telecom MNO Market Size, Share, 2025-2030 Outlook
-
-- **URL:** https://www.mordorintelligence.com/industry-reports/paraguay-telecom-mno-market
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-058: Telecom Customer Journey Mapping
-
-- **URL:** https://www.csgi.com/insights/customer-journey-mapping-for-telecommunications-companies/
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-072: a-data-driven-approach-to-improve-customer-churn-prediction-
-
-- **URL:** https://www.bohrium.com/paper-details/a-data-driven-approach-to-improve-customer-churn-prediction-based-on-telecom-customer-segmentation/812539163231387649-21695
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.claro.com.py/personas/encuesta/dejanos-tu-opinion
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 

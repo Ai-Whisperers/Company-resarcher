@@ -381,7 +381,9 @@ INSTRUCTIONS:
         fill_results: List[FillResult],
     ) -> None:
         """Update research documents with filled values."""
+        # Sanitize to match output_manager.py naming
         safe_name = re.sub(r'[<>:"/\\|?*]', '_', company_name)
+        safe_name = re.sub(r'[\s_]+', '_', safe_name).strip('_.')
         company_dir = self.base_dir / safe_name
 
         # Group fills by file

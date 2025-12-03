@@ -1,6 +1,7 @@
 """
 Centralized Constants for the Company Researcher System.
 """
+
 import os
 
 # Default Values - configurable via environment variables
@@ -13,7 +14,7 @@ UNKNOWN_VALUE = "Unknown"
 # File Paths - configurable via environment variables
 PROMPTS_DIR = os.getenv("PROMPTS_DIR", "src/prompts")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", "outputs")
-DB_PATH = os.getenv("DB_PATH", "tasks.db")
+DB_PATH = os.getenv("DB_PATH", "data/tasks.db")
 
 # Task Statuses
 STATUS_PENDING = "pending"

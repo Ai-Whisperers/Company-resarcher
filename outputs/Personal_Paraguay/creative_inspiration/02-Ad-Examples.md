@@ -1,7 +1,7 @@
 # Ad Examples
 
 **Company:** Personal Paraguay
-**Date:** 2025-12-01 22:28:52
+**Date:** 2025-12-02 20:43:40
 
 ## Top Performing Ads
 
@@ -19,5 +19,8 @@
 
 
 
-- [Personal (Paraguay) - Wikipedia, la enciclopedia libre](https://es.wikipedia.org/wiki/Personal_(Paraguay))
+- [Personal Paraguay: *1811 • Ads of the World™ | Part of The Clio Network](https://www.adsoftheworld.com/campaigns/1811)
+  
+
+- [Tienda Personal | Personal Paraguay](https://tienda.personal.com.py/)
   

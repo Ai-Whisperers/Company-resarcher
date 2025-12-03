@@ -571,6 +571,9 @@ class DeepResearchService:
 
             return expanded_queries
 
+        except Exception as e:
+            logger.warning(f"Failed to generate followup queries: {e}")
+            return []
 
     async def run_deep_research(
         self,

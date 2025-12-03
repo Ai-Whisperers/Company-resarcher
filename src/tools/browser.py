@@ -18,6 +18,9 @@ from ..core.types import ResearchSource
 from ..core.url_validator import URLValidator, URLValidationError
 from ..core.source_classifier import classify_source
 from ..services.html_cache import get_html_cache
+from ..core.url_cache import get_url_cache, URLFetchCache
+from ..core.domain_filter import get_domain_filter, is_domain_allowed
+from ..core.domain_timeout import get_timeout_manager, get_timeout_for_url, is_domain_circuit_open
 
 logger = setup_logger("browser_tool")
 
@@ -314,18 +317,71 @@ class BrowserTool:
         """
         Fetch a single page and extract its content with metadata.
         Includes overall timeout to prevent hanging on slow pages.
+
+        Performance optimizations (PERF-011, PERF-012, PERF-014):
+        - Checks URL cache to avoid duplicate fetches
+        - Filters blocked domains before fetching
+        - Uses domain-based timeouts
+        - Respects circuit breaker for failing domains
         """
-        try:
-            return await asyncio.wait_for(
-                self._fetch_page_internal(url, wait_for_selector),
-                timeout=FETCH_OVERALL_TIMEOUT
+        # PERF-011: Check URL cache first
+        url_cache = get_url_cache()
+        cached = url_cache.get(url)
+        if cached is not None:
+            logger.debug(f"URL cache hit: {url}")
+            return cached
+
+        # PERF-012: Check domain blocklist
+        if not is_domain_allowed(url):
+            logger.info(f"Blocked domain, skipping: {url}")
+            result = ResearchSource(
+                url=url,
+                title="Blocked Domain",
+                content="Domain is in blocklist (irrelevant or inaccessible)",
+                source_type="blocked",
+                category="filtered",
             )
+            url_cache.put(url, result)
+            return result
+
+        # PERF-014: Check circuit breaker
+        if is_domain_circuit_open(url):
+            logger.info(f"Circuit breaker open, skipping: {url}")
+            return ResearchSource(
+                url=url,
+                title="Circuit Breaker Open",
+                content="Domain has too many consecutive failures, temporarily skipped",
+                source_type="error",
+                category="error",
+            )
+
+        # PERF-014: Get domain-specific timeout
+        timeout = get_timeout_for_url(url)
+        timeout_manager = get_timeout_manager()
+
+        start_time = time.time()
+        try:
+            result = await asyncio.wait_for(
+                self._fetch_page_internal(url, wait_for_selector),
+                timeout=timeout
+            )
+
+            # Record success and cache result
+            elapsed = time.time() - start_time
+            timeout_manager.record_success(url, elapsed)
+            url_cache.put(url, result)
+
+            return result
+
         except asyncio.TimeoutError:
-            logger.error(f"Overall fetch timeout ({FETCH_OVERALL_TIMEOUT}s) for {url}")
+            elapsed = time.time() - start_time
+            logger.error(f"Overall fetch timeout ({timeout}s) for {url}")
+            timeout_manager.record_failure(url, is_timeout=True)
+            url_cache.mark_failed(url)
             return ResearchSource(
                 url=url,
                 title="Fetch Timeout",
-                content=f"Error: Overall fetch timed out after {FETCH_OVERALL_TIMEOUT} seconds",
+                content=f"Error: Overall fetch timed out after {timeout} seconds",
                 source_type="error",
                 category="error",
             )

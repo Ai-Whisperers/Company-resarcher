@@ -4,6 +4,13 @@ import argparse
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
+# CRITICAL: Load .env with override=True BEFORE any pydantic settings imports
+# This ensures .env values take precedence over system environment variables
+from dotenv import load_dotenv
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path, override=True)
+
 import yaml
 
 from src.pipeline.orchestrator import PipelineOrchestrator
@@ -34,7 +41,16 @@ from src.services.cross_company_reader import get_cross_company_reader
 from src.services.market_consolidation import MarketConsolidator, consolidate_from_batch
 from src.services.gap_analyzer import GapAnalyzer, generate_gap_report
 from src.services.iterative_research import IterativeResearchService, fill_market_gaps
+from src.services.incremental_research import (
+    IncrementalResearchService,
+    run_incremental_research,
+    run_incremental_batch,
+    print_incremental_report,
+)
+from src.services.existing_data_analyzer import get_data_analyzer
+from src.services.persistent_source_registry import get_source_registry
 from src.core.types import CompanyProfile
+from src.core.checkpoint_manager import CheckpointManager, get_checkpoint_manager
 
 # Note: Windows Unicode encoding is handled by src.core.logger module
 # via _configure_windows_encoding() and SafeStreamHandler (CRITICAL-001)
@@ -267,6 +283,7 @@ async def run_batch_research(
     parallel: bool = True,
     delay_between: int = 5,
     dry_run: Optional["DryRunContext"] = None,
+    resume: bool = False,
 ) -> Dict[str, Any]:
     """
     Run research for all companies in a market folder.
@@ -276,18 +293,58 @@ async def run_batch_research(
         parallel: Whether to run phases in parallel (within each company)
         delay_between: Seconds to wait between companies
         dry_run: Optional dry-run context for simulating execution
+        resume: If True, skip companies already completed (checkpoint/resume)
 
     Returns:
         Summary of all research results
     """
-    profiles = load_batch_profiles(batch_path)
+    all_profiles = load_batch_profiles(batch_path)
 
-    if not profiles:
+    if not all_profiles:
         logger.error(f"No profiles found in {batch_path}")
         return {"error": "No profiles found"}
 
+    # Initialize checkpoint manager
+    checkpoint = get_checkpoint_manager(batch_path)
+
+    # Handle resume mode
+    profiles = all_profiles
+    skipped_count = 0
+
+    if resume:
+        # Try to load existing checkpoint
+        if checkpoint.exists():
+            checkpoint.load()
+            logger.info("Loaded existing checkpoint for resume")
+        else:
+            # No checkpoint file, but --resume was passed
+            # Sync from outputs directory to detect already-completed companies
+            logger.info("No checkpoint found, detecting completed companies from outputs...")
+            checkpoint.initialize(all_profiles, config={"delay_between": delay_between, "parallel": parallel})
+            checkpoint.sync_from_outputs(all_profiles)
+
+        # Filter to pending companies only
+        profiles = checkpoint.get_pending_companies(all_profiles)
+        skipped_count = len(all_profiles) - len(profiles)
+
+        if skipped_count > 0:
+            print(f"\n{'='*60}")
+            print(f"RESUME MODE: Skipping {skipped_count} completed companies")
+            print(f"{'='*60}")
+            stats = checkpoint.get_stats()
+            print(f"  Completed: {stats.get('completed', 0)}")
+            print(f"  Remaining: {len(profiles)}")
+            print(f"{'='*60}\n")
+
+        if not profiles:
+            print("All companies already completed! Nothing to do.")
+            return {"status": "all_complete", "skipped": skipped_count}
+    else:
+        # Fresh start - initialize new checkpoint
+        checkpoint.initialize(all_profiles, config={"delay_between": delay_between, "parallel": parallel})
+
     print(f"\n{'='*60}")
-    print(f"BATCH RESEARCH: {len(profiles)} companies")
+    print(f"BATCH RESEARCH: {len(profiles)} companies" + (f" ({skipped_count} skipped)" if skipped_count else ""))
     print(f"{'='*60}")
     for i, p in enumerate(profiles, 1):
         print(f"  {i}. {p['name']} ({p.get('industry', 'N/A')})")
@@ -308,19 +365,37 @@ async def run_batch_research(
 
     results = {}
     for i, profile in enumerate(profiles, 1):
+        company_name = profile["name"]
+        total_index = skipped_count + i  # Adjust index for display
+
         print(f"\n{'='*60}")
-        print(f"[{i}/{len(profiles)}] Researching: {profile['name']}")
+        print(f"[{total_index}/{len(all_profiles)}] Researching: {company_name}")
         print(f"{'='*60}\n")
+
+        # Mark company as started in checkpoint
+        checkpoint.mark_company_started(company_name)
 
         try:
             result = await run_profile_research(profile, parallel=parallel)
-            results[profile["name"]] = {
+            results[company_name] = {
                 "status": result.get("status", "unknown"),
                 "phases": len(result.get("phases", [])),
             }
+
+            # Mark company as completed in checkpoint
+            # Count output files for stats
+            company_dir = Path("outputs") / company_name
+            file_count = len(list(company_dir.rglob("*.md"))) if company_dir.exists() else 0
+            checkpoint.mark_company_completed(
+                company_name,
+                sources_count=result.get("total_sources", 0),
+                files_generated=file_count,
+            )
+
         except Exception as e:
-            logger.error(f"Research failed for {profile['name']}: {e}")
-            results[profile["name"]] = {"status": "error", "error": str(e)}
+            logger.error(f"Research failed for {company_name}: {e}")
+            results[company_name] = {"status": "error", "error": str(e)}
+            checkpoint.mark_company_error(company_name, str(e))
 
         # Delay between companies to avoid rate limiting
         if i < len(profiles) and delay_between > 0:
@@ -335,6 +410,13 @@ async def run_batch_research(
         status = "OK" if r.get("status") == "completed" else "FAIL"
         phases = r.get("phases", 0)
         print(f"  [{status}] {name}: {phases} phases")
+
+    # Show checkpoint summary
+    final_stats = checkpoint.get_stats()
+    print(f"\nCheckpoint Summary:")
+    print(f"  Total companies: {final_stats.get('total_companies', 0)}")
+    print(f"  Completed: {final_stats.get('completed', 0)}")
+    print(f"  Errors: {final_stats.get('errors', 0)}")
     print(f"{'='*60}\n")
 
     return results
@@ -430,6 +512,7 @@ async def run_full_market_research(
     batch_path: str,
     delay_between: int = 5,
     max_gap_iterations: int = 5,
+    resume: bool = False,
 ) -> None:
     """
     Run FULL market research workflow with all features enabled.
@@ -445,6 +528,7 @@ async def run_full_market_research(
         batch_path: Path to the market folder
         delay_between: Seconds between companies
         max_gap_iterations: Maximum gap-filling iterations
+        resume: If True, resume from checkpoint (skip already-completed companies)
     """
     from src.pipeline.comprehensive_research import (
         ComprehensiveResearchService,
@@ -458,6 +542,40 @@ async def run_full_market_research(
     if not profiles:
         logger.error(f"No profiles found in {batch_path}")
         return
+
+    # ========================================================================
+    # CHECKPOINT/RESUME SETUP
+    # ========================================================================
+    checkpoint_mgr = get_checkpoint_manager(batch_path)
+    all_profiles = profiles  # Keep original list for display
+
+    if resume:
+        # Try to load existing checkpoint
+        if checkpoint_mgr.exists():
+            checkpoint_mgr.load()
+            stats = checkpoint_mgr.get_stats()
+            print(f"\n📋 RESUME MODE: Found checkpoint")
+            print(f"   Completed: {stats.get('completed', 0)}/{stats.get('total_companies', 0)}")
+            print(f"   Errors: {stats.get('errors', 0)}")
+        else:
+            # No checkpoint file, sync from outputs (detect completed from files)
+            print(f"\n📋 RESUME MODE: No checkpoint file, scanning outputs...")
+            checkpoint_mgr.sync_from_outputs(profiles)
+            stats = checkpoint_mgr.get_stats()
+            print(f"   Detected completed: {stats.get('completed', 0)}/{stats.get('total_companies', 0)}")
+
+        # Filter to pending companies
+        profiles = checkpoint_mgr.get_pending_companies(profiles)
+
+        if not profiles:
+            print(f"\n✅ All companies already completed!")
+            stats = checkpoint_mgr.get_stats()
+            print(f"   Total sources: {stats.get('total_sources', 0)}")
+            print(f"   Total files: {stats.get('total_files', 0)}")
+            return
+    else:
+        # Fresh run - initialize new checkpoint
+        checkpoint_mgr.initialize(profiles, config={"mode": "full_market_research"})
 
     print(f"\n{'='*70}")
     print("FULL MARKET RESEARCH WORKFLOW")
@@ -490,6 +608,9 @@ async def run_full_market_research(
         print(f"\n[{i}/{len(profiles)}] {company_name}")
         print(f"  Website: {url}")
         print(f"  Industry: {industry}")
+
+        # Mark company as started in checkpoint
+        checkpoint_mgr.mark_company_started(company_name)
 
         try:
             # Create company profile
@@ -524,14 +645,25 @@ async def run_full_market_research(
 
             logger.info(f"Saved {len(drafts)} files for {company_name}")
 
+            # Mark company as completed in checkpoint
+            checkpoint_mgr.mark_company_completed(
+                company_name,
+                sources_count=result.total_sources,
+                files_generated=len(drafts),
+            )
+
         except Exception as e:
             logger.error(f"Comprehensive research failed for {company_name}: {e}")
             # Fall back to standard research
             print(f"  Falling back to standard research...")
             try:
                 await run_profile_research(profile, parallel=True)
+                # If fallback succeeds, still mark as completed (estimate files)
+                checkpoint_mgr.mark_company_completed(company_name, sources_count=0, files_generated=40)
             except Exception as e2:
                 logger.error(f"Fallback also failed: {e2}")
+                # Mark company as error in checkpoint
+                checkpoint_mgr.mark_company_error(company_name, f"Comprehensive: {e}; Fallback: {e2}")
 
         if i < len(profiles) and delay_between > 0:
             print(f"  Waiting {delay_between}s before next company...")
@@ -808,6 +940,11 @@ async def main():
         default=5,
         help="Seconds to wait between companies in batch mode (default: 5)",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume batch research from checkpoint, skipping already-completed companies",
+    )
 
     # Execution mode arguments
     parser.add_argument(
@@ -867,6 +1004,25 @@ async def main():
         help="Maximum gap-filling iterations (default: 5)",
     )
 
+    # Incremental research arguments (smart deduplication across runs)
+    parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help="Run INCREMENTAL research: analyzes existing data, skips already-fetched URLs, "
+             "and targets only missing data gaps. Best for subsequent runs on same company.",
+    )
+    parser.add_argument(
+        "--status",
+        action="store_true",
+        help="Show research status for a company (completeness, gaps, sources count)",
+    )
+    parser.add_argument(
+        "--max-queries",
+        type=int,
+        default=30,
+        help="Maximum queries to run in incremental mode (default: 30)",
+    )
+
     # CLI enhancement arguments (CLI-003)
     parser.add_argument(
         "--dry-run",
@@ -912,6 +1068,7 @@ async def main():
             args.batch,
             delay_between=args.delay,
             max_gap_iterations=args.max_iterations,
+            resume=args.resume,
         )
         return
 
@@ -1012,6 +1169,152 @@ async def main():
 
         return
 
+    # ==========================================================================
+    # INCREMENTAL RESEARCH MODE - Smart deduplication across runs
+    # ==========================================================================
+
+    # Mode: Show research status
+    if args.status:
+        if args.profile:
+            profile = load_company_profile(args.profile)
+            company_name = profile["name"]
+        elif args.name:
+            company_name = args.name
+        elif args.batch:
+            # Show status for all companies in batch
+            profiles = load_batch_profiles(args.batch)
+            print(f"\n{'='*70}")
+            print("RESEARCH STATUS - ALL COMPANIES")
+            print(f"{'='*70}\n")
+            service = IncrementalResearchService()
+            for profile in profiles:
+                status = service.get_research_status(profile["name"])
+                print(f"{profile['name']}:")
+                print(f"  Completeness: {status['completeness']}")
+                print(f"  Data gaps: {status['gaps_count']}")
+                print(f"  Sources: {status['sources_count']} ({status['stale_sources']} stale)")
+                if status['priority_gaps']:
+                    print(f"  Priority gaps: {', '.join(status['priority_gaps'][:3])}")
+                print()
+            return
+        else:
+            print("Error: --status requires --profile, --name, or --batch")
+            return
+
+        # Show status for single company
+        service = IncrementalResearchService()
+        status = service.get_research_status(company_name)
+        print(f"\n{'='*60}")
+        print(f"RESEARCH STATUS: {company_name}")
+        print(f"{'='*60}")
+        print(f"Completeness: {status['completeness']}")
+        print(f"Data gaps: {status['gaps_count']}")
+        print(f"Sources tracked: {status['sources_count']}")
+        print(f"Stale sources: {status['stale_sources']}")
+        if status['last_research']:
+            print(f"Last research: {status['last_research']}")
+        if status['priority_gaps']:
+            print(f"\nPriority gaps to fill:")
+            for gap in status['priority_gaps']:
+                print(f"  - {gap}")
+        if status['data_types_found']:
+            print(f"\nData types found: {', '.join(status['data_types_found'][:5])}")
+        print(f"{'='*60}\n")
+        return
+
+    # Mode: Incremental research for batch
+    if args.incremental and args.batch:
+        logger.info(f"Running INCREMENTAL research for batch: {args.batch}")
+        profiles = load_batch_profiles(args.batch)
+        company_names = [p["name"] for p in profiles]
+
+        # Load market config for industry
+        industry = "telecommunications"
+        market_yaml = Path(args.batch) / "_market.yaml"
+        if market_yaml.exists():
+            with open(market_yaml, "r", encoding="utf-8") as f:
+                market_config = yaml.safe_load(f)
+                industry = market_config.get("market", {}).get("industry", industry)
+                country = market_config.get("market", {}).get("country", "Paraguay")
+        else:
+            country = profiles[0].get("country", "Paraguay") if profiles else "Paraguay"
+
+        print(f"\n{'='*70}")
+        print("INCREMENTAL RESEARCH MODE")
+        print(f"{'='*70}")
+        print(f"Companies: {len(profiles)}")
+        print(f"Industry: {industry}")
+        print(f"Max queries per company: {args.max_queries}")
+        print(f"{'='*70}\n")
+
+        results = await run_incremental_batch(
+            company_names=company_names,
+            industry=industry,
+            country=country,
+        )
+
+        # Print summary
+        print(f"\n{'='*70}")
+        print("INCREMENTAL RESEARCH COMPLETE")
+        print(f"{'='*70}")
+        total_skipped_seen = sum(r.stats.urls_skipped_seen for r in results.values())
+        total_skipped_similar = sum(r.stats.urls_skipped_similar for r in results.values())
+        total_fetched = sum(r.stats.urls_fetched_new for r in results.values())
+        total_filled = sum(r.stats.gaps_filled for r in results.values())
+        print(f"URLs skipped (already seen): {total_skipped_seen}")
+        print(f"URLs skipped (similar content): {total_skipped_similar}")
+        print(f"New URLs fetched: {total_fetched}")
+        print(f"Gaps filled: {total_filled}")
+        print(f"\nPer-company results:")
+        for company, result in results.items():
+            efficiency = result.stats.to_dict()['efficiency_rate']
+            print(f"  {company}: {result.stats.gaps_filled} gaps filled, {efficiency}")
+        print(f"{'='*70}\n")
+        return
+
+    # Mode: Incremental research for single company (profile)
+    if args.incremental and args.profile:
+        profile = load_company_profile(args.profile)
+        company_name = profile["name"]
+        industry = profile.get("industry", "telecommunications")
+        country = profile.get("country", "Paraguay")
+
+        print(f"\n{'='*70}")
+        print(f"INCREMENTAL RESEARCH: {company_name}")
+        print(f"{'='*70}")
+        print(f"Industry: {industry}")
+        print(f"Country: {country}")
+        print(f"Max queries: {args.max_queries}")
+        print(f"{'='*70}\n")
+
+        result = await run_incremental_research(
+            company_name=company_name,
+            industry=industry,
+            country=country,
+            max_queries=args.max_queries,
+        )
+
+        print_incremental_report(result)
+        return
+
+    # Mode: Incremental research for single company (CLI args)
+    if args.incremental and args.name:
+        print(f"\n{'='*70}")
+        print(f"INCREMENTAL RESEARCH: {args.name}")
+        print(f"{'='*70}")
+        print(f"Industry: {args.industry or 'telecommunications'}")
+        print(f"Max queries: {args.max_queries}")
+        print(f"{'='*70}\n")
+
+        result = await run_incremental_research(
+            company_name=args.name,
+            industry=args.industry or "telecommunications",
+            max_queries=args.max_queries,
+        )
+
+        print_incremental_report(result)
+        return
+
     # Mode 1: Batch research from folder
     if args.batch:
         logger.info(f"Running BATCH research from: {args.batch}")
@@ -1020,7 +1323,7 @@ async def main():
         if args.dry_run:
             dry_run = DryRunContext(DryRunConfig(enabled=True))
             print_header("Dry-Run Mode", "Showing planned operations without executing")
-        await run_batch_research(args.batch, parallel=parallel, delay_between=args.delay, dry_run=dry_run)
+        await run_batch_research(args.batch, parallel=parallel, delay_between=args.delay, dry_run=dry_run, resume=args.resume)
         return
 
     # Mode 2: Single company from profile

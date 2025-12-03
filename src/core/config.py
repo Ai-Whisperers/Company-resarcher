@@ -519,6 +519,8 @@ class Settings(BaseSettings):
     SERPER_API_KEY: Optional[SecretStr] = None  # serper.dev - cheap Google results
     JINA_API_KEY: Optional[SecretStr] = None  # jina.ai - optional for higher limits
     LANGSEARCH_API_KEY: Optional[SecretStr] = None  # langsearch.com - FREE AI-optimized search
+    BRAVE_API_KEY: Optional[SecretStr] = None  # brave.com - 2K free/month
+    BING_API_KEY: Optional[SecretStr] = None  # Bing Search API via Azure - 1K free/month
 
     # Langfuse
     LANGFUSE_PUBLIC_KEY: Optional[SecretStr] = None
@@ -694,6 +696,8 @@ class Settings(BaseSettings):
             "serpapi": self.SERPAPI_API_KEY,
             "jina": self.JINA_API_KEY,
             "langsearch": self.LANGSEARCH_API_KEY,
+            "brave": self.BRAVE_API_KEY,
+            "bing": self.BING_API_KEY,
             "newsapi": self.NEWSAPI_KEY,
         }
 

@@ -56,17 +56,21 @@ class DuckDuckGoProvider(SearchProvider):
     name = "duckduckgo"
     priority = 1  # Highest priority (free)
 
-    def __init__(self, timeout: int = 30, proxy: str = None, region: str = "wt-wt"):
+    def __init__(self, timeout: int = None, proxy: str = None, region: str = "wt-wt"):
         """
         Initialize DuckDuckGo provider.
 
         Args:
-            timeout: Request timeout in seconds
+            timeout: Request timeout in seconds (default from SEARCH_TIMEOUT_SECONDS env var or 60s)
             proxy: Optional proxy URL (e.g., "http://user:pass@host:port")
             region: Search region (default "wt-wt" for worldwide neutral results,
                     "us-en" for US English). Using "wt-wt" to avoid locale-based
                     routing that can return non-English results (BUG-048).
         """
+        # Use environment variable if no timeout specified (default 60s for slow DuckDuckGo responses)
+        if timeout is None:
+            import os
+            timeout = int(os.getenv("SEARCH_TIMEOUT_SECONDS", "60"))
         self.timeout = timeout
         self.proxy = proxy
         self.region = region

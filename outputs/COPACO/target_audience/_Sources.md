@@ -8,134 +8,134 @@ This document lists all sources used in this section.
 
 | ID | Title | Type | Reliability |
 |----|-------|------|-------------|
-| 001 | Registrarse | LinkedIn | Social | High |
-| 002 | Paraguayan Communications Company (Compañía Paragu... | Social | Medium |
-| 003 | copaco.com.py's Search traffic, Ranking and Backli... | Web | Medium |
-| 004 | Telecommunications in Paraguay - Wikipedia | Web | Medium |
-| 009 | Copaco S.A - Comunicación en todo sentido! - Perso... | Social | Medium |
-| 012 | Paraguay’s Broadband Providers Continue to Struggl... | News | Medium |
-| 020 | copaco.com.py Website Traffic, Ranking, Analytics ... | Web | Medium |
-| 021 | Copaco S.A - Comunicación en todo sentido! - SAC | Social | Medium |
-| 022 | Copaco S.A - Comunicación en todo sentido! - Factu... | Social | Medium |
-| 023 | Copaco S.A - Comunicación en todo sentido! - Línea... | Web | Medium |
-| 024 | Personal (Paraguay) - Wikipedia, la enciclopedia l... | Social | Medium |
-| 025 | Personal Paraguay | Powertec Information Portal | Web | Medium |
-| 026 | Telecom Personal Paraguay Uses Westell for Intelli... | Web | Medium |
-| 027 | Telecomunicación - Wikipedia, la enciclopedia libr... | Web | Medium |
-| 028 | Telecommunications - Wikipedia | Web | Medium |
-| 029 | What is Telecommunications (Telecom)? | Definition... | Web | Medium |
-| 030 | Paraguay Telecommunication Market Report (2020-202... | Web | Medium |
-| 073 | Telecom Customer Journey Mapping | Web | Medium |
+| 001 | Copaco S.A - Comunicación en todo sentido! - Perso... | Social | Medium |
+| 002 | Copaco - Television and Telecom - Dataxis | Financial | Medium |
+| 003 | Copaco S.A - Comunicación en todo sentido! - Más S... | Web | Medium |
+| 004 | Compañía Paraguaya de Comunicaciones S.A. (COPACO)... | Web | Medium |
+| 005 | MCC 744 MNC 06 - Copaco S.A. (Copaco) in Paraguay | Web | Medium |
+| 006 | Copaco S.A - Comunicación en todo sentido! - Quién... | Web | Medium |
+| 007 | La Nación / La Copaco instala internet satelital e... | Web | Medium |
+| 008 | Copaco S.A - Comunicación en todo sentido! - Atenc... | Social | Medium |
+| 009 | Pagar facturas de Copaco desde Portal de Pagos - P... | Social | Medium |
+| 023 | Copaco Paraguay detalles - IMEI.info | Web | Medium |
+| 024 | Copaco plans to start billing IPTV service next mo... | Web | Medium |
+| 025 | Copaco RECLAMOS: ▷ Hace tu queja las 24 Horas del ... | Social | Medium |
+| 026 | Review of Copaco s.a. paraguay | I have been a cus... | Web | Medium |
+| 027 | Truth About Copaco s.a. paraguay. Is Copaco s.a. p... | Web | Medium |
+| 037 | Copaco precisa de G. 35.000 millones/mes para subs... | Web | Medium |
+| 038 | Copaco/Vox lanzó LTE con una inversión inicial de ... | Web | Medium |
+| 039 | Navigation Failed | Web | Medium |
+| 040 | Navigation Failed | Web | Medium |
 
 ---
 
 ## Detailed Source Breakdown
 
-### Source-001: Registrarse | LinkedIn
-
-- **URL:** https://py.linkedin.com/company/copaco-s.a.-paraguay
-- **Date Accessed:** 2025-12-01
-- **Reliability:** High
-
-### Source-002: Paraguayan Communications Company (Compañía Paraguaya de Com
-
-- **URL:** https://www.devex.com/organizations/paraguayan-communications-company-compania-paraguaya-de-comunicaciones-s-a-copaco-169054
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-003: copaco.com.py's Search traffic, Ranking and Backlinks
-
-- **URL:** https://ahrefstop.com/websites/copaco.com.py
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-004: Telecommunications in Paraguay - Wikipedia
-
-- **URL:** https://en.wikipedia.org/wiki/Telecommunications_in_Paraguay
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-009: Copaco S.A - Comunicación en todo sentido! - Personas y Hoga
+### Source-001: Copaco S.A - Comunicación en todo sentido! - Personas y Hoga
 
 - **URL:** https://www.copaco.com.py/
-- **Date Accessed:** 2025-12-01
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-012: Paraguay’s Broadband Providers Continue to Struggle to Attai
+### Source-002: Copaco - Television and Telecom - Dataxis
 
-- **URL:** https://www.eff.org/deeplinks/2025/02/paraguays-broadband-providers-continue-struggle-attain-best-practices-protecting
-- **Date Accessed:** 2025-12-01
+- **URL:** https://dataxis.com/product/actor-profile/copaco-television-and-telecom/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-020: copaco.com.py Website Traffic, Ranking, Analytics [October 2
+### Source-003: Copaco S.A - Comunicación en todo sentido! - Más Servicios C
 
-- **URL:** https://www.semrush.com/website/copaco.com.py/overview/
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.copaco.com.py/index.php/empresa-y-estado/mas-servicios.html
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-021: Copaco S.A - Comunicación en todo sentido! - SAC
+### Source-004: Compañía Paraguaya de Comunicaciones S.A. (COPACO) - BNameri
 
-- **URL:** https://www.copaco.com.py/index.php/sac.html
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.bnamericas.com/en/company-profile/compania-paraguaya-de-comunicaciones-sa-copaco
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-022: Copaco S.A - Comunicación en todo sentido! - Facturación
+### Source-005: MCC 744 MNC 06 - Copaco S.A. (Copaco) in Paraguay
 
-- **URL:** https://www.copaco.com.py/index.php/facturacio-n.html
-- **Date Accessed:** 2025-12-01
+- **URL:** https://mcc-mnc.org/networks/744_06
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-023: Copaco S.A - Comunicación en todo sentido! - Línea Fija
+### Source-006: Copaco S.A - Comunicación en todo sentido! - Quiénes Somos
 
-- **URL:** https://www.copaco.com.py/index.php/personas-y-hogares/telefonia/linea-fija.html
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.copaco.com.py/index.php/institucional/quienes-somos.html
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-024: Personal (Paraguay) - Wikipedia, la enciclopedia libre
+### Source-007: La Nación / La Copaco instala internet satelital en zonas ai
 
-- **URL:** https://es.wikipedia.org/wiki/Personal_(Paraguay)
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.lanacion.com.py/pais_edicion_impresa/2025/11/28/la-copaco-instala-internet-satelital-en-zonas-aisladas/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-025: Personal Paraguay | Powertec Information Portal
+### Source-008: Copaco S.A - Comunicación en todo sentido! - Atención Telefó
 
-- **URL:** https://portal.powertec.com.au/industry-resources/companies/personal-paraguay
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.copaco.com.py/index.php/atencion-telefonica.html
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-026: Telecom Personal Paraguay Uses Westell for Intelligent Site 
+### Source-009: Pagar facturas de Copaco desde Portal de Pagos - Pago de Fac
 
-- **URL:** https://www.westell.com/news-media/press-releases/detail/153/telecom-personal-paraguay-uses-westell-for-intelligent-site
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.infonet.com.py/servicios_disponibles/copaco
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-027: Telecomunicación - Wikipedia, la enciclopedia libre
+### Source-023: Copaco Paraguay detalles - IMEI.info
 
-- **URL:** https://es.wikipedia.org/wiki/Telecomunicaci%C3%B3n
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.imei.info/es/carriers/paraguay/copaco/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-028: Telecommunications - Wikipedia
+### Source-024: Copaco plans to start billing IPTV service next month - BNam
 
-- **URL:** https://en.wikipedia.org/wiki/Telecommunications
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.bnamericas.com/en/news/copaco-plans-to-start-billing-iptv-service-next-month
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-029: What is Telecommunications (Telecom)? | Definition from Tech
+### Source-025: Copaco RECLAMOS: ▷ Hace tu queja las 24 Horas del dia ACÁ
 
-- **URL:** https://www.techtarget.com/searchnetworking/definition/telecommunications-telecom
-- **Date Accessed:** 2025-12-01
+- **URL:** https://consultparaguayonline.spaziotecnoweb.com/copaco/reclamo/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-030: Paraguay Telecommunication Market Report (2020-2025)
+### Source-026: Review of Copaco s.a. paraguay | I have been a customer of C
 
-- **URL:** https://www.globalmonitor.us/product/paraguay-telecommunication-market-report
-- **Date Accessed:** 2025-12-01
+- **URL:** https://trustburn.com/review/qusjKIwBQ7I2aKiqPFdR
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-073: Telecom Customer Journey Mapping
+### Source-027: Truth About Copaco s.a. paraguay. Is Copaco s.a. paraguay th
 
-- **URL:** https://www.csgi.com/insights/customer-journey-mapping-for-telecommunications-companies/
-- **Date Accessed:** 2025-12-01
+- **URL:** https://trustburn.com/reviews/copaco-s-a-paraguay
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-037: Copaco precisa de G. 35.000 millones/mes para subsistir - Úl
+
+- **URL:** https://www.ultimahora.com/copaco-precisa-de-g-35-000-millones-mes-para-subsistir
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-038: Copaco/Vox lanzó LTE con una inversión inicial de US$ 15 mil
+
+- **URL:** https://www.telesemana.com/blog/2013/02/19/copacovox-lanzo-lte-con-una-inversion-inicial-de-us-15-millones/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-039: Navigation Failed
+
+- **URL:** https://www.owler.com/company/copaco/competitors
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-040: Navigation Failed
+
+- **URL:** https://www.dnb.com/business-directory/company-profiles.copaco_nv.431986f5b744e88e808badb7c82b894f.html
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 

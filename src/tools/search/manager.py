@@ -31,6 +31,8 @@ from .jina import JinaSearchProvider
 from .langsearch import LangSearchProvider
 from .serper import SerperProvider
 from .tavily_provider import TavilyProvider
+from .brave import BraveSearchProvider
+from .bing import BingSearchProvider
 from ...core.logger import setup_logger
 from ...core.config import get_settings
 
@@ -171,7 +173,9 @@ class SearchManager:
     1. DuckDuckGo (FREE) - Priority 1
     2. Jina AI (FREE) - Priority 2
     3. LangSearch (FREE) - Priority 3
-    4. Serper.dev (Paid) - Priority 4
+    3. Brave (2K free/month) - Priority 3
+    4. Serper.dev (Google via API) - Priority 4
+    4. Bing (1K free/month) - Priority 4
     5. Tavily (Paid) - Priority 5
 
     If a provider fails or is rate-limited, the manager automatically
@@ -215,13 +219,19 @@ class SearchManager:
         self.providers.append(DuckDuckGoProvider())
         self.providers.append(JinaSearchProvider())
 
-        # Add LangSearch if configured (FREE but requires API key)
+        # Add LangSearch (FREE but requires API key)
         self.providers.append(LangSearchProvider())
+
+        # Add Brave Search (2,000 free/month)
+        self.providers.append(BraveSearchProvider())
 
         # Add paid providers if configured
         serper_key = getattr(settings, "SERPER_API_KEY", None)
         if serper_key:
             self.providers.append(SerperProvider())
+
+        # Add Bing (1,000 free/month via Azure)
+        self.providers.append(BingSearchProvider())
 
         # Always add Tavily (check availability later)
         self.providers.append(TavilyProvider())
@@ -485,6 +495,140 @@ class SearchManager:
         else:
             for name in self._provider_health:
                 self._provider_health[name] = ProviderHealth(name=name)
+
+    async def search_parallel(
+        self,
+        query: str,
+        max_results: int = 10,
+        providers: Optional[List[str]] = None,
+        timeout_seconds: float = 30.0,
+        min_providers_for_success: int = 1,
+    ) -> List[SearchResult]:
+        """
+        Execute search across multiple engines in parallel and combine results.
+
+        This method queries all available search engines simultaneously instead of
+        sequentially, significantly reducing search time (especially when DuckDuckGo
+        is slow with its 60s timeout).
+
+        Args:
+            query: The search query
+            max_results: Maximum total results to return (deduplicated)
+            providers: Optional list of provider names to use (uses all available if None)
+            timeout_seconds: Timeout for the entire parallel search operation
+            min_providers_for_success: Minimum providers that must succeed (default 1)
+
+        Returns:
+            Combined, deduplicated list of SearchResult objects
+
+        Features:
+        - Runs DuckDuckGo, Jina, Tavily, etc. in parallel
+        - Combines results and deduplicates by URL
+        - Returns as soon as min_providers_for_success respond
+        - Falls back to sequential if all parallel calls fail
+        """
+        if not query or not query.strip():
+            logger.warning("Empty search query provided")
+            return []
+
+        # Determine which providers to use
+        available = []
+        for provider in self.providers:
+            if providers and provider.name not in providers:
+                continue
+            if not provider.is_available():
+                continue
+            health = self._get_health(provider.name)
+            if not health.is_available():
+                continue
+            available.append(provider)
+
+        if not available:
+            logger.warning("No search providers available for parallel search")
+            return await self.search(query, max_results)  # Fall back to sequential
+
+        logger.info(f"Parallel search with {len(available)} providers: {[p.name for p in available]}")
+
+        # Create search tasks for all providers
+        async def search_provider(provider: SearchProvider) -> tuple:
+            """Search with a single provider, return (provider_name, results_or_error)."""
+            try:
+                results = await provider.search(query, max_results)
+                health = self._get_health(provider.name)
+                health.record_success()
+                self._record_stat(provider.name, "success")
+                return (provider.name, results)
+            except RateLimitError as e:
+                health = self._get_health(provider.name)
+                health.record_failure(is_rate_limit=True, retry_after=e.retry_after)
+                self._record_stat(provider.name, "rate_limit")
+                return (provider.name, e)
+            except Exception as e:
+                health = self._get_health(provider.name)
+                health.record_failure()
+                self._record_stat(provider.name, "failure")
+                logger.debug(f"{provider.name} parallel search failed: {e}")
+                return (provider.name, e)
+
+        # Run all searches in parallel with timeout using asyncio.wait for partial results
+        tasks = [asyncio.create_task(search_provider(p)) for p in available]
+        done, pending = await asyncio.wait(
+            tasks,
+            timeout=timeout_seconds,
+            return_when=asyncio.ALL_COMPLETED
+        )
+
+        # Cancel any pending tasks
+        for task in pending:
+            task.cancel()
+
+        # Collect results from completed tasks
+        results_list = []
+        for task in done:
+            try:
+                result = task.result()
+                results_list.append(result)
+            except Exception as e:
+                logger.debug(f"Task failed: {e}")
+
+        if pending:
+            logger.info(f"Parallel search: {len(done)} providers completed, {len(pending)} timed out")
+
+        # Process results
+        all_results = []
+        successful_providers = []
+        seen_urls = set()
+
+        for item in results_list:
+            if isinstance(item, BaseException):
+                continue
+            provider_name, provider_results = item
+            if isinstance(provider_results, Exception):
+                continue
+            if provider_results:
+                successful_providers.append(provider_name)
+                for result in provider_results:
+                    # Deduplicate by URL
+                    if result.url not in seen_urls:
+                        seen_urls.add(result.url)
+                        all_results.append(result)
+
+        # Check if we met minimum provider threshold
+        if len(successful_providers) < min_providers_for_success:
+            logger.warning(
+                f"Only {len(successful_providers)} providers succeeded "
+                f"(need {min_providers_for_success}), falling back to sequential"
+            )
+            return await self.search(query, max_results)
+
+        # Trim to max_results
+        all_results = all_results[:max_results]
+
+        logger.info(
+            f"Parallel search complete: {len(all_results)} results from "
+            f"{len(successful_providers)} providers ({successful_providers})"
+        )
+        return all_results
 
     async def search_paginated(
         self,

@@ -18,6 +18,8 @@ from .jina import JinaSearchProvider
 from .langsearch import LangSearchProvider
 from .serper import SerperProvider
 from .tavily_provider import TavilyProvider
+from .brave import BraveSearchProvider
+from .bing import BingSearchProvider
 
 __all__ = [
     # Base classes
@@ -34,4 +36,6 @@ __all__ = [
     "LangSearchProvider",
     "SerperProvider",
     "TavilyProvider",
+    "BraveSearchProvider",
+    "BingSearchProvider",
 ]

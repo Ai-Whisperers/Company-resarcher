@@ -29,6 +29,7 @@ from ..core.retry_strategy import (
     RetryPolicy,
 )
 from .cache import get_ai_cache
+from .ai_rate_limiter import get_ai_rate_limiter
 
 logger = setup_logger("ai_client")
 
@@ -517,6 +518,7 @@ class AIClientManager:
         self.mock_client = MockAIClient()
         self._circuit_registry = get_circuit_registry()
         self._retry_strategy = AI_RETRY_STRATEGY
+        self._rate_limiter = get_ai_rate_limiter()  # PERF-016: Proactive rate limiting
         self._initialize_clients()
 
     def _get_circuit_breaker(self, provider: str) -> CircuitBreaker:
@@ -691,7 +693,7 @@ class AIClientManager:
         max_tokens: int,
         response_format: str,
     ) -> str:
-        """Generate response using a client with circuit breaker protection."""
+        """Generate response using a client with circuit breaker and rate limit protection."""
         provider = client.get_provider_name()
         breaker = self._get_circuit_breaker(provider)
 
@@ -700,14 +702,24 @@ class AIClientManager:
             retry_after = breaker.time_until_retry()
             raise CircuitOpenError(provider, retry_after)
 
+        # PERF-016: Proactive rate limiting - wait if approaching limit
+        await self._rate_limiter.wait_if_needed(provider)
+
         try:
             await breaker.acquire()
             response = await client.generate(
                 prompt, system, temperature, max_tokens, response_format
             )
             breaker.record_success()
+            # PERF-016: Record successful request for rate tracking
+            self._rate_limiter.record_request(provider)
             return response
         except CircuitOpenError:
+            raise
+        except AIRateLimitError as e:
+            # PERF-016: Record rate limit for adaptive waiting
+            self._rate_limiter.record_rate_limit(provider, error=e)
+            breaker.record_failure(e)
             raise
         except Exception as e:
             breaker.record_failure(e)
@@ -723,7 +735,27 @@ class AIClientManager:
         use_fallback: bool = True,
         use_cache: bool = True,
         task_type: str = "general",
+        retry_on_all_fail: bool = True,
+        max_retry_rounds: int = 3,
     ) -> str:
+        """
+        Generate AI response with multi-provider fallback and retry logic.
+
+        P1 Fix: Added retry_on_all_fail parameter to wait and retry when all
+        providers are rate-limited instead of immediately returning mock data.
+
+        Args:
+            prompt: The prompt to send
+            system: Optional system prompt
+            temperature: Response temperature
+            max_tokens: Maximum tokens in response
+            response_format: "text" or "json"
+            use_fallback: Whether to use fallback providers
+            use_cache: Whether to use response cache
+            task_type: Type of task for provider selection
+            retry_on_all_fail: Whether to wait and retry if all providers fail
+            max_retry_rounds: Maximum number of retry rounds (each round tries all providers)
+        """
         cache = get_ai_cache()
         if use_cache and temperature < 0.3:
             cached = cache.get(prompt, system, temperature, max_tokens)
@@ -734,41 +766,60 @@ class AIClientManager:
         response = None
         errors: list[tuple[str, Exception]] = []
 
-        # Try ALL available clients in the fallback chain with circuit breaker
-        if use_fallback and self.all_clients:
-            for client in self.all_clients:
-                provider = client.get_provider_name()
+        for retry_round in range(max_retry_rounds):
+            if retry_round > 0:
+                # P1 Fix: Calculate wait time based on circuit breaker states
+                wait_time = self._calculate_retry_wait_time(retry_round)
+                logger.info(
+                    f"All providers failed in round {retry_round}. "
+                    f"Waiting {wait_time:.1f}s before retry round {retry_round + 1}..."
+                )
+                await asyncio.sleep(wait_time)
+                errors.clear()
+
+            # Try ALL available clients in the fallback chain with circuit breaker
+            if use_fallback and self.all_clients:
+                for client in self.all_clients:
+                    provider = client.get_provider_name()
+                    try:
+                        response = await self._generate_with_circuit_breaker(
+                            client, prompt, system, temperature, max_tokens, response_format
+                        )
+                        if response:
+                            logger.info(f"Successfully generated with {provider}")
+                            break
+                    except CircuitOpenError as e:
+                        logger.warning(f"Circuit open for {provider}, skipping (retry in {e.retry_after:.1f}s)")
+                        errors.append((provider, e))
+                        continue
+                    except Exception as e:
+                        logger.warning(f"Provider {provider} failed: {e}")
+                        errors.append((provider, e))
+                        continue
+            else:
+                # Fallback disabled or no clients - try primary only
+                client = self.get_client_for_task(task_type)
                 try:
                     response = await self._generate_with_circuit_breaker(
                         client, prompt, system, temperature, max_tokens, response_format
                     )
-                    if response:
-                        logger.info(f"Successfully generated with {provider}")
-                        break
-                except CircuitOpenError as e:
-                    logger.warning(f"Circuit open for {provider}, skipping (retry in {e.retry_after:.1f}s)")
-                    errors.append((provider, e))
-                    continue
                 except Exception as e:
-                    logger.warning(f"Provider {provider} failed: {e}")
-                    errors.append((provider, e))
-                    continue
-        else:
-            # Fallback disabled or no clients - try primary only
-            client = self.get_client_for_task(task_type)
-            try:
-                response = await self._generate_with_circuit_breaker(
-                    client, prompt, system, temperature, max_tokens, response_format
-                )
-            except Exception as e:
-                logger.warning(f"Provider {client.get_provider_name()} failed: {e}")
-                errors.append((client.get_provider_name(), e))
+                    logger.warning(f"Provider {client.get_provider_name()} failed: {e}")
+                    errors.append((client.get_provider_name(), e))
 
-        # Use Mock only if ALL providers failed
+            # If we got a response, break out of retry loop
+            if response is not None:
+                break
+
+            # Check if we should retry
+            if not retry_on_all_fail:
+                break
+
+        # Use Mock only if ALL providers failed after all retry rounds
         if response is None:
             open_circuits = self._circuit_registry.get_open_circuits()
             logger.warning(
-                f"All {len(self.all_clients)} providers failed, using mock. "
+                f"All {len(self.all_clients)} providers failed after {max_retry_rounds} rounds, using mock. "
                 f"Open circuits: {open_circuits}"
             )
             response = await self.mock_client.generate(
@@ -779,6 +830,31 @@ class AIClientManager:
             cache.set(prompt, response, system, temperature, max_tokens)
 
         return response
+
+    def _calculate_retry_wait_time(self, retry_round: int) -> float:
+        """
+        P1 Fix: Calculate how long to wait before retrying all providers.
+
+        Uses exponential backoff based on retry round, but also considers
+        circuit breaker retry_after times to avoid wasted attempts.
+        """
+        # Base exponential backoff: 10s, 20s, 40s, etc.
+        base_wait = 10.0 * (2 ** retry_round)
+
+        # Check circuit breakers for minimum wait time
+        min_circuit_wait = 0.0
+        for client in self.all_clients:
+            provider = client.get_provider_name()
+            breaker = self._get_circuit_breaker(provider)
+            if not breaker.can_execute():
+                retry_after = breaker.time_until_retry()
+                min_circuit_wait = max(min_circuit_wait, retry_after)
+
+        # Use the longer of base backoff or circuit breaker wait time
+        # But cap at 60 seconds to avoid excessive waits
+        wait_time = min(max(base_wait, min_circuit_wait), 60.0)
+
+        return wait_time
 
     async def generate_safe(
         self,

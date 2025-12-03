@@ -9,6 +9,8 @@ import asyncio
 import os
 from typing import Optional, List
 
+import time
+
 from .manager import BrowserManager, BrowserConfig
 from .navigator import Navigator, NavigationResult
 from .extractor import ContentExtractor, ExtractedContent, ExtractionConfig
@@ -16,6 +18,9 @@ from .extractor import ContentExtractor, ExtractedContent, ExtractionConfig
 from ...core.logger import setup_logger
 from ...core.types import ResearchSource
 from ...services.html_cache import get_html_cache
+from ...core.url_cache import get_url_cache
+from ...core.domain_filter import is_domain_allowed
+from ...core.domain_timeout import get_timeout_for_url, get_timeout_manager, is_domain_circuit_open
 
 logger = setup_logger("modular_browser_tool")
 
@@ -95,6 +100,12 @@ class ModularBrowserTool:
         """
         Fetch a single page and extract its content.
 
+        Performance optimizations (PERF-011, PERF-012, PERF-014):
+        - Checks URL cache to avoid duplicate fetches
+        - Filters blocked domains before fetching
+        - Uses domain-based timeouts
+        - Respects circuit breaker for failing domains
+
         Args:
             url: URL to fetch
             wait_for_selector: Selector to wait for before extraction
@@ -103,15 +114,86 @@ class ModularBrowserTool:
         Returns:
             ResearchSource with extracted content
         """
-        timeout = timeout_seconds or FETCH_OVERALL_TIMEOUT
+        # PERF-011: Check URL cache first (in-memory)
+        url_cache = get_url_cache()
+        cached = url_cache.get(url)
+        if cached is not None:
+            logger.debug(f"URL cache hit (memory): {url}")
+            return cached
 
+        # Check HTML disk cache if enabled (for resuming previous runs)
+        if ENABLE_HTML_CACHE:
+            try:
+                html_cache = get_html_cache()
+                cached_html = html_cache.get_cached_html(url)
+                if cached_html is not None:
+                    logger.info(f"HTML cache hit (disk): {url}")
+                    # Re-extract content from cached HTML using extractor (sync method)
+                    extracted = self.extractor.extract_from_html(
+                        cached_html["html"],
+                        url,
+                        cached_html["title"],
+                    )
+                    result = ResearchSource(
+                        url=url,
+                        title=extracted.title,
+                        content=extracted.text,
+                        source_type=extracted.source_type,
+                        category="cached",
+                    )
+                    # Also cache in memory for faster subsequent lookups
+                    url_cache.put(url, result)
+                    return result
+            except Exception as cache_error:
+                logger.debug(f"HTML cache read error (non-fatal): {cache_error}")
+
+        # PERF-012: Check domain blocklist
+        if not is_domain_allowed(url):
+            logger.info(f"Blocked domain, skipping: {url}")
+            result = ResearchSource(
+                url=url,
+                title="Blocked Domain",
+                content="Domain is in blocklist (irrelevant or inaccessible)",
+                source_type="blocked",
+                category="filtered",
+            )
+            url_cache.put(url, result)
+            return result
+
+        # PERF-014: Check circuit breaker
+        if is_domain_circuit_open(url):
+            logger.info(f"Circuit breaker open, skipping: {url}")
+            return ResearchSource(
+                url=url,
+                title="Circuit Breaker Open",
+                content="Domain has too many consecutive failures, temporarily skipped",
+                source_type="error",
+                category="error",
+            )
+
+        # PERF-014: Get domain-specific timeout
+        timeout = timeout_seconds or get_timeout_for_url(url)
+        timeout_manager = get_timeout_manager()
+
+        start_time = time.time()
         try:
-            return await asyncio.wait_for(
+            result = await asyncio.wait_for(
                 self._fetch_page_internal(url, wait_for_selector),
                 timeout=timeout,
             )
+
+            # Record success and cache result
+            elapsed = time.time() - start_time
+            timeout_manager.record_success(url, elapsed)
+            url_cache.put(url, result)
+
+            return result
+
         except asyncio.TimeoutError:
+            elapsed = time.time() - start_time
             logger.error(f"Overall fetch timeout ({timeout}s) for {url}")
+            timeout_manager.record_failure(url, is_timeout=True)
+            url_cache.mark_failed(url)
             return ResearchSource(
                 url=url,
                 title="Fetch Timeout",

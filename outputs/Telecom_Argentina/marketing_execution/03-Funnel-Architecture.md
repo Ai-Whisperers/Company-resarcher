@@ -1,39 +1,14 @@
-# Funnel Architecture
+#  Funnel Architecture
 
 **Company:** Telecom Argentina
-**Date:** 2025-12-01 22:32:08
+**Date:** 2025-12-02
 
-## Top of Funnel (Awareness)
+---
 
-N/A
+## Data Not Available
 
-## Middle of Funnel (Consideration)
+Unable to generate content for this section.
 
-N/A
+**Reason:** No sources available
 
-## Bottom of Funnel (Conversion)
-
-N/A
-
-## Lead Magnets
-
-
-- N/A
-  
-
-## Nurture Sequences
-
-N/A
-
-## Sources
-
-
-
-- [Navigation Failed](https://business.adobe.com/ar/customer-success-stories/telecom-case-study.html)
-  
-
-- [Telecom Argentina and Intraway Announce Joint Venture to Drive Open Gateway Adoption - Intraway](https://www.intraway.com/press-releases/telecom-argentina-and-intraway-announce-joint-venture-to-drive-open-gateway-adoption/)
-  
-
-- [Telecom Argentina | LinkedIn](https://au.linkedin.com/company/telecom-argentina)
-  
+Please run additional research to populate this section.

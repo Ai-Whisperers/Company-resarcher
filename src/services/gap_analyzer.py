@@ -153,8 +153,20 @@ class GapAnalyzer:
 
     def __init__(self, base_dir: str = "outputs"):
         self.base_dir = Path(base_dir).resolve()
+        # P0 Fix: Enhanced patterns to catch all empty data indicators
         self._na_pattern = re.compile(
-            r'\b(N/A|n/a|NA|Unknown|unknown|not available|unavailable|no data)\b',
+            r'\b(N/A|n/a|NA|Unknown|unknown|not available|unavailable|no data|'
+            r'no information|not found|missing data|pending research|'
+            r'to be determined|TBD|TBA)\b',
+            re.IGNORECASE
+        )
+        # Additional pattern for detecting completely empty sections
+        self._empty_section_pattern = re.compile(
+            r'##\s*Data Not Available|'
+            r'\*\*Reason:\*\*\s*No sources available|'
+            r'Please run additional research|'
+            r'Unable to generate content|'
+            r'No sources available',
             re.IGNORECASE
         )
 
@@ -168,7 +180,9 @@ class GapAnalyzer:
         Returns:
             GapAnalysisResult with all identified gaps
         """
+        # Sanitize to match output_manager.py naming
         safe_name = re.sub(r'[<>:"/\\|?*]', '_', company_name)
+        safe_name = re.sub(r'[\s_]+', '_', safe_name).strip('_.')
         company_dir = self.base_dir / safe_name
 
         if not company_dir.exists():
@@ -229,6 +243,18 @@ class GapAnalyzer:
             content = file_path.read_text(encoding="utf-8")
             lines = content.split("\n")
 
+            # P0 Fix: Check for completely empty/unavailable sections first
+            if self._empty_section_pattern.search(content):
+                # This entire file is marked as having no data
+                gap = self._identify_empty_section_gap(
+                    file_path=str(file_path),
+                    company_name=company_name,
+                    content=content,
+                )
+                if gap:
+                    gaps.append(gap)
+                    logger.debug(f"Found empty section: {file_path.name}")
+
             for line_num, line in enumerate(lines, 1):
                 # Check for N/A pattern
                 if self._na_pattern.search(line):
@@ -245,6 +271,58 @@ class GapAnalyzer:
             logger.warning(f"Error scanning {file_path}: {e}")
 
         return gaps
+
+    def _identify_empty_section_gap(
+        self,
+        file_path: str,
+        company_name: str,
+        content: str,
+    ) -> Optional[DataGap]:
+        """
+        P0 Fix: Identify gaps from completely empty sections.
+
+        These are files that contain "Data Not Available" or "No sources available"
+        template content, indicating the entire section failed to populate.
+        """
+        # Infer what data should be here from the filename
+        filename = Path(file_path).stem.lower()
+
+        # Map filenames to expected data fields and categories
+        filename_mappings = {
+            "financials": ("Revenue", GapCategory.FINANCIAL),
+            "market-share": ("Market Share", GapCategory.MARKET_SHARE),
+            "market-size": ("TAM", GapCategory.MARKET_SIZE),
+            "statistics": ("Statistics", GapCategory.FINANCIAL),
+            "key-metrics": ("Key Metrics", GapCategory.FINANCIAL),
+            "funding": ("Funding", GapCategory.FINANCIAL),
+            "company-overview": ("Company Overview", GapCategory.COMPANY_INFO),
+            "competitor": ("Competitor Data", GapCategory.COMPETITORS),
+            "pricing": ("Pricing", GapCategory.COMPETITORS),
+        }
+
+        # Find matching category
+        field_name = "Section Data"
+        category = self._infer_category_from_path(file_path)
+
+        for key, (fld, cat) in filename_mappings.items():
+            if key in filename:
+                field_name = fld
+                category = cat
+                break
+
+        # Get query templates if this is a known field
+        templates = FIELD_QUERY_TEMPLATES.get(field_name, (None, []))[1]
+
+        return DataGap(
+            company=company_name,
+            field_name=field_name,
+            category=category,
+            file_path=file_path,
+            line_number=1,
+            context="[Empty Section] " + content[:100].replace('\n', ' '),
+            query_templates=templates,
+            can_infer_from_competitors=field_name in CROSS_REFERENCEABLE_FIELDS,
+        )
 
     def _identify_gap(
         self,
@@ -363,7 +441,9 @@ class GapAnalyzer:
             if other_company == target_company:
                 continue
 
+            # Sanitize to match output_manager.py naming
             safe_name = re.sub(r'[<>:"/\\|?*]', '_', other_company)
+            safe_name = re.sub(r'[\s_]+', '_', safe_name).strip('_.')
             company_dir = self.base_dir / safe_name
 
             if not company_dir.exists():

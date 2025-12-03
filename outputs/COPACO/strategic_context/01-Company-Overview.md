@@ -2,110 +2,90 @@
 
 **Company:** COPACO
 **Industry:** Telecommunications
-**Date:** 2025-12-01 22:20:56
+**Date:** 2025-12-02 20:25:29
 
 ## Mission & Vision
 
 **Mission:** Conectamos a nuestros clientes, a través de servicios de comunicación de calidad, con cobertura nacional y así contribuimos como empresa pública al desarrollo económico y social.
-**Vision:** Roheka roiko hag̃ua peteî tetã remimoimby ojejeroviakuaa ha oikotevê'ÿva, ikatúva oporomomba'apo oñemopyendávo mba'
+**Vision:** Roheka roiko hag̃ua peteî tetã remimoimby ojejeroviakuaa ha oikotevê’ÿva, ikatúva oporomomba’apo oñemopyendávo mba’
 **Values:**
 
-
-- honestidad
-  
-
-- responsabilidad social
-  
-
-- eficiencia
-  
-
-- personal calificado y comprometido
+- N/A
   
 
 ## History
 
-Created on November 15, 2001 and began operating on December 3, 2001, arising from the transformation of the National Telecommunications Administration (ANTELCO) due to Law 1615/00. Originally established to provide public telecommunications services within national territory and abroad, as well as broadcasting and value-added services.
+COPACO S.A. was created on November 15, 2001, and began operating on December 3 of the same year. It emerged from the transformation of the Administración Nacional de Telecomunicaciones – ANTELCO, due to the effects of Law 1615/00.
 
 ### Key Milestones
 
 
-
-- **2001:** Company created on November 15 and began operations on December 3
-  
-
-- **2002:** Failed privatization attempt during banking scandal
-  
-
-- **2010:** Acquired mobile operator Vox (Hola Paraguay S.A.) for approximately US$16 million
-  
-
-- **2024:** Described as 'practically bankrupt' by President Santiago Peña
+- N/A
   
 
 ## Leadership
 
 **CEO:** N/A
-**Headquarters:** Alberdi 531 - Edif. Gral. Bernardino Caballero - Asunción - Paraguay
-**Employees:** 2,850 employees
+**Headquarters:** Asunción, Paraguay
+**Employees:** 201 - 500
 
 ## Sources
 
 
 
-- [Registrarse | LinkedIn](https://py.linkedin.com/company/copaco-s.a.-paraguay)
-  
-
-- [Paraguayan Communications Company (Compañía Paraguaya de Comunicaciones S.A.) (COPACO) | Devex](https://www.devex.com/organizations/paraguayan-communications-company-compania-paraguaya-de-comunicaciones-s-a-copaco-169054)
-  
-
-- [copaco.com.py's Search traffic, Ranking and Backlinks](https://ahrefstop.com/websites/copaco.com.py)
-  
-
-- [Telecommunications in Paraguay - Wikipedia](https://en.wikipedia.org/wiki/Telecommunications_in_Paraguay)
-  
-
-- [Can Paraguay’s state-owned service provider be saved? - Developing Telecoms](https://developingtelecoms.com/telecom-business/16018-can-paraguay-s-state-owned-service-provider-be-saved.html)
-  
-
-- [Registrarse | LinkedIn](https://www.linkedin.com/company/copacopy)
+- [Copaco S.A - Comunicación en todo sentido! - Personas y Hogares](https://www.copaco.com.py/)
   
 
 - [Copaco S.A - Comunicación en todo sentido! - Quiénes Somos](https://www.copaco.com.py/index.php/institucional/quienes-somos.html)
   
 
-- [COPACO S.A.: Historia de la empresa](https://copacosa.blogspot.com/2012/09/historia-de-la-empresa.html)
+- [La Nación / La Copaco instala internet satelital en zonas aisladas](https://www.lanacion.com.py/pais_edicion_impresa/2025/11/28/la-copaco-instala-internet-satelital-en-zonas-aisladas/)
   
 
-- [Copaco S.A - Comunicación en todo sentido! - Personas y Hogares](https://www.copaco.com.py/)
+- [Copaco S.A - Comunicación en todo sentido! - Atención Telefónica](https://www.copaco.com.py/index.php/atencion-telefonica.html)
   
 
-- [COPACO S.A. PARAGUAY | LinkedIn](https://www.linkedin.com/company/copaco-s.a.-paraguay)
-  
-
-- [COPACO S.A. PARAGUAY - Company Profile & Staff Directory | ContactOut](https://contactout.com/company/copaco-sa-paraguay-6071166)
-  
-
-- [Paraguay’s Broadband Providers Continue to Struggle to Attain Best Practices at Protecting Users’ Data | Electronic Frontier Foundation](https://www.eff.org/deeplinks/2025/02/paraguays-broadband-providers-continue-struggle-attain-best-practices-protecting)
-  
-
-- [Paraguay’s Copaco set to integrate subsidiary Vox - BNamericas](https://www.bnamericas.com/en/news/paraguays-copaco-set-to-integrate-subsidiary-vox)
-  
-
-- [Paraguay | Powertec Information Portal](https://portal.powertec.com.au/industry-resources/countries-territories/americas/paraguay)
+- [Pagar facturas de Copaco desde Portal de Pagos - Pago de Factura. COPACO Recarga de Saldo. COPACO Pago de factura por cuenta. COPACO](https://www.infonet.com.py/servicios_disponibles/copaco)
   
 
 - [Compañía Paraguaya de Comunicaciones S.A. (COPACO) - BNamericas](https://www.bnamericas.com/en/company-profile/compania-paraguaya-de-comunicaciones-sa-copaco)
   
 
-- [La Nación / Copaco despierta interés de inversores extranjeros](https://www.lanacion.com.py/negocios/2024/05/02/copaco-despierta-interes-de-inversores-extranjeros/)
+- [Robacables le dan de a poco una estocada final a Copaco - La Tribuna](https://www.latribuna.com.py/destacado/35696-robacables-le-dan-de-a-poco-una-estocada-final-a-copaco)
+  
+
+- [Copaco - Wikipedia](https://en.wikipedia.org/?title=Copaco&redirect=no)
+  
+
+- [Copaco ya perdió en tres años casi el 50% de su patrimonio neto - Última Hora | Noticias de Paraguay y el mundo, las 24 horas. Noticias nacionales e internacionales, deportes, política. Noticias de último momento.](https://www.ultimahora.com/copaco-ya-perdio-en-tres-anos-casi-el-50-de-su-patrimonio-neto)
+  
+
+- [Copaco - Villa Elisa | Telefonia | Sol De America](https://www.buscoinfo.com.py/local/copaco-villa-elisa/LOC776130021)
+  
+
+- [Copaco Inc - Company Profile and News - Bloomberg Markets](https://www.bloomberg.com/profile/company/0452063D:US)
+  
+
+- [Copaco appoints its board of directors - TV y Video Latinoamérica](https://www.tvyvideo.com/en/news/latest-news/289-people/13071-copaco-appoints-its-board-of-directors.html)
   
 
 - [COPACO S.A. PARAGUAY - Overview, Competitors & Emplyee insight | AroundDeal](https://www.arounddeal.com/c/copaco-s-a-paraguay/v4dpavrwbo)
   
 
-- [Crunchbase Homepage - Crunchbase](https://about.crunchbase.com/)
+- [Navigation Failed](https://www.dnb.com/business-directory/company-profiles.COMPAÑIA_PARAGUAYA_DE_COMUNICACIONES_SA.23cb6e20a4adbeee0e88792ca89ccac9.html)
   
 
-- [Invest Smarter, Exit Stronger - Crunchbase](https://about.crunchbase.com/investors/)
+- [copaco.com.py's Search traffic, Ranking and Backlinks](https://ahrefstop.com/websites/copaco.com.py)
+  
+
+- [COPACO S.A. PARAGUAY - Company Profile & Staff Directory | ContactOut](https://contactout.com/company/copaco-sa-paraguay-6071166)
+  
+
+- [Copaco - 2025 Company Profile & Competitors - Tracxn](https://tracxn.com/d/companies/copaco/__3syITPduYtT91ihAE11SQV84Ijkl5bwOjZhtSWA9bFw)
+  
+
+- [Business messaging, Copaco | Paraguay](https://messaggio.com/messaging/carriers/paraguay/copaco/)
+  
+
+- [La Nación / Copaco despierta interés de inversores extranjeros](https://www.lanacion.com.py/negocios/2024/05/02/copaco-despierta-interes-de-inversores-extranjeros/)
   

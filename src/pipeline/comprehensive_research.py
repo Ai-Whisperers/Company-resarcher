@@ -11,10 +11,11 @@ This module implements a comprehensive research pipeline that:
 from __future__ import annotations
 
 import asyncio
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import jinja2
 
@@ -28,6 +29,35 @@ from ..services.source_tracker import SourceTracker, reset_source_tracker
 from ..services.json_parser_helper import robust_json_parse
 from ..core.logger import setup_logger
 from ..utils.url_utils import add_country_context_to_query
+from ..core.relevance_filter import RelevanceFilter
+from ..core.adaptive_timeout import get_adaptive_timeout_manager
+from ..core.company_probe import probe_company_presence, CompanyPresence, RESEARCH_PROFILES
+from ..core.url_cache import reset_url_cache
+from ..services.html_cache import get_html_cache
+from ..core.ai_query_planner import get_query_planner, QueryPlan
+from ..core.ai_enhancements import (
+    AIEnhancementOrchestrator,
+    get_ai_orchestrator,
+    reset_ai_orchestrator,
+)
+# PERF-017 to PERF-020: New optimization modules
+from ..core.adaptive_query_strategy import (
+    AdaptiveQueryStrategy,
+    get_query_strategy,
+    QueryStrategy,
+)
+from ..core.cross_company_cache import (
+    get_cross_company_cache,
+    reset_cross_company_cache,
+)
+from ..core.domain_timeout import (
+    get_timeout_manager,
+    is_domain_circuit_open,
+)
+from ..core.search_fallback import (
+    SearchFallbackManager,
+    get_fallback_queries,
+)
 
 logger = setup_logger("comprehensive_research")
 
@@ -44,6 +74,46 @@ class SectionResearchResult:
     sources: List[ResearchSource] = field(default_factory=list)
     content: str = ""
     error: Optional[str] = None
+    retry_count: int = 0
+    queries_executed: int = 0
+    queries_failed: int = 0
+
+    @property
+    def needs_retry(self) -> bool:
+        """
+        Check if this section needs to be retried.
+
+        Returns True if:
+        - Has 0 sources and hasn't been retried yet
+        - Has very few sources (< 2) relative to queries executed
+        """
+        # Don't retry if already retried max times
+        max_retries = int(os.getenv("SECTION_MAX_RETRIES", "2"))
+        if self.retry_count >= max_retries:
+            return False
+
+        # Retry if 0 sources
+        if len(self.sources) == 0:
+            return True
+
+        # Retry if very low success rate (< 20% of queries got results)
+        if self.queries_executed > 0:
+            success_rate = len(self.sources) / self.queries_executed
+            if success_rate < 0.2 and len(self.sources) < 3:
+                return True
+
+        return False
+
+    @property
+    def retry_priority(self) -> int:
+        """
+        Priority for retry (higher = retry first).
+
+        Sections with 0 sources get highest priority.
+        """
+        if len(self.sources) == 0:
+            return 100
+        return max(0, 50 - len(self.sources) * 10)
 
 
 @dataclass
@@ -55,6 +125,26 @@ class ComprehensiveResearchResult:
     total_sources: int = 0
     total_queries: int = 0
     duration_seconds: float = 0
+    # Retry statistics
+    sections_retried: int = 0
+    retry_sources_gained: int = 0
+
+    def get_failed_sections(self) -> List[Tuple[str, str, SectionResearchResult]]:
+        """
+        Get list of sections that need retry.
+
+        Returns:
+            List of (section_name, filename, result) tuples sorted by retry priority
+        """
+        failed = []
+        for section_name, section_results in self.sections.items():
+            for filename, result in section_results.items():
+                if result.needs_retry:
+                    failed.append((section_name, filename, result))
+
+        # Sort by priority (highest first)
+        failed.sort(key=lambda x: x[2].retry_priority, reverse=True)
+        return failed
 
 
 # =============================================================================
@@ -69,8 +159,12 @@ class ComprehensiveResearchService:
     approach that generates 52+ files with ~1000 sources.
     """
 
-    MAX_CONCURRENT_QUERIES = 10
+    MAX_CONCURRENT_QUERIES = 15  # Increased for Gemini Tier 1 (2000 RPM)
+    MAX_CONCURRENT_SECTIONS = 4  # Run 4 sections in parallel with high-limit providers
     MAX_RESULTS_PER_QUERY = 5
+    # PERF-021: Enable parallel multi-engine search (DuckDuckGo + Jina + Tavily in parallel)
+    PARALLEL_SEARCH_ENABLED = os.getenv("PARALLEL_SEARCH", "true").lower() == "true"
+    PARALLEL_SEARCH_TIMEOUT = float(os.getenv("PARALLEL_SEARCH_TIMEOUT", "30"))
 
     def __init__(
         self,
@@ -92,6 +186,12 @@ class ComprehensiveResearchService:
         """
         Execute comprehensive research across all sections.
 
+        Performance optimizations (PERF-011 to PERF-017):
+        - Resets URL cache for fresh research session
+        - Probes company presence to adjust research depth
+        - Uses relevance filtering before fetching
+        - Applies adaptive timeouts based on query patterns
+
         Args:
             company: Company profile to research
 
@@ -101,18 +201,100 @@ class ComprehensiveResearchService:
         start_time = datetime.now()
         result = ComprehensiveResearchResult(company=company)
 
+        # PERF-011: Reset URL cache for new research session
+        reset_url_cache()
+        logger.info("URL cache reset for new research session")
+
+        # Initialize HTML cache for this company
+        get_html_cache().set_company(company.name)
+
         # Reset source tracker for new research
         reset_source_tracker()
         self.source_tracker = SourceTracker()
 
-        # Execute research for each section
+        # PERF-015: Probe company presence to adjust research depth
+        presence_level = "substantial"  # Default
+        try:
+            probe_result = await probe_company_presence(
+                company=company.name,
+                website=company.website,
+                country=company.country,
+            )
+            presence_level = probe_result.presence.value
+            logger.info(
+                f"Company probe: {company.name} -> {presence_level} "
+                f"(profile: {probe_result.recommended_profile})"
+            )
+
+            # Adjust max queries based on presence
+            if probe_result.presence == CompanyPresence.MINIMAL:
+                self.max_queries_per_section = min(self.max_queries_per_section, 20)
+                logger.info(f"Reduced queries per section to {self.max_queries_per_section} for minimal presence")
+            elif probe_result.presence == CompanyPresence.LIMITED:
+                self.max_queries_per_section = min(self.max_queries_per_section, 35)
+                logger.info(f"Reduced queries per section to {self.max_queries_per_section} for limited presence")
+        except Exception as e:
+            logger.warning(f"Company probe failed, using default research depth: {e}")
+
+        # Create relevance filter for this company
+        self._relevance_filter = RelevanceFilter(
+            company=company.name,
+            country=company.country,
+            industry=company.industry,
+        )
+
+        # Initialize AI query planner for smarter search queries
+        self._query_planner = get_query_planner()
+        self._query_plans: Dict[str, QueryPlan] = {}
+
+        # Initialize AI enhancement orchestrator for comprehensive AI features
+        reset_ai_orchestrator()  # Reset for new research session
+        self._ai_orchestrator = get_ai_orchestrator(
+            company=company.name,
+            industry=company.industry or "Technology",
+            country=company.country or "Global",
+        )
+        logger.info("AI Enhancement Orchestrator initialized")
+
+        # PERF-017: Initialize adaptive query strategy based on company presence
+        try:
+            self._query_strategy = get_query_strategy(
+                company=company.name,
+                country=company.country or "Global",
+                presence_level=presence_level,
+            )
+            logger.info(f"Query strategy: {self._query_strategy.strategy.value}")
+        except Exception as e:
+            logger.debug(f"Query strategy initialization skipped: {e}")
+            self._query_strategy = None
+
+        # PERF-018: Initialize search fallback manager
+        self._fallback_manager = SearchFallbackManager(
+            company=company.name,
+            country=company.country or "Global",
+            max_fallbacks=3,
+        )
+
+        # PERF-019: Initialize domain timeout manager
+        self._domain_timeout = get_timeout_manager()
+
+        # Execute research for each section with rate limiting
+        # Use semaphore to limit concurrent sections and avoid rate limiting
+        section_semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_SECTIONS)
+
+        async def run_section_with_limit(section_name: str, queries: list):
+            """Run a section with concurrency limiting."""
+            async with section_semaphore:
+                logger.info(f"Researching section: {section_name} ({len(queries)} queries)")
+                return await self._research_section(company, section_name, queries)
+
         section_tasks = []
         for section_name, queries in COMPREHENSIVE_QUERIES.items():
             section_tasks.append(
-                self._research_section(company, section_name, queries)
+                run_section_with_limit(section_name, queries)
             )
 
-        # Run all sections (can be parallelized or sequential)
+        # Run sections with limited concurrency to avoid rate limiting
         section_results = await asyncio.gather(*section_tasks, return_exceptions=True)
 
         # Aggregate results
@@ -125,6 +307,17 @@ class ComprehensiveResearchService:
                 for file_result in section_result.values():
                     result.total_sources += len(file_result.sources)
 
+        # Retry failed sections if enabled (default: enabled)
+        enable_retry = os.getenv("SECTION_RETRY_ENABLED", "true").lower() == "true"
+        if enable_retry:
+            failed_count = len(result.get_failed_sections())
+            if failed_count > 0:
+                logger.info(f"Found {failed_count} sections with insufficient sources, starting retry pass...")
+                retry_sources = await self._retry_failed_sections(company, result)
+                result.retry_sources_gained = retry_sources
+                result.sections_retried = failed_count
+                result.total_sources += retry_sources
+
         result.source_tracker = self.source_tracker
         result.total_queries = sum(len(q) for q in COMPREHENSIVE_QUERIES.values())
         result.duration_seconds = (datetime.now() - start_time).total_seconds()
@@ -132,6 +325,8 @@ class ComprehensiveResearchService:
         logger.info(
             f"Comprehensive research complete: {result.total_sources} sources, "
             f"{result.total_queries} queries, {result.duration_seconds:.1f}s"
+            + (f", {result.sections_retried} retried (+{result.retry_sources_gained} sources)"
+               if result.sections_retried > 0 else "")
         )
 
         return result
@@ -144,6 +339,26 @@ class ComprehensiveResearchService:
     ) -> Dict[str, SectionResearchResult]:
         """Research a single section with all its queries."""
         logger.info(f"Researching section: {section_name} ({len(queries)} queries)")
+
+        # Get AI query plan for this section (provides context + smarter queries)
+        query_plan = None
+        ai_queries: List[str] = []
+        try:
+            query_plan = await self._query_planner.plan_research(
+                company_name=company.name,
+                section=section_name,
+                industry=company.industry or "Technology",
+                country=company.country or "Global",
+            )
+            self._query_plans[section_name] = query_plan
+            ai_queries = query_plan.suggested_queries
+            logger.info(
+                f"  AI query plan: {len(ai_queries)} queries, "
+                f"confidence={query_plan.confidence:.0%}, "
+                f"known entities: {sum(len(v) for v in query_plan.key_entities.values())}"
+            )
+        except Exception as e:
+            logger.debug(f"AI query planning skipped for {section_name}: {e}")
 
         # Group queries by target file
         queries_by_file: Dict[str, List[QueryTemplate]] = {}
@@ -161,6 +376,8 @@ class ComprehensiveResearchService:
                 section_name,
                 filename,
                 file_queries,
+                ai_queries=ai_queries,
+                query_plan=query_plan,
             )
             results[filename] = result
 
@@ -172,14 +389,16 @@ class ComprehensiveResearchService:
         section: str,
         filename: str,
         queries: List[QueryTemplate],
+        ai_queries: Optional[List[str]] = None,
+        query_plan: Optional[QueryPlan] = None,
     ) -> SectionResearchResult:
         """Research for a single output file."""
         result = SectionResearchResult(section=section, file=filename)
 
-        # Format and execute queries
+        # Format template queries
         # Ensure country context is added to all queries (BUG-049)
         country_name = company.country if company.country != "Global" else ""
-        formatted_queries = [
+        template_queries = [
             add_country_context_to_query(
                 format_query(
                     q,
@@ -193,22 +412,125 @@ class ComprehensiveResearchService:
             for q in queries
         ]
 
+        # Combine AI-suggested queries with template queries
+        # AI queries are prioritized (usually more specific and targeted)
+        if ai_queries and query_plan:
+            formatted_queries = self._query_planner.get_combined_queries(
+                query_plan,
+                template_queries,
+                max_queries=self.max_queries_per_section,
+            )
+            if len(ai_queries) > 0:
+                logger.debug(
+                    f"  {section}/{filename}: Using {len(formatted_queries)} queries "
+                    f"({len(ai_queries)} AI + {len(template_queries)} template)"
+                )
+        else:
+            formatted_queries = template_queries
+
+        # PERF-017: Apply adaptive query strategy based on company presence
+        if hasattr(self, '_query_strategy') and self._query_strategy:
+            original_count = len(formatted_queries)
+            formatted_queries = self._query_strategy.adapt_queries(
+                formatted_queries,
+                max_queries=self.max_queries_per_section,
+            )
+            if len(formatted_queries) != original_count:
+                logger.debug(
+                    f"  {section}/{filename}: Adapted queries {original_count} -> {len(formatted_queries)} "
+                    f"(strategy: {self._query_strategy.strategy.value})"
+                )
+
         # Execute queries with concurrency control
         semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_QUERIES)
+        adaptive_timeout = get_adaptive_timeout_manager()
 
-        async def search_query(query: str) -> List[ResearchSource]:
+        async def search_query(query: str, is_fallback: bool = False) -> List[ResearchSource]:
             async with semaphore:
                 try:
-                    search_results = await self.search_tool.search(
-                        query,
-                        max_results=self.MAX_RESULTS_PER_QUERY,
-                    )
+                    # PERF-013: Check if section should be skipped
+                    if adaptive_timeout.should_skip_section(section):
+                        logger.debug(f"Skipping query in {section} - too many failures")
+                        return []
+
+                    # PERF-021: Use parallel multi-engine search for faster results
+                    if self.PARALLEL_SEARCH_ENABLED and hasattr(self.search_tool, 'search_parallel'):
+                        search_results = await self.search_tool.search_parallel(
+                            query,
+                            max_results=self.MAX_RESULTS_PER_QUERY,
+                            timeout_seconds=self.PARALLEL_SEARCH_TIMEOUT,
+                        )
+                    else:
+                        search_results = await self.search_tool.search(
+                            query,
+                            max_results=self.MAX_RESULTS_PER_QUERY,
+                        )
+
+                    # PERF-020: If no results and not already a fallback, try fallback queries
+                    if not search_results and not is_fallback and hasattr(self, '_fallback_manager'):
+                        fallback_queries = self._fallback_manager.get_fallbacks(query)
+                        for fallback_query in fallback_queries[:2]:  # Try up to 2 fallbacks
+                            logger.debug(f"Trying fallback query: {fallback_query[:50]}...")
+                            fallback_results = await search_query(fallback_query, is_fallback=True)
+                            if fallback_results:
+                                logger.info(f"Fallback successful for: {query[:30]}...")
+                                return fallback_results
+                        # All fallbacks failed
+                        adaptive_timeout.record_failure(query, section, is_empty=True)
+                        return []
+
+                    # PERF-017: Filter search results for relevance BEFORE fetching
+                    if hasattr(self, '_relevance_filter') and self._relevance_filter:
+                        filtered_results = self._relevance_filter.filter_results(
+                            search_results,
+                            max_results=self.MAX_RESULTS_PER_QUERY,
+                        )
+                        if len(filtered_results) < len(search_results):
+                            logger.debug(
+                                f"Pre-fetch filter: {len(search_results)} -> {len(filtered_results)} results"
+                            )
+                        search_results = filtered_results
+
+                    # AI-017: Use AI relevance scoring for smarter pre-fetch filtering
+                    if hasattr(self, '_ai_orchestrator') and self._ai_orchestrator and search_results:
+                        try:
+                            search_results = await self._ai_orchestrator.score_search_results(
+                                query=query,
+                                results=search_results,
+                                target_data=section,
+                                threshold=0.4,
+                            )
+                        except Exception as ai_err:
+                            logger.debug(f"AI relevance scoring skipped: {ai_err}")
+
                     urls = [r.get("url") for r in search_results if r.get("url")]
                     if urls:
+                        # PERF-019: Check domain circuit breakers before fetching
+                        if hasattr(self, '_domain_timeout') and self._domain_timeout:
+                            filtered_urls = []
+                            for url in urls:
+                                if not is_domain_circuit_open(url):
+                                    filtered_urls.append(url)
+                                else:
+                                    logger.debug(f"Skipping URL (circuit open): {url[:50]}...")
+                            if filtered_urls:
+                                urls = filtered_urls
+                            elif urls:
+                                # All URLs had open circuits, use original list anyway
+                                logger.debug("All URLs have open circuits, using original list")
+
                         sources = await self.browser_tool.fetch_multiple(urls[:self.MAX_RESULTS_PER_QUERY])
+                        # PERF-013: Record success/failure for adaptive timeout
+                        if sources:
+                            adaptive_timeout.record_success(query, section, result_count=len(sources))
+                        else:
+                            adaptive_timeout.record_failure(query, section, is_empty=True)
                         return sources
+                    else:
+                        adaptive_timeout.record_failure(query, section, is_empty=True)
                 except Exception as e:
                     logger.debug(f"Query failed: {query[:50]}... - {e}")
+                    adaptive_timeout.record_failure(query, section, is_timeout="timeout" in str(e).lower())
                 return []
 
         # Execute all queries for this file
@@ -242,9 +564,113 @@ class ComprehensiveResearchService:
 
         if filtered_foreign_count > 0:
             logger.info(f"  {section}/{filename}: Filtered {filtered_foreign_count} irrelevant foreign sources (BUG-049)")
-        logger.info(f"  {section}/{filename}: {len(result.sources)} sources from {len(formatted_queries)} queries")
+
+        # Track query statistics for retry logic
+        result.queries_executed = len(formatted_queries)
+        result.queries_failed = sum(
+            1 for sources in all_sources_lists
+            if isinstance(sources, Exception) or (isinstance(sources, list) and len(sources) == 0)
+        )
+
+        logger.info(
+            f"  {section}/{filename}: {len(result.sources)} sources from {len(formatted_queries)} queries "
+            f"({result.queries_failed} failed)"
+        )
 
         return result
+
+    async def _retry_failed_sections(
+        self,
+        company: CompanyProfile,
+        result: ComprehensiveResearchResult,
+    ) -> int:
+        """
+        Retry sections that failed to get adequate search results.
+
+        This method runs after the main research pass and attempts to recover
+        sections that got 0 results or very few results (likely due to temporary
+        network issues, rate limiting, or search timeouts).
+
+        Args:
+            company: Company profile being researched
+            result: Research result containing failed sections
+
+        Returns:
+            Number of new sources gained from retries
+        """
+        failed_sections = result.get_failed_sections()
+        if not failed_sections:
+            logger.info("No failed sections to retry")
+            return 0
+
+        logger.info(f"=== RETRY PASS: {len(failed_sections)} sections need retry ===")
+
+        # Wait before retry to let network/rate limits recover
+        retry_delay = int(os.getenv("SECTION_RETRY_DELAY_SECONDS", "30"))
+        logger.info(f"Waiting {retry_delay}s before retry pass...")
+        await asyncio.sleep(retry_delay)
+
+        total_new_sources = 0
+
+        for section_name, filename, section_result in failed_sections:
+            logger.info(
+                f"Retrying {section_name}/{filename} "
+                f"(attempt {section_result.retry_count + 1}, "
+                f"current sources: {len(section_result.sources)})"
+            )
+
+            # Get original queries for this section/file
+            section_queries = COMPREHENSIVE_QUERIES.get(section_name, [])
+            file_queries = [q for q in section_queries if q.file == filename]
+
+            if not file_queries:
+                logger.warning(f"No queries found for {section_name}/{filename}, skipping")
+                continue
+
+            # Get AI query plan if available
+            query_plan = self._query_plans.get(section_name)
+            ai_queries = query_plan.suggested_queries if query_plan else []
+
+            # Retry the file research
+            old_source_count = len(section_result.sources)
+
+            try:
+                new_result = await self._research_file(
+                    company,
+                    section_name,
+                    filename,
+                    file_queries,
+                    ai_queries=ai_queries,
+                    query_plan=query_plan,
+                )
+
+                # Merge new sources with existing (avoiding duplicates)
+                existing_urls = {s.url for s in section_result.sources}
+                for source in new_result.sources:
+                    if source.url not in existing_urls:
+                        section_result.sources.append(source)
+                        existing_urls.add(source.url)
+
+                # Update stats
+                section_result.retry_count += 1
+                new_sources = len(section_result.sources) - old_source_count
+                total_new_sources += new_sources
+
+                logger.info(
+                    f"  Retry result: {new_sources} new sources "
+                    f"(total now: {len(section_result.sources)})"
+                )
+
+            except Exception as e:
+                logger.error(f"Retry failed for {section_name}/{filename}: {e}")
+                section_result.retry_count += 1
+
+        logger.info(
+            f"=== RETRY PASS COMPLETE: {total_new_sources} new sources from "
+            f"{len(failed_sections)} retries ==="
+        )
+
+        return total_new_sources
 
 
 # =============================================================================

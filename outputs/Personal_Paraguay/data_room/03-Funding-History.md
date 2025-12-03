@@ -1,32 +1,14 @@
 #  Funding History
 
 **Company:** Personal Paraguay
-**Industry:** Telecommunications
-**Date:** 2025-12-01
+**Date:** 2025-12-02
 
 ---
 
-## Revenue
+## Data Not Available
 
-⚠️ Data unavailable - AI analysis required
+Unable to generate content for this section.
 
-## Funding History
+**Reason:** No sources available
 
-- ⚠️ AI providers unavailable for financial analysis
-
-## Stock Performance
-
-Data unavailable
-
-## Financial Highlights
-
-- AI analysis unavailable - retry when providers are available
-
-## Is Mock
-
-True
-
-## Sources
-
-- [Personal (Paraguay) - Wikipedia, la enciclopedia libre](https://es.wikipedia.org/wiki/Personal_(Paraguay))
-- [Personal Paraguay | Internet Fibra + Flow | Planes | Celulares](https://www.personal.com.py/)
+Please run additional research to populate this section.

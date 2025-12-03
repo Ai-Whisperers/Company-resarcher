@@ -8,148 +8,274 @@ This document lists all sources used in this section.
 
 | ID | Title | Type | Reliability |
 |----|-------|------|-------------|
-| 001 | Registrarse | LinkedIn | Social | High |
-| 002 | Paraguayan Communications Company (Compañía Paragu... | Social | Medium |
-| 003 | copaco.com.py's Search traffic, Ranking and Backli... | Web | Medium |
-| 005 | Can Paraguay’s state-owned service provider be sav... | Web | Medium |
-| 009 | Copaco S.A - Comunicación en todo sentido! - Perso... | Social | Medium |
-| 010 | COPACO S.A. PARAGUAY | LinkedIn | Social | High |
-| 013 | Paraguay’s Copaco set to integrate subsidiary Vox ... | Web | Medium |
-| 016 | La Nación / Copaco despierta interés de inversores... | Web | Medium |
-| 020 | copaco.com.py Website Traffic, Ranking, Analytics ... | Web | Medium |
-| 021 | Copaco S.A - Comunicación en todo sentido! - SAC | Social | Medium |
-| 022 | Copaco S.A - Comunicación en todo sentido! - Factu... | Social | Medium |
-| 023 | Copaco S.A - Comunicación en todo sentido! - Línea... | Web | Medium |
-| 031 | Navigation Failed | Web | Medium |
-| 060 | Paraguay avoids having merger of Tigo with Liberty... | Financial | Medium |
-| 061 | ¿Qué pasará con la empresa COPACO? - El Paraguayo ... | Web | Medium |
-| 062 | Copaco Paraguay détails - IMEI.info | Social | Medium |
-| 063 | Business messaging, Copaco | Paraguay | Social | Medium |
-| 064 | Paraguay: Copaco absorberá a Vox ante problemas fi... | Web | Medium |
-| 065 | Paraguay looks to rescue state telco Copaco - BNam... | Social | Medium |
-| 086 | MCC 744 MNC 06 - Copaco S.A. (Copaco) in Paraguay | Web | Medium |
+| 001 | Copaco S.A - Comunicación en todo sentido! - Perso... | Social | Medium |
+| 006 | Copaco S.A - Comunicación en todo sentido! - Quién... | Web | Medium |
+| 007 | La Nación / La Copaco instala internet satelital e... | Web | Medium |
+| 008 | Copaco S.A - Comunicación en todo sentido! - Atenc... | Social | Medium |
+| 009 | Pagar facturas de Copaco desde Portal de Pagos - P... | Social | Medium |
+| 010 | Robacables le dan de a poco una estocada final a C... | Web | Medium |
+| 014 | Copaco Inc - Company Profile and News - Bloomberg ... | Web | High |
+| 021 | Business messaging, Copaco | Paraguay | Social | Medium |
+| 034 | Crisis en COPACO: Stark anuncia la privatización p... | Web | Medium |
+| 035 | ¿Qué pasará con la empresa COPACO? - El Paraguayo ... | Web | Medium |
+| 037 | Copaco precisa de G. 35.000 millones/mes para subs... | Web | Medium |
+| 038 | Copaco/Vox lanzó LTE con una inversión inicial de ... | Web | Medium |
+| 039 | Navigation Failed | Web | Medium |
+| 040 | Navigation Failed | Web | Medium |
+| 042 | Copaco NV:Financial,Market Cap,Revenue & Financial... | Web | Medium |
+| 061 | Copaco, Inc. Company Overview, Contact Details & C... | Social | Medium |
+| 063 | copaco.com.py Website Traffic, Ranking, Analytics ... | Web | Medium |
+| 068 | Navigation Failed | Web | Medium |
+| 069 | Copaco Paraguay détails - IMEI.info | Social | Medium |
+| 070 | Copaco analiza la venta de hasta 50% de sus accion... | Web | Medium |
+| 071 | Un fondo saudita pondría USD 150 millones en Copac... | Web | Medium |
+| 072 | La Nación / Vox fue un mal negocio y una mala deci... | Web | Medium |
+| 073 | Copaco quiere vender hasta el 49% de sus acciones ... | Web | Medium |
+| 074 | Navigation Failed | Web | Medium |
+| 075 | Copaco/Vox Partnership Announcement - News - Simpl... | News | Medium |
+| 076 | Microsoft BeLux Partners on Digital Transformation... | Web | Medium |
+| 077 | Copaco | News | Discover the opportunities of Copi... | Social | Medium |
+| 078 | Copaco habilita Whatsapp ante numerosas quejas de ... | Web | Medium |
+| 079 | Copaco Paraguay details | Web | Medium |
+| 080 | Copaco launches LTE in Paraguay; Latam totals 14 L... | News | Medium |
+| 081 | Copaco S.A - Comunicación en todo sentido! - Info ... | Social | Medium |
+| 089 | Copaco NV - Company Profile and News - Bloomberg M... | Web | High |
+| 090 | Copaco se desprendería de 1.000 funcionarios - Últ... | Social | Medium |
+| 091 | Mediante acuerdo COPACO-VOX-UNA inician entregas d... | Social | Medium |
+| 092 | Paraguay | Copaco prevé el retiro voluntario de 57... | Web | Medium |
+| 093 | Paraguay | Auditan millonarias deudas de Copaco y ... | Web | Medium |
+| 094 | Copaco S.A - Comunicación en todo sentido! - Factu... | Social | Medium |
+| 095 | Copaco Paraguay detalhes - IMEI.info | Social | Medium |
 
 ---
 
 ## Detailed Source Breakdown
 
-### Source-001: Registrarse | LinkedIn
-
-- **URL:** https://py.linkedin.com/company/copaco-s.a.-paraguay
-- **Date Accessed:** 2025-12-01
-- **Reliability:** High
-
-### Source-002: Paraguayan Communications Company (Compañía Paraguaya de Com
-
-- **URL:** https://www.devex.com/organizations/paraguayan-communications-company-compania-paraguaya-de-comunicaciones-s-a-copaco-169054
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-003: copaco.com.py's Search traffic, Ranking and Backlinks
-
-- **URL:** https://ahrefstop.com/websites/copaco.com.py
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-005: Can Paraguay’s state-owned service provider be saved? - Deve
-
-- **URL:** https://developingtelecoms.com/telecom-business/16018-can-paraguay-s-state-owned-service-provider-be-saved.html
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-009: Copaco S.A - Comunicación en todo sentido! - Personas y Hoga
+### Source-001: Copaco S.A - Comunicación en todo sentido! - Personas y Hoga
 
 - **URL:** https://www.copaco.com.py/
-- **Date Accessed:** 2025-12-01
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-010: COPACO S.A. PARAGUAY | LinkedIn
+### Source-006: Copaco S.A - Comunicación en todo sentido! - Quiénes Somos
 
-- **URL:** https://www.linkedin.com/company/copaco-s.a.-paraguay
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.copaco.com.py/index.php/institucional/quienes-somos.html
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-007: La Nación / La Copaco instala internet satelital en zonas ai
+
+- **URL:** https://www.lanacion.com.py/pais_edicion_impresa/2025/11/28/la-copaco-instala-internet-satelital-en-zonas-aisladas/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-008: Copaco S.A - Comunicación en todo sentido! - Atención Telefó
+
+- **URL:** https://www.copaco.com.py/index.php/atencion-telefonica.html
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-009: Pagar facturas de Copaco desde Portal de Pagos - Pago de Fac
+
+- **URL:** https://www.infonet.com.py/servicios_disponibles/copaco
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-010: Robacables le dan de a poco una estocada final a Copaco - La
+
+- **URL:** https://www.latribuna.com.py/destacado/35696-robacables-le-dan-de-a-poco-una-estocada-final-a-copaco
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-014: Copaco Inc - Company Profile and News - Bloomberg Markets
+
+- **URL:** https://www.bloomberg.com/profile/company/0452063D:US
+- **Date Accessed:** 2025-12-02
 - **Reliability:** High
 
-### Source-013: Paraguay’s Copaco set to integrate subsidiary Vox - BNameric
-
-- **URL:** https://www.bnamericas.com/en/news/paraguays-copaco-set-to-integrate-subsidiary-vox
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-016: La Nación / Copaco despierta interés de inversores extranjer
-
-- **URL:** https://www.lanacion.com.py/negocios/2024/05/02/copaco-despierta-interes-de-inversores-extranjeros/
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-020: copaco.com.py Website Traffic, Ranking, Analytics [October 2
-
-- **URL:** https://www.semrush.com/website/copaco.com.py/overview/
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-021: Copaco S.A - Comunicación en todo sentido! - SAC
-
-- **URL:** https://www.copaco.com.py/index.php/sac.html
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-022: Copaco S.A - Comunicación en todo sentido! - Facturación
-
-- **URL:** https://www.copaco.com.py/index.php/facturacio-n.html
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-023: Copaco S.A - Comunicación en todo sentido! - Línea Fija
-
-- **URL:** https://www.copaco.com.py/index.php/personas-y-hogares/telefonia/linea-fija.html
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-031: Navigation Failed
-
-- **URL:** https://www.copaco.com.py/index.php/component/phocadownload/category/6-ley-5189-articulo-3.html?download=807:nomina-de-empleados-febrero-2025
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-060: Paraguay avoids having merger of Tigo with Liberty Latin Ame
-
-- **URL:** https://www.einpresswire.com/article/515415095/paraguay-avoids-having-merger-of-tigo-with-liberty-latin-america
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-061: ¿Qué pasará con la empresa COPACO? - El Paraguayo Independie
-
-- **URL:** https://paraguayoindependiente.com/2024/03/08/que-pasara-con-la-empresa-copaco/
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-062: Copaco Paraguay détails - IMEI.info
-
-- **URL:** https://www.imei.info/fr/carriers/paraguay/copaco/
-- **Date Accessed:** 2025-12-01
-- **Reliability:** Medium
-
-### Source-063: Business messaging, Copaco | Paraguay
+### Source-021: Business messaging, Copaco | Paraguay
 
 - **URL:** https://messaggio.com/messaging/carriers/paraguay/copaco/
-- **Date Accessed:** 2025-12-01
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-064: Paraguay: Copaco absorberá a Vox ante problemas financieros 
+### Source-034: Crisis en COPACO: Stark anuncia la privatización parcial y e
 
-- **URL:** https://www.telesemana.com/blog/2020/01/09/paraguay-copaco-absorbera-a-vox-ante-problemas-financieros-recurrentes/
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.lapoliticaonline.com/paraguay/asuncion/stark-anuncia-una-privatizacion-parcial-de-copaco-y-un-nuevo-monopolio-de-todo-el-sistema-de-comunicacion-del-estado/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-065: Paraguay looks to rescue state telco Copaco - BNamericas
+### Source-035: ¿Qué pasará con la empresa COPACO? - El Paraguayo Independie
 
-- **URL:** https://www.bnamericas.com/en/news/paraguay-looks-to-rescue-state-telco-copaco
-- **Date Accessed:** 2025-12-01
+- **URL:** https://paraguayoindependiente.com/2024/03/08/que-pasara-con-la-empresa-copaco/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 
-### Source-086: MCC 744 MNC 06 - Copaco S.A. (Copaco) in Paraguay
+### Source-037: Copaco precisa de G. 35.000 millones/mes para subsistir - Úl
 
-- **URL:** https://mcc-mnc.org/networks/744_06
-- **Date Accessed:** 2025-12-01
+- **URL:** https://www.ultimahora.com/copaco-precisa-de-g-35-000-millones-mes-para-subsistir
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-038: Copaco/Vox lanzó LTE con una inversión inicial de US$ 15 mil
+
+- **URL:** https://www.telesemana.com/blog/2013/02/19/copacovox-lanzo-lte-con-una-inversion-inicial-de-us-15-millones/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-039: Navigation Failed
+
+- **URL:** https://www.owler.com/company/copaco/competitors
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-040: Navigation Failed
+
+- **URL:** https://www.dnb.com/business-directory/company-profiles.copaco_nv.431986f5b744e88e808badb7c82b894f.html
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-042: Copaco NV:Financial,Market Cap,Revenue & Financial Statement
+
+- **URL:** https://discovery.patsnap.com/company/copaco/financial/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-061: Copaco, Inc. Company Overview, Contact Details & Competitors
+
+- **URL:** https://leadiq.com/c/copaco-inc/5a1d86a8240000240060d671
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-063: copaco.com.py Website Traffic, Ranking, Analytics [October 2
+
+- **URL:** https://www.semrush.com/website/copaco.com.py/overview/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-068: Navigation Failed
+
+- **URL:** https://digitgaps.com/report-store/copaco-nv-company-profile-financial-and-strategic-swot-analysis-mergers-and-acquisitions-partnerships-and-investments-news-key-profiles-and-competitors-report/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-069: Copaco Paraguay détails - IMEI.info
+
+- **URL:** https://www.imei.info/fr/carriers/paraguay/copaco/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-070: Copaco analiza la venta de hasta 50% de sus acciones - Últim
+
+- **URL:** https://www.ultimahora.com/copaco-analiza-la-venta-de-hasta-50-de-sus-acciones
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-071: Un fondo saudita pondría USD 150 millones en Copaco, mientra
+
+- **URL:** https://www.lapoliticaonline.com/paraguay/empresas-py/fondo-arabe-talc-arriba-con-uss-150-millones-para-copaco-y-sindicatos-piden-mediacion-de-monica-duarte-de-trabajopara-mediar-con-oscar-stark/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-072: La Nación / Vox fue un mal negocio y una mala decisión para 
+
+- **URL:** https://www.lanacion.com.py/politica/2025/02/03/vox-fue-un-mal-negocio-y-una-mala-decision-para-copaco-afirma-stark/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-073: Copaco quiere vender hasta el 49% de sus acciones - Última H
+
+- **URL:** https://www.ultimahora.com/copaco-quiere-vender-hasta-el-49-de-sus-acciones
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-074: Navigation Failed
+
+- **URL:** https://www.vmware.com/docs/vmware-copaco-cloud-case-study
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-075: Copaco/Vox Partnership Announcement - News - Simplifi
+
+- **URL:** https://www.simplifi.io/news/simplifi-announces-partnership-with-vox-paraguay
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-076: Microsoft BeLux Partners on Digital Transformation | Copaco 
+
+- **URL:** https://www.youtube.com/watch?v=0DtpKeJe8Wo
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-077: Copaco | News | Discover the opportunities of Copilot for Di
+
+- **URL:** https://copaco.cloud/en/nieuws/Copilot-processen-verbeteren-digitale-transformatie-ai-kansen-it-partners
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-078: Copaco habilita Whatsapp ante numerosas quejas de usuarios -
+
+- **URL:** https://www.ultimahora.com/copaco-habilita-whatsapp-atender-numerosas-quejas-usuarios-n2773808
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-079: Copaco Paraguay details
+
+- **URL:** https://floppysend.com/carriers/paraguay/copaco/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-080: Copaco launches LTE in Paraguay; Latam totals 14 LTE network
+
+- **URL:** https://www.rcrwireless.com/20130227/carriers/lte-paraguay-totaled-14-networks-9-countries-2
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-081: Copaco S.A - Comunicación en todo sentido! - Info Generales
+
+- **URL:** https://www.copaco.com.py/index.php/info-generales.html
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-089: Copaco NV - Company Profile and News - Bloomberg Markets
+
+- **URL:** https://www.bloomberg.com/profile/company/856330Q:NA
+- **Date Accessed:** 2025-12-02
+- **Reliability:** High
+
+### Source-090: Copaco se desprendería de 1.000 funcionarios - Última Hora |
+
+- **URL:** https://www.ultimahora.com/copaco-se-desprenderia-de-1-000-funcionarios
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-091: Mediante acuerdo COPACO-VOX-UNA inician entregas de tarjetas
+
+- **URL:** https://www.una.py/mediante-acuerdo-copaco-una-inician-entregas-de-tarjetas-sim-con-paquetes-de-datos-para-estudiantes
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-092: Paraguay | Copaco prevé el retiro voluntario de 570 empleado
+
+- **URL:** https://dplnews.com/paraguay-copaco-preve-el-retiro-voluntario-de-570-empleados-para-zanjar-crisis-financiera/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-093: Paraguay | Auditan millonarias deudas de Copaco y no se desc
+
+- **URL:** https://dplnews.com/paraguay-auditan-millonarias-deudas-de-copaco-y-no-se-descartan-acciones-penales/
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-094: Copaco S.A - Comunicación en todo sentido! - Facturación
+
+- **URL:** https://www.copaco.com.py/index.php/facturacion.html
+- **Date Accessed:** 2025-12-02
+- **Reliability:** Medium
+
+### Source-095: Copaco Paraguay detalhes - IMEI.info
+
+- **URL:** https://www.imei.info/pt/carriers/paraguay/copaco/
+- **Date Accessed:** 2025-12-02
 - **Reliability:** Medium
 

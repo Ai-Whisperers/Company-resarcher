@@ -2,12 +2,12 @@
 
 **Company:** Personal Paraguay
 **Industry:** Telecommunications
-**Date:** 2025-12-01 22:28:52
+**Date:** 2025-12-02 20:42:21
 
 ## Mission & Vision
 
-**Mission:** N/A
-**Vision:** N/A
+**Mission:** Accompany customers at all times and as far as they want to go.
+**Vision:** None
 **Values:**
 
 - N/A
@@ -15,89 +15,63 @@
 
 ## History
 
-N/A
+Personal Paraguay began operations on June 24, 1998, after being awarded the corresponding band in October 1997. It was the second mobile phone company in the country, after Telecel (now Tigo). In October 2004, Personal launched its GSM network, and in early 2008, it launched 3G. Since June 2014, it has offered digital television services. In December 2015, Personal launched its 4G LTE network.
 
 ### Key Milestones
 
 
-- N/A
+
+- **2004:** Launched GSM network
+  
+
+- **2008:** Launched 3G network
+  
+
+- **2014:** Offers digital television services
+  
+
+- **2015:** Launched 4G LTE network
+  
+
+- **2019:** Acquired TuVes HD
+  
+
+- **2013:** Commercial launch of LTE network
+  
+
+- **2020:** Added LTE Band 28 (700 MHz APT)
   
 
 ## Leadership
 
 **CEO:** N/A
-**Headquarters:** N/A
-**Employees:** N/A
+**Headquarters:** Máximo Lira 522 c/ Av. España, Asunción, Paraguay
+**Employees:** None
 
 ## Sources
 
 
 
-- [Personal Paraguay Company Overview, Contact Details & Competitors | LeadIQ](https://leadiq.com/c/personal-paraguay/5a1d972c230000520085bea0)
+- [Cobertura | Personal Paraguay](https://www.personal.com.py/institucional/cobertura.html)
+  
+
+- [Personal Mobile 3G / 4G / 5G coverage in Asuncion, Paraguay - nPerf.com](https://www.nperf.com/en/map/PY/3439389.Asuncion/167632.Personal-Mobile/signal)
+  
+
+- [Personal SIM Cards and eSIM 2025: a Comprehensive Guide for Tourists in Paraguay](https://gigago.com/personal-paraguay-sim-card/)
   
 
 - [Personal Paraguay | Internet Fibra + Flow | Planes | Celulares](https://www.personal.com.py/)
   
 
+- [Personal Paraguay | Internet Fibra + Flow | Planes | Celulares](https://personal.com.py/)
+  
+
 - [Personal (Paraguay) - Wikipedia, la enciclopedia libre](https://es.wikipedia.org/wiki/Personal_(Paraguay))
-  
-
-- [Personal Paraguay - YouTube](https://www.youtube.com/user/PersonalPY)
-  
-
-- [Tienda Personal | Personal Paraguay](https://tienda.personal.com.py/)
-  
-
-- [Personal Paraguay | LinkedIn](https://es.linkedin.com/company/personalparaguay)
-  
-
-- [Registrarse | LinkedIn](https://www.linkedin.com/company/personalparaguay)
-  
-
-- [archive.md](https://archive.md/)
-  
-
-- [Maneras de recargar saldo en tu linea Personal - El Blog de Personal](https://blog.personal.com.py/maneras-como-recargar-saldo-linea-personal-paraguay/)
-  
-
-- [Personal Paraguay | Domestika](https://www.domestika.org/es/projects/1715285-personal-paraguay?exp_set=1)
-  
-
-- [Institucional | Personal Paraguay](https://www.personal.com.py/institucional/)
-  
-
-- [PERSONAL PARAGUAY - Global Providers Directory](https://www.connectbase.com/provider/personal-paraguay/)
-  
-
-- [Institucional | Personal Paraguay](https://www.personal.com.py/institucional/index.html)
   
 
 - [Personal Paraguay | Powertec Information Portal](https://portal.powertec.com.au/industry-resources/companies/personal-paraguay)
   
 
-- [List of Mobile Operators in Paraguay](https://www.telecomtrainer.com/list-of-mobile-operators-in-paraguay/)
-  
-
-- [How to Structure a Parent LLC and Subsidiary LLCs - LegalClarity](https://legalclarity.org/how-to-structure-a-parent-llc-and-subsidiary-llcs/)
-  
-
-- [LinkedIn - Wikipedia](https://en.wikipedia.org/wiki/LinkedIn)
-  
-
-- [LinkedIn: inicio de sesión o registro](https://es.linkedin.com/)
-  
-
-- [Iniciar sesión en LinkedIn | LinkedIn](https://www.linkedin.com/login/es)
-  
-
-- [Iniciar sesión en LinkedIn | LinkedIn](https://www.linkedin.com/login)
-  
-
-- [Registrarse | LinkedIn](https://es.linkedin.com/company/linkedin)
-  
-
-- [Crunchbase Homepage - Crunchbase](https://about.crunchbase.com/)
-  
-
-- [Invest Smarter, Exit Stronger - Crunchbase](https://about.crunchbase.com/investors/)
+- [Personal Paraguay - YouTube](https://www.youtube.com/channel/UC4yLqL1NMCz5i5qoGLzEcSQ)
   

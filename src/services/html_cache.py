@@ -34,8 +34,11 @@ class HTMLCache:
 
     def set_company(self, company_name: str) -> None:
         """Set the current company context for caching."""
-        # Sanitize company name
+        # Sanitize company name - must match output_manager.py sanitization
+        # Replace dangerous chars AND spaces with underscores, collapse multiple
         safe_name = re.sub(r'[<>:"/\\|?*]', '_', company_name)
+        safe_name = re.sub(r'[\s_]+', '_', safe_name)  # Match output_manager.py line 164
+        safe_name = safe_name.strip('_.')
         self._current_company = safe_name
         self._cache_dir = self.base_dir / safe_name / "99-Sources" / "html"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
@@ -182,6 +185,102 @@ Size: {len(html_content)} bytes
         filename = self._url_to_filename(url)
         filepath = self._cache_dir / filename
         return filepath if filepath.exists() else None
+
+    def get_cached_html(self, url: str) -> Optional[Dict[str, str]]:
+        """
+        Read cached HTML content for a URL if it exists.
+
+        Returns:
+            Dict with 'html', 'title', 'url' if cached, None otherwise
+        """
+        if not self._cache_dir:
+            return None
+
+        filename = self._url_to_filename(url)
+        filepath = self._cache_dir / filename
+
+        if not filepath.exists():
+            return None
+
+        try:
+            content = filepath.read_text(encoding="utf-8")
+
+            # Parse metadata from header comment
+            title = "Cached Page"
+            original_url = url
+
+            # Extract metadata from header: <!--\nHTML Cache...\nTitle: xxx\n...-->
+            if content.startswith("<!--"):
+                header_end = content.find("-->")
+                if header_end > 0:
+                    header = content[:header_end]
+                    for line in header.split("\n"):
+                        if line.startswith("Title:"):
+                            title = line[6:].strip()
+                        elif line.startswith("URL:"):
+                            original_url = line[4:].strip()
+
+                    # Remove header from HTML content
+                    content = content[header_end + 3:].strip()
+
+            logger.debug(f"HTML cache hit: {filename}")
+            return {
+                "html": content,
+                "title": title,
+                "url": original_url,
+            }
+
+        except Exception as e:
+            logger.warning(f"Failed to read cached HTML for {url}: {e}")
+            return None
+
+    def load_existing_cache(self) -> int:
+        """
+        Load index of existing cached HTML files.
+
+        Call this when resuming to recognize previously cached pages.
+
+        Returns:
+            Number of cached files found
+        """
+        if not self._cache_dir or not self._cache_dir.exists():
+            return 0
+
+        count = 0
+        for html_file in self._cache_dir.glob("*.html"):
+            if html_file.name == "_index.md":
+                continue
+            try:
+                # Read just the header to get URL
+                content = html_file.read_text(encoding="utf-8", errors="ignore")
+                if content.startswith("<!--"):
+                    header_end = content.find("-->")
+                    if header_end > 0:
+                        header = content[:header_end]
+                        for line in header.split("\n"):
+                            if line.startswith("URL:"):
+                                url = line[4:].strip()
+                                self._index[url] = {
+                                    "filename": html_file.name,
+                                    "title": None,
+                                    "timestamp": None,
+                                    "status": "cached",
+                                    "size": html_file.stat().st_size,
+                                }
+                                count += 1
+                                break
+            except Exception as e:
+                logger.debug(f"Could not parse cached file {html_file.name}: {e}")
+
+        if count > 0:
+            logger.info(f"Loaded {count} cached HTML files from previous runs")
+        return count
+
+    def is_url_cached(self, url: str) -> bool:
+        """Quick check if URL is in cache (either index or file exists)."""
+        if url in self._index:
+            return True
+        return self.get_cached_path(url) is not None
 
 
 # Global instance for easy access

@@ -143,6 +143,206 @@ services:
     networks:
       - researcher-net
 
+  # ==========================================================================
+  # PostgreSQL Database (for structured data)
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: company-researcher-postgres
+    profiles:
+      - database
+      - full
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: researcher
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-researcher_dev}
+      POSTGRES_DB: company_research
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U researcher -d company_research"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    networks:
+      - researcher-net
+
+  # ==========================================================================
+  # Qdrant Vector Database (for RAG/semantic search)
+  # ==========================================================================
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: company-researcher-qdrant
+    profiles:
+      - vectors
+      - full
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+    networks:
+      - researcher-net
+
+  # ==========================================================================
+  # Grafana (metrics visualization)
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: company-researcher-grafana
+    profiles:
+      - monitoring
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - researcher-net
+
+  # ==========================================================================
+  # Browserless Chrome (headless browser for scraping)
+  # ==========================================================================
+  browserless:
+    image: browserless/chrome:latest
+    container_name: company-researcher-browserless
+    profiles:
+      - scraping
+      - full
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      MAX_CONCURRENT_SESSIONS: 5
+      CONNECTION_TIMEOUT: 60000
+      MAX_QUEUE_LENGTH: 10
+      PREBOOT_CHROME: "true"
+      KEEP_ALIVE: "true"
+      TOKEN: ${BROWSERLESS_TOKEN:-researcher_token}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/pressure"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+    networks:
+      - researcher-net
+
+  # ==========================================================================
+  # Ollama (local LLM inference - alternative to Docker Model Runner)
+  # ==========================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: company-researcher-ollama
+    profiles:
+      - local-llm
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: "24h"
+      OLLAMA_NUM_PARALLEL: 2
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - researcher-net
+
+  # ==========================================================================
+  # SearXNG (self-hosted meta search engine)
+  # ==========================================================================
+  searxng:
+    image: searxng/searxng:latest
+    container_name: company-researcher-searxng
+    profiles:
+      - search
+      - full
+    restart: unless-stopped
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./docker/searxng:/etc/searxng:ro
+    environment:
+      SEARXNG_BASE_URL: http://localhost:8888/
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - researcher-net
+
+  # ==========================================================================
+  # Traefik Reverse Proxy (production deployment)
+  # ==========================================================================
+  traefik:
+    image: traefik:v3.0
+    container_name: company-researcher-traefik
+    profiles:
+      - production
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-certs:/letsencrypt
+    networks:
+      - researcher-net
+
 # ==========================================================================
 # Networks
 # ==========================================================================
@@ -156,3 +356,8 @@ networks:
 volumes:
   redis-data:
   prometheus-data:
+  postgres-data:
+  qdrant-data:
+  grafana-data:
+  ollama-data:
+  traefik-certs:

@@ -2,24 +2,26 @@
 
 **Company:** COPACO
 **Industry:** Telecommunications
-**Date:** 2025-12-01
+**Date:** 2025-12-02
 
 ---
 
-## Swot Analysis Data
+## Swot Analysis
 
-- **Strengths:** {'comprehensive_service_portfolio': {'description': 'Offers complete telecommunications services including fixed telephony, mobile lines, internet (fiber, ADSL, wireless), and television (COPACOTV)', 'services': ['Fixed Line Telephony (Línea Fija, Línea Alta, Línea IP)', 'Mobile Lines', 'Internet Services (Fiber Hogar, ADSL, Wireless)', 'Television (COPACOTV)', 'Corporate Services (IP Corporate, E1 Switched, 0800 Service)', 'International Services', 'Cloud IP Services']}, 'market_segments': {'description': 'Serves both consumer and business markets', 'segments': ['Personas y Hogares (Individuals and Households)', 'Empresa y Estado (Business and Government)']}, 'infrastructure_assets': {'description': 'Owns significant real estate assets including 5-hectare property in Puerto Botánico area', 'details': "Property previously housed Copaco's receiver plant, now being allocated for Taiwan-Paraguay Polytechnic University construction"}, 'government_backing': {'description': 'State-owned company with government support', 'evidence': 'Presidential authorization (Mario Abdo Benítez) for land allocation decisions'}, 'transparency_initiatives': {'description': 'Strong governance and transparency framework', 'components': ['Compliance with Laws 5189/14 and 5282/14', 'Anti-corruption reporting system', 'Citizen accountability reporting', 'Annual Transparency and Public Integrity Plan', 'Good Governance Protocol', 'Ethical complaints system', 'Internal control policies']}}
-- **Weaknesses:** {'subsidiary_integration_issues': {'description': 'Challenges with subsidiary Vox integration', 'source': 'BNamericas report from January 6, 2020', 'implication': 'Potential operational inefficiencies and management complexity'}}
-- **Opportunities:** {'educational_partnerships': {'description': 'Strategic partnership with Taiwan-Paraguay Polytechnic University', 'benefits': 'Future access to qualified professionals for the telecommunications industry', 'executive_quote': 'professionals that will graduate from there will also serve the institution', 'executive': 'Sante Vallese, Copaco CEO'}, 'real_estate_monetization': {'description': 'Ability to leverage unused real estate assets for strategic partnerships', 'example': '5-hectare property allocation for university construction'}}
-- **Threats:** {'regulatory_challenges': {'description': 'Subject to telecommunications regulation oversight', 'regulator': 'Conatel (National Telecommunications Commission)'}, 'subsidiary_performance': {'description': 'Potential financial or operational issues with subsidiary Vox requiring integration', 'timeline': 'Reported as of January 2020'}}
-- **Key Personnel:** {'ceo': 'Sante Vallese'}
-- **Contact Information:** {'headquarters': 'Alberdi 531 - Edif. Gral. Bernardino Caballero - Asunción - Paraguay', 'customer_service': '0800-11-4000, 021-238 5027', 'corporate_contact_center': '021-729 0000'}
-- **Last Updated:** 2024
-- **Data Sources:** ['Official Copaco website', 'BNamericas industry report (January 6, 2020)', 'La Nación newspaper coverage']
+- **Strengths:** ['Public company contributing to economic and social development.', 'Offers a range of telecommunications services: fixed line, mobile, internet (Fiber, ADSL, Inalámbrico), television (COPACOTV).', 'Provides services to both individuals/households and businesses/government.', 'Strategic alliance with MITIC and Starlink to provide satellite internet in isolated areas, reducing the digital divide.', 'Established in 2001, inheriting infrastructure and services from ANTELCO.']
+- **Weaknesses:** ['Significant financial losses in recent years, eroding net worth.', 'Net worth decreased by 48.6% from 2021 (G. 749,977 million) to 2023 (G. 386,481 million).', 'Losses in 2023 amounted to G. 174,848 million (USD 22.3 million).', 'Insufficient resources to meet all commitments.', 'Affected by the absorption of Hola Paraguay SA, impacting investment accounts.']
+- **Opportunities:** ['Expansion of internet services to underserved areas (rural communities, schools, hospitals).', 'Leveraging satellite internet technology (Starlink) to reach remote locations.', 'Potential for growth in internet, mobile, and television services.', 'Focus on providing quality communication services to connect clients nationwide.', 'Government initiatives to reduce the digital divide.']
+- **Threats:** ['Competition from other telecommunications providers.', 'Continued financial losses could further weaken the company.', 'Technological advancements and changing market dynamics.', 'Potential challenges in managing and maintaining satellite internet infrastructure.', 'Economic instability and market fluctuations.']
+- **Additional Information:** ["Copaco's headquarters are located in Asunción, Paraguay.", 'Copaco was created on November 15, 2001, and began operating on December 3, 2001.', 'Copaco offers customer support via phone (0800-11-4000, 021-238 5027), email (callcenter@copaco.com.py, teleinfo@copaco.com.py, telegramas117@copaco.com.py, reclamos118@copaco.com.py), and online access.', 'Copaco provides a telegram service (117) and a service for reporting technical issues (118).']
 
 ## Sources
 
+- [Navigation Failed](https://www.owler.com/company/copaco/competitors)
+- [Navigation Failed](https://www.dnb.com/business-directory/company-profiles.copaco_nv.431986f5b744e88e808badb7c82b894f.html)
+- [Copaco NV:Financial,Market Cap,Revenue & Financial Statement - Discovery | PatSnap](https://discovery.patsnap.com/company/copaco/financial/)
+- [Copaco ya perdió en tres años casi el 50% de su patrimonio neto - Última Hora | Noticias de Paraguay y el mundo, las 24 horas. Noticias nacionales e internacionales, deportes, política. Noticias de último momento.](https://www.ultimahora.com/copaco-ya-perdio-en-tres-anos-casi-el-50-de-su-patrimonio-neto)
+- [Copaco Inc - Company Profile and News - Bloomberg Markets](https://www.bloomberg.com/profile/company/0452063D:US)
 - [Copaco S.A - Comunicación en todo sentido! - Personas y Hogares](https://www.copaco.com.py/)
-- [Paraguay’s Copaco set to integrate subsidiary Vox - BNamericas](https://www.bnamericas.com/en/news/paraguays-copaco-set-to-integrate-subsidiary-vox)
-- [La Nación / Copaco cederá predio para construcción de Universidad Politécnica Taiwán-Paraguay](https://www.lanacion.com.py/politica/2022/04/26/copaco-cedera-predio-para-construccion-de-universidad-politecnica-taiwan-paraguay/)
-- [Registrarse | LinkedIn](https://py.linkedin.com/company/copaco-s.a.-paraguay)
+- [La Nación / La Copaco instala internet satelital en zonas aisladas](https://www.lanacion.com.py/pais_edicion_impresa/2025/11/28/la-copaco-instala-internet-satelital-en-zonas-aisladas/)
+- [Copaco S.A - Comunicación en todo sentido! - Quiénes Somos](https://www.copaco.com.py/index.php/institucional/quienes-somos.html)
+- [Copaco S.A - Comunicación en todo sentido! - Atención Telefónica](https://www.copaco.com.py/index.php/atencion-telefonica.html)

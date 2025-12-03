@@ -13,9 +13,13 @@ from .navigator import Navigator
 from .extractor import ContentExtractor
 from .tool import ModularBrowserTool
 
+# Backwards compatibility alias (P1 fix)
+BrowserTool = ModularBrowserTool
+
 __all__ = [
     "BrowserManager",
     "Navigator",
     "ContentExtractor",
     "ModularBrowserTool",
+    "BrowserTool",  # Alias for backwards compatibility
 ]
