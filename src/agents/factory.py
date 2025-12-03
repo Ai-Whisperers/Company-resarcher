@@ -7,7 +7,7 @@ from typing import Dict, Optional
 
 from ..core.ai import BaseAIClient, get_ai_manager
 from ..plugins import BaseTool, get_plugin_loader
-from ..core.ai.wrappers import CachedClient, RateLimitedClient, CostTrackedAIClient
+from ..core.ai.wrappers import CachedAIClient, RateLimitedAIClient, CostTrackedAIClient
 from ..core.ai.routing import SmartRouter
 from ..core.tracking import CostTracker
 from ..core.tracking.cost_tracker import get_cost_tracker
@@ -96,7 +96,7 @@ class AgentFactory:
         # 2. Rate limiting (middle - controls API call rate)
         if enable_rate_limiting:
             logger.info(f"✓ Enabling rate limiting ({RATE_LIMIT_PER_MINUTE}/min, {RATE_LIMIT_PER_HOUR}/hour)")
-            optimized_client = RateLimitedClient(
+            optimized_client = RateLimitedAIClient(
                 optimized_client,
                 requests_per_minute=RATE_LIMIT_PER_MINUTE,
                 requests_per_hour=RATE_LIMIT_PER_HOUR,
@@ -105,7 +105,7 @@ class AgentFactory:
         # 3. Caching (outermost - prevents duplicate calls)
         if enable_cache:
             logger.info("✓ Enabling AI response caching")
-            optimized_client = CachedClient(optimized_client)
+            optimized_client = CachedAIClient(optimized_client)
 
         # 4. Cost tracking (wraps everything to track all calls)
         if enable_cost_tracking:
