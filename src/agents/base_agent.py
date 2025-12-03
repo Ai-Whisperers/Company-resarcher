@@ -16,15 +16,15 @@ from tenacity import (
 
 from ..core.types import CompanyProfile, ResearchPhaseResult, ResearchSource
 from ..tools import get_shared_search_tool, get_shared_browser_tool
-from ..core.ai_client import get_ai_manager, AIClientManager
-from ..core.template_renderer import get_template_renderer, TemplateRenderer
-from ..core.logger import setup_logger
+from ..core.ai import get_ai_manager, AIClientManager
+from ..core.output.template_renderer import get_template_renderer, TemplateRenderer
+from ..core.logging import setup_logger
 from ..core.exceptions import AIError, AIRateLimitError, AITimeoutError
-from ..services.json_parser_helper import robust_json_parse
+from ..services.content import robust_json_parse
 
 if TYPE_CHECKING:
-    from ..core.container import Container
-    from ..tools.search_tool import SearchTool
+    from ..core.di import Container
+    from ..tools.search import SearchTool
     from ..tools.browser import BrowserTool
 
 logger = setup_logger("base_agent")
@@ -54,7 +54,7 @@ class BaseAgent(ABC):
         agent = MyAgent(client=ai_manager, search_tool=search)
 
     Example (container):
-        from src.core.container import get_container
+        from src.core.di.container import get_container
         agent = MyAgent.from_container(get_container())
     """
 
@@ -91,7 +91,7 @@ class BaseAgent(ABC):
             A new agent instance with dependencies resolved from the container
 
         Example:
-            from src.core.container import get_container
+            from src.core.di.container import get_container
             agent = MarketAnalyst.from_container(get_container())
 
             # For testing with mocks:
@@ -99,7 +99,7 @@ class BaseAgent(ABC):
             agent = MarketAnalyst.from_container(container)
         """
         # Import here to avoid circular imports
-        from ..tools.search_tool import SearchTool
+        from ..tools.search import SearchTool
         from ..tools.browser import BrowserTool
 
         return cls(

@@ -5,11 +5,11 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional, Set
 
 from .base_agent import BaseAgent
-from ..core.ai_client import BaseAIClient
+from ..core.ai import BaseAIClient
 from ..core.types import CompanyProfile, ResearchPhaseResult, ResearchSource
 from ..core.report_generator import ReportGenerator
 from ..tools.browser import BrowserTool
-from ..tools.search_tool import SearchTool
+from ..tools.search import SearchTool
 
 logger = logging.getLogger(__name__)
 

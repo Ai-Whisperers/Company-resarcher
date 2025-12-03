@@ -1,8 +1,8 @@
 import threading
 from typing import Dict, Any, Optional
 
-from ..core.logger import setup_logger
-from ..core.ai_client import BaseAIClient
+from ..core.logging import setup_logger
+from ..core.ai import BaseAIClient
 from ..graph.graph_builder import ResearchGraph
 from ..graph.state import ResearchState
 from .factory import AgentFactory

@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from .base_agent import BaseAgent
 from ..core.types import CompanyProfile, ResearchPhaseResult
 from ..core.models import StrategicInsights
-from ..core.logger import setup_logger
-from ..services.json_parser_helper import robust_json_parse
+from ..core.logging import setup_logger
+from ..services.content import robust_json_parse
 from ..services.security import sanitize_company_name
 
 logger = setup_logger("critic")

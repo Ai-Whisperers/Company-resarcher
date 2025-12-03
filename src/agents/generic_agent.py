@@ -2,8 +2,9 @@ from typing import Dict, Any
 from datetime import datetime
 from .base_agent import BaseAgent
 from ..core.types import CompanyProfile, ResearchPhaseResult
-from ..core.logger import setup_logger
+from ..core.logging import setup_logger
 from ..services.security import sanitize_company_name
+from ..core.output_structure import get_template_path
 
 logger = setup_logger("generic_agent")
 
@@ -62,23 +63,20 @@ class GenericResearchAgent(BaseAgent):
 
         # 4. Determine Template and Output Path
         # phase_id is now like "00-Strategic-Context/01-Company-Overview"
-        # We want the template to be "00-Strategic-Context/01-Company-Overview.md"
-        # But we keep templates flat or matching structure?
-        # Let's match the structure in templates dir for cleanliness, or keep them flat with full name.
-        # Let's go with flat templates named after the file: "01-Company-Overview.md"
-
+        # Templates are organized in subfolders like "strategic_context/company_overview.md"
+        
         if "/" in self.phase_id:
             folder, filename = self.phase_id.split("/")
-            template_name = f"{filename}.md"
+            old_template_name = f"{filename}.md"
         else:
-            template_name = f"{self.phase_id}.md"
+            old_template_name = f"{self.phase_id}.md"
+        
+        # Convert old template name to new path (e.g., "01-Company-Overview.md" -> "strategic_context/company_overview.md")
+        template_name = get_template_path(old_template_name)
 
         # Read template content to guide the LLM
         try:
             template_path = self.renderer.templates_dir / template_name
-            if not template_path.exists():
-                # Try finding it in a subfolder if we decide to organize templates
-                pass
             template_content = template_path.read_text(encoding="utf-8")
         except Exception as e:
             logger.warning(f"Could not read template {template_name}: {e}")
@@ -112,7 +110,7 @@ class GenericResearchAgent(BaseAgent):
         elif "Marketing-Execution" in self.phase_id:
             prompt += '\nEnsure you extract "channels" (list), "content_pillars", and "funnel_architecture".'
 
-        from ..services.json_parser_helper import robust_json_parse
+        from ..services.content import robust_json_parse
 
         # Initialize before try block to avoid NameError in exception handler
         content_json_str = ""

@@ -1,11 +1,11 @@
 from typing import Any
 from .base_agent import BaseAgent
-from ..core.logger import setup_logger
-from ..core.ai_client import BaseAIClient
+from ..core.logging import setup_logger
+from ..core.ai import BaseAIClient
 from ..core.types import CompanyProfile, ResearchPhaseResult
 from ..core.alpha_miner import AlphaFactorMiner
 from ..services.security import sanitize_company_name
-from ..core.constants import (
+from ..core.config.settings import (
     AGENT_FINANCIAL,
     AGENT_MARKET,
     AGENT_COMPETITOR,
@@ -134,7 +134,7 @@ class FinancialAgent(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="01-Financials.md",
+            output_template="data_room/financials.md",
             extra_context={"sec_data": sec_data, "quant_analysis": quant_analysis},
         )
 
@@ -167,7 +167,7 @@ class MarketAnalyst(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="01-Market-Size-Growth.md",
+            output_template="market_intelligence/market_size_growth.md",
         )
 
 
@@ -235,7 +235,7 @@ class CompetitorScout(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="01-Competitor-List.md",
+            output_template="competitive_landscape/competitor_list.md",
             extra_context={
                 "tech_stack": tech_stack_data,
                 "industry": industry,
@@ -272,7 +272,7 @@ class BrandAuditor(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="01-Positioning.md",
+            output_template="brand_strategy/positioning.md",
         )
 
 
@@ -299,7 +299,7 @@ class SalesAgent(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="05-Sales-Strategy.md",
+            output_template="sales_intelligence/sales_strategy.md",
         )
 
 
@@ -423,7 +423,7 @@ class InvestmentAgent(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="06-Investment-Memo.md",
+            output_template="investment_analysis/investment_memo.md",
             extra_context={
                 "financial_metrics": financial_metrics,
                 "sec_filings": sec_data,
@@ -485,5 +485,5 @@ class SocialMediaAgent(BaseAgent):
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
-            output_template="07-Social-Media-Analysis.md",
+            output_template="investment_analysis/social_media_analysis.md",
         )

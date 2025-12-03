@@ -3,7 +3,7 @@ import json
 from typing import List, Dict, Any
 from .base_agent import BaseAgent
 from ..core.types import ResearchSource
-from ..core.ai_client import AIClientManager
+from ..core.ai import AIClientManager
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ Format as JSON:
             )
 
             try:
-                from ..services.json_parser_helper import robust_json_parse
+                from ..services.content import robust_json_parse
 
                 result = robust_json_parse(response)
             except ImportError:

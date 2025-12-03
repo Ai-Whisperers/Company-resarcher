@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
-from ..core.logger import setup_logger
+from ..core.logging import setup_logger
 from ..core.vault import VaultManager
-from ..core.ai_client import get_ai_manager
+from ..core.ai import get_ai_manager
 
 logger = setup_logger("sector_analyst")
 

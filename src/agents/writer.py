@@ -9,10 +9,10 @@ from ..core.models import (
     StrategicInsights,
     TypedResearchContext,
 )
-from ..core.logger import setup_logger
+from ..core.logging import setup_logger
 from ..services.security import sanitize_company_name
-from ..services.grounding_service import GroundingService
-from ..core.ai_client import AIClientManager
+from ..services.quality import GroundingService
+from ..core.ai import AIClientManager
 
 logger = setup_logger("writer")
 

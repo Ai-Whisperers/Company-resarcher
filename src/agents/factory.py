@@ -5,14 +5,13 @@ Agent Factory with dependency injection and performance optimizations.
 import os
 from typing import Dict, Optional
 
-from ..core.ai_client import BaseAIClient, get_ai_manager
+from ..core.ai import BaseAIClient, get_ai_manager
 from ..plugins import BaseTool, get_plugin_loader
-from ..core.cached_ai_client import CachedAIClient
-from ..core.rate_limited_client import RateLimitedAIClient
-from ..core.smart_router import SmartAIRouter
-from ..core.cost_tracked_client import CostTrackedAIClient
-from ..core.cost_tracker import get_cost_tracker, CostTracker
-from ..core.logger import setup_logger
+from ..core.ai.wrappers import CachedClient, RateLimitedClient, CostTrackedAIClient
+from ..core.ai.routing import SmartRouter
+from ..core.tracking import CostTracker
+from ..core.tracking.cost_tracker import get_cost_tracker
+from ..core.logging import setup_logger
 from .specialists import (
     FinancialAgent,
     MarketAnalyst,
@@ -78,26 +77,26 @@ class AgentFactory:
 
             if self.use_local_tools:
                 # Local Mode: Use Ollama for cheap tasks, Base Client (Manager) for expensive
-                from ..core.ai_client import OllamaClient
+                from ..core.ai import OllamaClient
 
                 # We assume llama3 is available as per requirements
                 cheap_client = OllamaClient(model="llama3")
-                optimized_client = SmartAIRouter(
+                optimized_client = SmartRouter(
                     cheap_client=cheap_client, expensive_client=base_client
                 )
                 logger.info("  - Cheap: Ollama (llama3)")
                 logger.info(f"  - Expensive: {base_client.get_provider_name()}")
             else:
                 # Use base client for both cheap and expensive to avoid API key exposure
-                # SmartAIRouter should read API keys from environment internally if needed
-                optimized_client = SmartAIRouter(
+                # SmartRouter should read API keys from environment internally if needed
+                optimized_client = SmartRouter(
                     cheap_client=base_client, expensive_client=base_client
                 )
 
         # 2. Rate limiting (middle - controls API call rate)
         if enable_rate_limiting:
             logger.info(f"✓ Enabling rate limiting ({RATE_LIMIT_PER_MINUTE}/min, {RATE_LIMIT_PER_HOUR}/hour)")
-            optimized_client = RateLimitedAIClient(
+            optimized_client = RateLimitedClient(
                 optimized_client,
                 requests_per_minute=RATE_LIMIT_PER_MINUTE,
                 requests_per_hour=RATE_LIMIT_PER_HOUR,
@@ -106,7 +105,7 @@ class AgentFactory:
         # 3. Caching (outermost - prevents duplicate calls)
         if enable_cache:
             logger.info("✓ Enabling AI response caching")
-            optimized_client = CachedAIClient(optimized_client)
+            optimized_client = CachedClient(optimized_client)
 
         # 4. Cost tracking (wraps everything to track all calls)
         if enable_cost_tracking:
@@ -143,13 +142,13 @@ class AgentFactory:
         tech_stack_tool = None
 
         try:
-            from ..tools.sec_tool import SECTool
+            from ..tools.data.financial.sec import SECTool
             sec_tool = SECTool()
         except ImportError as e:
             logger.warning(f"SECTool unavailable: {e}", exc_info=True)
 
         try:
-            from ..tools.tech_stack_tool import TechStackTool
+            from ..tools.specialized.tech_stack import TechStackTool
             tech_stack_tool = TechStackTool()
         except ImportError as e:
             logger.warning(f"TechStackTool unavailable: {e}", exc_info=True)
