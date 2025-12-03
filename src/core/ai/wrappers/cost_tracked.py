@@ -7,9 +7,10 @@ Wraps any BaseAIClient to automatically track token usage and costs.
 import tiktoken
 from typing import Optional
 
-from ..ai import BaseAIClient
-from ...cost_tracker import get_cost_tracker, CostTracker
-from ...logger import setup_logger
+from .. import BaseAIClient
+from ...tracking import CostTracker
+from ...tracking.cost_tracker import get_cost_tracker
+from ...logging import setup_logger
 
 logger = setup_logger("cost_tracked_client")
 

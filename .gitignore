@@ -38,11 +38,8 @@ wheels/
 research.log
 
 # Output & Data
-output/
 outputs_test/
-data/outputs/
 data/cache/
-*.md.backup
 
 # OS
 .DS_Store

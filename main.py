@@ -14,9 +14,9 @@ if _env_path.exists():
 import yaml
 
 from src.pipeline.orchestrator import PipelineOrchestrator
-from src.core.logger import setup_logger, set_global_log_level
+from src.core.logging import setup_logger, set_global_log_level
 import logging
-from src.core.output_manager import OutputManager
+from src.core.output.output_manager import OutputManager
 from src.utils.cli import (
     console,
     print_header,
@@ -30,28 +30,38 @@ from src.utils.cli import (
     DryRunConfig,
     DryRunContext,
 )
-from src.core.output_structure import (
+from src.core.output.output_structure import (
     OutputSection,
     OUTPUT_STRUCTURE,
     RESEARCH_TYPE_SECTIONS,
     get_output_path,
 )
-from src.services.source_tracker import get_source_tracker, reset_source_tracker
-from src.services.cross_company_reader import get_cross_company_reader
-from src.services.market_consolidation import MarketConsolidator, consolidate_from_batch
-from src.services.gap_analyzer import GapAnalyzer, generate_gap_report
-from src.services.iterative_research import IterativeResearchService, fill_market_gaps
-from src.services.incremental_research import (
+# Data Services
+from src.services.data import (
+    get_source_tracker,
+    reset_source_tracker,
+    get_cross_company_reader,
+    MarketConsolidator,
+    consolidate_from_batch,
+    get_source_registry,
+    get_financial_data_service,
+)
+# Research Services
+from src.services.research import (
+    GapAnalyzer,
+    generate_gap_report,
+    IterativeResearchService,
+    fill_market_gaps,
+    get_data_analyzer,
+)
+from src.services.research.incremental import (
     IncrementalResearchService,
     run_incremental_research,
     run_incremental_batch,
     print_incremental_report,
 )
-from src.services.existing_data_analyzer import get_data_analyzer
-from src.services.persistent_source_registry import get_source_registry
-from src.services.financial_data_service import get_financial_data_service
-from src.core.types import CompanyProfile
-from src.core.checkpoint_manager import CheckpointManager, get_checkpoint_manager
+from src.core.types.base import CompanyProfile
+from src.core.concurrency.checkpoint_manager import CheckpointManager, get_checkpoint_manager
 
 # Note: Windows Unicode encoding is handled by src.core.logger module
 # via _configure_windows_encoding() and SafeStreamHandler (CRITICAL-001)
@@ -212,7 +222,7 @@ def convert_phases_to_structured_output(
         drafts[output_path] = content
 
         # Track sources for this section
-        from src.core.types import ResearchSource
+        from src.core.types.base import ResearchSource
         for src_data in sources:
             source = ResearchSource(
                 url=src_data.get("url", ""),
@@ -564,7 +574,7 @@ async def run_full_market_research(
         ContentGenerator,
     )
     from src.tools import get_shared_search_tool, get_shared_browser_tool
-    from src.core.ai_client import get_ai_manager
+    from src.core.ai.ai_client import get_ai_manager
 
     profiles = load_batch_profiles(batch_path)
 
@@ -919,7 +929,7 @@ async def run_comprehensive_research(
         ContentGenerator,
     )
     from src.tools import get_shared_search_tool, get_shared_browser_tool
-    from src.core.ai_client import get_ai_manager
+    from src.core.ai.ai_client import get_ai_manager
 
     # Get shared tools
     search_tool = get_shared_search_tool()

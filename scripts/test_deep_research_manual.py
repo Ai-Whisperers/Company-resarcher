@@ -7,7 +7,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.agents.deep_research import DeepResearchAgent
-from src.core.ai_client import BaseAIClient
+from src.core.ai.ai_client import BaseAIClient
 from src.tools.browser import BrowserTool
 from src.tools.search import SearchTool
 

@@ -2,9 +2,9 @@
 Cached AI Client - Wrapper to reduce API costs and improve response times.
 """
 
-from ..ai import BaseAIClient
+from .. import BaseAIClient
 from ...cache import get_ai_cache
-from ...logger import setup_logger
+from ...logging import setup_logger
 
 logger = setup_logger("cached_ai_client")
 

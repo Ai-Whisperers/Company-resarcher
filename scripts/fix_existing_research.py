@@ -21,12 +21,12 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.services.source_reprocessor import (
+from src.services.data import (
     SourceReprocessor,
-    format_reprocess_results,
+    MarketConsolidator,
 )
-from src.services.market_consolidation import MarketConsolidator
-from src.core.logger import setup_logger
+from src.services.data.reprocessor import format_reprocess_results
+from src.core.logging.logger import setup_logger
 
 logger = setup_logger("fix_research")
 

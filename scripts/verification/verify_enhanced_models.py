@@ -1,7 +1,7 @@
 import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock
-from src.core.models import (
+from src.core.models.base import (
     ContactInfo,
     Leadership,
     ProductService,
@@ -14,7 +14,7 @@ from src.core.models import (
     CompanyProfile,
     ResearchSource,
 )
-from src.services.deep_research import DeepResearchService
+from src.services.research import DeepResearchService
 
 
 async def verify_models():

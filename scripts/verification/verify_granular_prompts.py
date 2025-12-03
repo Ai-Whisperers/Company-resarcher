@@ -1,8 +1,8 @@
 import asyncio
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
-from src.services.deep_research import DeepResearchService, EXTRACTION_PROMPTS
-from src.core.types import CompanyProfile, ResearchSource
+from src.services.research import DeepResearchService, EXTRACTION_PROMPTS
+from src.core.types.base import CompanyProfile, ResearchSource
 
 
 async def verify_granular_extraction():

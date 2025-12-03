@@ -19,8 +19,8 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env", override=True)
 
 from main import load_company_profile
-from src.core.types import CompanyProfile
-from src.services.financial_data_service import get_financial_data_service
+from src.core.types.base import CompanyProfile
+from src.services.data import get_financial_data_service
 
 
 def test_profile_loading():

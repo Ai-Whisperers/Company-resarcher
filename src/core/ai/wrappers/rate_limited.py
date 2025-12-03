@@ -8,9 +8,9 @@ with api_limits.py for provider-specific configuration.
 import time
 from typing import Optional
 
-from ..ai import BaseAIClient
-from ...logger import setup_logger
-from ...rate_limiting import get_rate_limiter_manager, RateLimitConfig
+from .. import BaseAIClient
+from ...logging import setup_logger
+from ...resilience.rate_limiting import get_rate_limiter_manager, RateLimitConfig
 
 logger = setup_logger("rate_limited_client")
 
