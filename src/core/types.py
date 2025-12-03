@@ -460,6 +460,12 @@ class CompanyProfile(BaseModel):
     description: Optional[str] = Field(default=None, max_length=5000)
     target_audience: Optional[str] = Field(default=None, max_length=1000)
     competitors: List[str] = Field(default_factory=list, max_length=50)
+    # Stock ticker for public companies (INT-002: Alpha Vantage integration)
+    ticker: Optional[str] = Field(default=None, max_length=20)
+    exchange: Optional[str] = Field(default=None, max_length=50)
+    # Parent company ticker for subsidiaries
+    parent_ticker: Optional[str] = Field(default=None, max_length=20)
+    parent_company: Optional[str] = Field(default=None, max_length=200)
 
     @field_validator("name")
     @classmethod
@@ -556,6 +562,30 @@ class CompanyProfile(BaseModel):
             New CompanyProfile with country and industry populated if detected.
         """
         return self.with_country_from_url().with_inferred_industry()
+
+    def get_effective_ticker(self) -> Optional[str]:
+        """
+        Get the effective stock ticker for financial data lookup.
+
+        Returns own ticker if available, otherwise parent_ticker.
+        This allows fetching financial data for subsidiaries via their parent.
+
+        Returns:
+            Stock ticker symbol or None if not available.
+        """
+        return self.ticker or self.parent_ticker
+
+    def has_financial_data_available(self) -> bool:
+        """
+        Check if financial data can be fetched for this company.
+
+        Returns True if either the company or its parent has a stock ticker.
+        """
+        return bool(self.get_effective_ticker())
+
+    def is_subsidiary(self) -> bool:
+        """Check if this company is a subsidiary (has parent ticker but no own ticker)."""
+        return bool(self.parent_ticker and not self.ticker)
 
 
 class ResearchContext(BaseModel):

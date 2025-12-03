@@ -8,6 +8,10 @@ company:
   industry: "Telecommunications"
   country: "Paraguay"
 
+  # INT-002: Parent company ticker for financial data (Alpha Vantage)
+  parent_company: "Millicom International"
+  parent_ticker: "TIGO"  # NASDAQ: TIGO
+
   # Company details
   founded: "1991"
   headquarters: "Asuncion, Paraguay"

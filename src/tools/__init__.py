@@ -11,12 +11,14 @@ from .local_search import LocalSearchTool
 from .patent_tool import PatentSearchTool
 from .chart_tool import ChartGeneratorTool
 from .search.manager import reset_search_manager
+from .github_tool import GitHubTool, get_shared_github_tool, reset_github_tool
 
 # Singleton instances
 _search_tool_instance: SearchTool | None = None
 _local_search_tool_instance: LocalSearchTool | None = None
 _browser_tool_instance: BrowserTool | None = None
 _patent_tool_instance: PatentSearchTool | None = None
+_github_tool_instance: GitHubTool | None = None
 
 # Locks for thread-safe singleton access
 _search_tool_lock = threading.Lock()
@@ -80,5 +82,6 @@ def reset_shared_tools():
         _browser_tool_instance = None
     with _patent_tool_lock:
         _patent_tool_instance = None
-    # Also reset the search manager singleton
+    # Also reset the search manager and github tool singletons
     reset_search_manager()
+    reset_github_tool()

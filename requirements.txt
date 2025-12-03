@@ -70,3 +70,6 @@ fredapi>=0.5.0
 
 # INT-004: LiteLLM multi-provider support
 litellm>=1.0.0
+
+# INT-007: Social Media APIs
+praw>=7.7.0  # Reddit API wrapper

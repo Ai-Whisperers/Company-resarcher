@@ -361,6 +361,47 @@ COMPREHENSIVE_QUERIES: Dict[str, List[QueryTemplate]] = {
     ],
 
     # =========================================================================
+    # 10-SEC-Filings (For US-listed companies - official regulatory filings)
+    # =========================================================================
+    "sec_filings": [
+        # 01-Business-Overview.md (from 10-K Item 1)
+        QueryTemplate('site:sec.gov "{company}" 10-K business description', "10-SEC-Filings", "01-Business-Overview.md"),
+        QueryTemplate('"{company}" SEC filing business overview', "10-SEC-Filings", "01-Business-Overview.md"),
+        QueryTemplate('"{company}" annual report business segments', "10-SEC-Filings", "01-Business-Overview.md"),
+        QueryTemplate('"{company}" 10-K principal products services', "10-SEC-Filings", "01-Business-Overview.md"),
+
+        # 02-Risk-Factors.md (from 10-K Item 1A)
+        QueryTemplate('site:sec.gov "{company}" risk factors', "10-SEC-Filings", "02-Risk-Factors.md"),
+        QueryTemplate('"{company}" 10-K risk factors', "10-SEC-Filings", "02-Risk-Factors.md"),
+        QueryTemplate('"{company}" SEC filing risk disclosure', "10-SEC-Filings", "02-Risk-Factors.md"),
+        QueryTemplate('"{company}" regulatory risk SEC', "10-SEC-Filings", "02-Risk-Factors.md"),
+
+        # 03-Financial-Highlights.md (from 10-K Item 8)
+        QueryTemplate('site:sec.gov "{company}" financial statements', "10-SEC-Filings", "03-Financial-Highlights.md"),
+        QueryTemplate('"{company}" 10-K audited financials', "10-SEC-Filings", "03-Financial-Highlights.md"),
+        QueryTemplate('"{company}" SEC filing revenue income', "10-SEC-Filings", "03-Financial-Highlights.md"),
+        QueryTemplate('"{company}" annual report financial highlights', "10-SEC-Filings", "03-Financial-Highlights.md"),
+
+        # 04-MDA-Summary.md (from 10-K Item 7 - Management Discussion & Analysis)
+        QueryTemplate('site:sec.gov "{company}" MD&A', "10-SEC-Filings", "04-MDA-Summary.md"),
+        QueryTemplate('"{company}" management discussion analysis', "10-SEC-Filings", "04-MDA-Summary.md"),
+        QueryTemplate('"{company}" 10-K liquidity capital resources', "10-SEC-Filings", "04-MDA-Summary.md"),
+        QueryTemplate('"{company}" SEC filing outlook guidance', "10-SEC-Filings", "04-MDA-Summary.md"),
+
+        # 05-Recent-Events.md (from 8-K filings)
+        QueryTemplate('site:sec.gov "{company}" 8-K', "10-SEC-Filings", "05-Recent-Events.md"),
+        QueryTemplate('"{company}" 8-K material event', "10-SEC-Filings", "05-Recent-Events.md"),
+        QueryTemplate('"{company}" SEC current report', "10-SEC-Filings", "05-Recent-Events.md"),
+        QueryTemplate('"{company}" 8-K earnings announcement', "10-SEC-Filings", "05-Recent-Events.md"),
+
+        # 06-Executive-Compensation.md (from DEF 14A proxy)
+        QueryTemplate('site:sec.gov "{company}" proxy statement', "10-SEC-Filings", "06-Executive-Compensation.md"),
+        QueryTemplate('"{company}" DEF 14A executive compensation', "10-SEC-Filings", "06-Executive-Compensation.md"),
+        QueryTemplate('"{company}" proxy CEO pay', "10-SEC-Filings", "06-Executive-Compensation.md"),
+        QueryTemplate('"{company}" SEC filing compensation disclosure', "10-SEC-Filings", "06-Executive-Compensation.md"),
+    ],
+
+    # =========================================================================
     # 09-Investment-Analysis (Growth, Risk, Opportunity, Valuation)
     # =========================================================================
     "investment_analysis": [
@@ -391,6 +432,69 @@ COMPREHENSIVE_QUERIES: Dict[str, List[QueryTemplate]] = {
         QueryTemplate('{industry} valuation multiples', "09-Investment-Analysis", "04-Valuation-Assessment.md"),
         QueryTemplate('"{company}" comparable companies', "09-Investment-Analysis", "04-Valuation-Assessment.md"),
         QueryTemplate('{industry} M&A transactions {country}', "09-Investment-Analysis", "04-Valuation-Assessment.md"),
+    ],
+
+    # =========================================================================
+    # 11-News-Intelligence (Recent News, Sentiment, Business Signals, Crisis)
+    # NOTE: This section is primarily populated by NewsAPI via NewsAggregatorTool.
+    # These queries serve as supplementary web search fallbacks.
+    # =========================================================================
+    "news_intelligence": [
+        # 01-Recent-News.md
+        QueryTemplate('"{company}" news {year}', "11-News-Intelligence", "01-Recent-News.md"),
+        QueryTemplate('"{company}" latest news', "11-News-Intelligence", "01-Recent-News.md"),
+        QueryTemplate('"{company}" press release', "11-News-Intelligence", "01-Recent-News.md"),
+        QueryTemplate('"{company}" announcement', "11-News-Intelligence", "01-Recent-News.md"),
+        QueryTemplate('site:prnewswire.com "{company}"', "11-News-Intelligence", "01-Recent-News.md"),
+
+        # 02-Sentiment-Analysis.md
+        QueryTemplate('"{company}" public opinion', "11-News-Intelligence", "02-Sentiment-Analysis.md"),
+        QueryTemplate('"{company}" reputation', "11-News-Intelligence", "02-Sentiment-Analysis.md"),
+        QueryTemplate('"{company}" brand sentiment', "11-News-Intelligence", "02-Sentiment-Analysis.md"),
+
+        # 03-Business-Signals.md
+        QueryTemplate('"{company}" funding round {year}', "11-News-Intelligence", "03-Business-Signals.md"),
+        QueryTemplate('"{company}" partnership announcement', "11-News-Intelligence", "03-Business-Signals.md"),
+        QueryTemplate('"{company}" product launch {year}', "11-News-Intelligence", "03-Business-Signals.md"),
+        QueryTemplate('"{company}" acquisition merger', "11-News-Intelligence", "03-Business-Signals.md"),
+        QueryTemplate('"{company}" new CEO executive', "11-News-Intelligence", "03-Business-Signals.md"),
+
+        # 04-Crisis-Indicators.md
+        QueryTemplate('"{company}" controversy scandal', "11-News-Intelligence", "04-Crisis-Indicators.md"),
+        QueryTemplate('"{company}" lawsuit legal', "11-News-Intelligence", "04-Crisis-Indicators.md"),
+        QueryTemplate('"{company}" layoffs restructuring', "11-News-Intelligence", "04-Crisis-Indicators.md"),
+        QueryTemplate('"{company}" investigation regulatory', "11-News-Intelligence", "04-Crisis-Indicators.md"),
+    ],
+
+    # =========================================================================
+    # 12-Social-Intelligence (Reddit, Twitter, Brand Sentiment, Social Risks)
+    # NOTE: This section is primarily populated by Reddit/Twitter APIs.
+    # These queries serve as supplementary web search fallbacks.
+    # =========================================================================
+    "social_intelligence": [
+        # 01-Reddit-Analysis.md
+        QueryTemplate('site:reddit.com "{company}"', "12-Social-Intelligence", "01-Reddit-Analysis.md"),
+        QueryTemplate('reddit "{company}" review', "12-Social-Intelligence", "01-Reddit-Analysis.md"),
+        QueryTemplate('reddit "{company}" discussion', "12-Social-Intelligence", "01-Reddit-Analysis.md"),
+        QueryTemplate('"{company}" reddit customer experience', "12-Social-Intelligence", "01-Reddit-Analysis.md"),
+
+        # 02-Twitter-Analysis.md
+        QueryTemplate('site:twitter.com "{company}"', "12-Social-Intelligence", "02-Twitter-Analysis.md"),
+        QueryTemplate('twitter "{company}" mentions', "12-Social-Intelligence", "02-Twitter-Analysis.md"),
+        QueryTemplate('"{company}" twitter customer service', "12-Social-Intelligence", "02-Twitter-Analysis.md"),
+        QueryTemplate('"{company}" social media presence', "12-Social-Intelligence", "02-Twitter-Analysis.md"),
+
+        # 03-Sentiment-Summary.md
+        QueryTemplate('"{company}" social media sentiment', "12-Social-Intelligence", "03-Sentiment-Summary.md"),
+        QueryTemplate('"{company}" brand perception social', "12-Social-Intelligence", "03-Sentiment-Summary.md"),
+        QueryTemplate('"{company}" online reputation', "12-Social-Intelligence", "03-Sentiment-Summary.md"),
+        QueryTemplate('"{company}" customer reviews social media', "12-Social-Intelligence", "03-Sentiment-Summary.md"),
+
+        # 04-Social-Risks.md
+        QueryTemplate('"{company}" social media controversy', "12-Social-Intelligence", "04-Social-Risks.md"),
+        QueryTemplate('"{company}" viral complaint', "12-Social-Intelligence", "04-Social-Risks.md"),
+        QueryTemplate('"{company}" negative social media', "12-Social-Intelligence", "04-Social-Risks.md"),
+        QueryTemplate('"{company}" PR crisis social', "12-Social-Intelligence", "04-Social-Risks.md"),
     ],
 }
 

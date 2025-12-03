@@ -9,6 +9,10 @@ company:
   industry: "Telecommunications"
   country: "Argentina"
 
+  # INT-002: Stock ticker for financial data (Alpha Vantage)
+  ticker: "TEO"  # NYSE ADR
+  exchange: "NYSE"
+
   # Company details
   founded: "1990"
   headquarters: "Buenos Aires, Argentina"

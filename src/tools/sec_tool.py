@@ -141,3 +141,60 @@ class SECTool:
         except Exception as e:
             logger.error(f"Failed to get 10-K for {ticker}: {e}")
             return ""
+
+    def get_latest_10q_content(self, ticker_or_name: str) -> str:
+        """
+        Fetches the text content of the latest 10-Q (quarterly report).
+
+        Args:
+            ticker_or_name: Either a ticker symbol (e.g., "AAPL") or company name (e.g., "Apple")
+        """
+        ticker = ticker_or_name.upper()
+
+        if " " in ticker_or_name or len(ticker_or_name) > 5:
+            found_ticker = self.find_ticker(ticker_or_name)
+            if found_ticker:
+                ticker = found_ticker
+            else:
+                logger.warning(f"Could not find ticker for '{ticker_or_name}', trying as-is")
+
+        try:
+            from edgartools import Company
+
+            company = Company(ticker)
+            filing = company.get_filings(form="10-Q").latest()
+            if filing:
+                return filing.text()
+            return ""
+        except Exception as e:
+            logger.error(f"Failed to get 10-Q for {ticker}: {e}")
+            return ""
+
+    def get_8k_filings(
+        self, ticker_or_name: str, limit: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetches recent 8-K (current report) filings with summaries.
+
+        Args:
+            ticker_or_name: Either a ticker symbol or company name
+            limit: Number of recent 8-K filings to retrieve
+        """
+        return self.get_company_filings(ticker_or_name, form_type="8-K", limit=limit)
+
+    def check_sec_availability(self, ticker_or_name: str) -> bool:
+        """
+        Check if a company has SEC filings available.
+
+        Args:
+            ticker_or_name: Either a ticker symbol or company name
+
+        Returns:
+            True if SEC filings exist, False otherwise
+        """
+        try:
+            filings = self.get_company_filings(ticker_or_name, form_type="10-K", limit=1)
+            return len(filings) > 0
+        except Exception as e:
+            logger.debug(f"SEC availability check failed for {ticker_or_name}: {e}")
+            return False

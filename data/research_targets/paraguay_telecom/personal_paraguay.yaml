@@ -8,6 +8,10 @@ company:
   industry: "Telecommunications"
   country: "Paraguay"
 
+  # INT-002: Parent company ticker for financial data (Alpha Vantage)
+  parent_company: "Telecom Argentina"
+  parent_ticker: "TEO"  # NYSE: TEO
+
   # Company details
   founded: "1998-06-24"
   headquarters: "Maximo Lira 522 c/ Av. Espana, Asuncion, Paraguay"

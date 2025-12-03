@@ -3,6 +3,8 @@ AI Rate Limit Handler (PERF-016).
 
 Proactive rate limit tracking and balanced provider distribution
 to prevent hitting rate limits and reduce log spam.
+
+Now uses centralized configuration from api_limits.py for all rate limits.
 """
 
 import asyncio
@@ -15,6 +17,7 @@ from typing import Dict, List, Optional, Tuple
 from collections import deque
 
 from .logger import setup_logger
+from .api_limits import get_api_limits_config, ProviderRateLimits
 
 logger = setup_logger("ai_rate_limiter")
 
@@ -27,35 +30,34 @@ class ProviderLimits:
     tokens_per_minute: int = 0
     concurrent_requests: int = 10
 
+    @classmethod
+    def from_provider_rate_limits(cls, limits: ProviderRateLimits) -> "ProviderLimits":
+        """Create from centralized ProviderRateLimits config."""
+        return cls(
+            requests_per_minute=limits.requests_per_minute,
+            requests_per_day=limits.requests_per_day,
+            tokens_per_minute=limits.tokens_per_minute,
+            concurrent_requests=limits.concurrent_requests,
+        )
 
-# Known rate limits for providers (conservative estimates)
-# Note: Gemini limits updated for Google AI Ultra subscription
-DEFAULT_PROVIDER_LIMITS = {
-    "groq": ProviderLimits(
-        requests_per_minute=30,
-        requests_per_day=1000,
-        tokens_per_minute=6000,
-        concurrent_requests=5,
-    ),
-    "openai": ProviderLimits(
-        requests_per_minute=60,
-        requests_per_day=10000,
-        tokens_per_minute=90000,
-        concurrent_requests=10,
-    ),
-    "gemini": ProviderLimits(
-        requests_per_minute=2000,  # Paid Tier 1: 2K RPM for gemini-2.0-flash
-        requests_per_day=1000000,  # Unlimited, but set high cap
-        tokens_per_minute=4000000,  # 4M TPM
-        concurrent_requests=50,
-    ),
-    "anthropic": ProviderLimits(
-        requests_per_minute=60,
-        requests_per_day=10000,
-        tokens_per_minute=100000,
-        concurrent_requests=10,
-    ),
-}
+
+def _get_default_provider_limits() -> Dict[str, ProviderLimits]:
+    """
+    Get provider limits from centralized configuration.
+
+    Uses api_limits.py for all rate limit values, making them
+    configurable via environment variables.
+    """
+    config = get_api_limits_config()
+
+    return {
+        name: ProviderLimits.from_provider_rate_limits(limits)
+        for name, limits in config.ai_providers.items()
+    }
+
+
+# Load from centralized config (configurable via env vars)
+DEFAULT_PROVIDER_LIMITS = _get_default_provider_limits()
 
 
 @dataclass

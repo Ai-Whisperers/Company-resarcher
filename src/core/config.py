@@ -515,6 +515,18 @@ class Settings(BaseSettings):
     # INT-003: FRED API for bond yield data
     FRED_API_KEY: Optional[SecretStr] = None
 
+    # INT-004: GitHub API for tech stack analysis
+    GITHUB_API_TOKEN: Optional[SecretStr] = None
+
+    # INT-005: Financial Modeling Prep API for comprehensive financials
+    FINANCIAL_MODELING_PREP_API_KEY: Optional[SecretStr] = None
+
+    # INT-006: OpenCorporates API for company registry data
+    OPENCORPORATES_API_KEY: Optional[SecretStr] = None
+
+    # INT-007: WHOIS API for domain ownership data
+    WHOIS_API_KEY: Optional[SecretStr] = None
+
     # Additional Search Providers (for fallback chain)
     SERPER_API_KEY: Optional[SecretStr] = None  # serper.dev - cheap Google results
     JINA_API_KEY: Optional[SecretStr] = None  # jina.ai - optional for higher limits
@@ -522,10 +534,11 @@ class Settings(BaseSettings):
     BRAVE_API_KEY: Optional[SecretStr] = None  # brave.com - 2K free/month
     BING_API_KEY: Optional[SecretStr] = None  # Bing Search API via Azure - 1K free/month
 
-    # Langfuse
+    # Langfuse Observability
     LANGFUSE_PUBLIC_KEY: Optional[SecretStr] = None
     LANGFUSE_SECRET_KEY: Optional[SecretStr] = None
     LANGFUSE_HOST: str = "https://cloud.langfuse.com"
+    LANGFUSE_ENABLED: bool = True  # Feature flag to enable/disable observability
 
     # AI Configuration
     ai: AIConfig = AIConfig()

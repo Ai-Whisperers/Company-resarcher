@@ -11,7 +11,9 @@
       "Bash(git reset:*)",
       "Bash(exit 0)",
       "Bash(cat:*)",
-      "Bash(docker images:*)"
+      "Bash(docker images:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nchore: Major project reorganization and research updates\n\n- Reorganize planning docs into completed/acceptable and completed/bugs\n- Move AGENT_GUIDE.md and TECH_STACK.md to docs/\n- Move research_targets to data/research_targets\n- Add Docker configs (grafana, searxng, init-db)\n- Add performance optimization backlog items\n- Add new core services (adaptive_timeout, ai_rate_limiter, domain_filter, etc.)\n- Update research outputs for COPACO, Claro Paraguay, Personal Paraguay\n- Clean up raw source files from outputs\n- Update main.py with enhanced functionality\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(python -m pytest:*)"
     ],
     "deny": [],
     "ask": []

@@ -30,6 +30,7 @@ from ..core.retry_strategy import (
 )
 from .cache import get_ai_cache
 from .ai_rate_limiter import get_ai_rate_limiter
+from .observability import get_langfuse, ObservabilityContext
 
 logger = setup_logger("ai_client")
 
@@ -737,6 +738,7 @@ class AIClientManager:
         task_type: str = "general",
         retry_on_all_fail: bool = True,
         max_retry_rounds: int = 3,
+        trace_context: Optional[ObservabilityContext] = None,
     ) -> str:
         """
         Generate AI response with multi-provider fallback and retry logic.
@@ -755,7 +757,11 @@ class AIClientManager:
             task_type: Type of task for provider selection
             retry_on_all_fail: Whether to wait and retry if all providers fail
             max_retry_rounds: Maximum number of retry rounds (each round tries all providers)
+            trace_context: Optional observability context for Langfuse tracing
         """
+        import time
+        start_time = time.time()
+
         cache = get_ai_cache()
         if use_cache and temperature < 0.3:
             cached = cache.get(prompt, system, temperature, max_tokens)
@@ -765,6 +771,22 @@ class AIClientManager:
 
         response = None
         errors: list[tuple[str, Exception]] = []
+        successful_provider = None
+
+        # Create Langfuse generation tracking if context provided
+        generation = None
+        if trace_context and hasattr(trace_context, "generation"):
+            generation = trace_context.generation(
+                name="ai_generate",
+                model=self.get_provider_name(),
+                input_prompt=prompt[:2000],  # Truncate for storage
+                metadata={
+                    "task_type": task_type,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "response_format": response_format,
+                },
+            )
 
         for retry_round in range(max_retry_rounds):
             if retry_round > 0:
@@ -787,6 +809,7 @@ class AIClientManager:
                         )
                         if response:
                             logger.info(f"Successfully generated with {provider}")
+                            successful_provider = provider
                             break
                     except CircuitOpenError as e:
                         logger.warning(f"Circuit open for {provider}, skipping (retry in {e.retry_after:.1f}s)")
@@ -803,6 +826,7 @@ class AIClientManager:
                     response = await self._generate_with_circuit_breaker(
                         client, prompt, system, temperature, max_tokens, response_format
                     )
+                    successful_provider = client.get_provider_name()
                 except Exception as e:
                     logger.warning(f"Provider {client.get_provider_name()} failed: {e}")
                     errors.append((client.get_provider_name(), e))
@@ -824,6 +848,20 @@ class AIClientManager:
             )
             response = await self.mock_client.generate(
                 prompt, system, temperature, max_tokens, response_format
+            )
+            successful_provider = "mock"
+
+        # Record generation in Langfuse
+        if generation:
+            duration_ms = int((time.time() - start_time) * 1000)
+            generation.end(
+                output=response[:2000] if response else None,
+                metadata={
+                    "duration_ms": duration_ms,
+                    "provider_used": successful_provider,
+                    "retry_rounds": retry_round + 1 if retry_round > 0 else 0,
+                    "errors_count": len(errors),
+                },
             )
 
         if use_cache and temperature < 0.3:

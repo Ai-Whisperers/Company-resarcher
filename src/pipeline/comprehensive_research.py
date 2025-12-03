@@ -58,6 +58,13 @@ from ..core.search_fallback import (
     SearchFallbackManager,
     get_fallback_queries,
 )
+from ..core.observability import ObservabilityContext
+from ..tools.sec_tool import SECTool
+from ..tools.reddit_tool import RedditTool
+from ..tools.twitter_tool import TwitterTool
+# ARCH-001: Unified Pipeline Orchestration
+from ..core.unified_fetcher import UnifiedDataFetcher, UnifiedResult
+from ..core.data_router import CompanyProfile as RouterProfile, create_profile_from_dict
 
 logger = setup_logger("comprehensive_research")
 
@@ -201,6 +208,19 @@ class ComprehensiveResearchService:
         start_time = datetime.now()
         result = ComprehensiveResearchResult(company=company)
 
+        # Initialize observability context for this research session
+        self._obs_context = ObservabilityContext(
+            company_name=company.name,
+            research_type="comprehensive",
+            metadata={
+                "industry": company.industry or "Unknown",
+                "country": company.country or "Global",
+                "website": company.website or "",
+            },
+        )
+        self._obs_context.__enter__()
+        logger.info(f"Started observability trace for {company.name}")
+
         # PERF-011: Reset URL cache for new research session
         reset_url_cache()
         logger.info("URL cache reset for new research session")
@@ -278,6 +298,52 @@ class ComprehensiveResearchService:
         # PERF-019: Initialize domain timeout manager
         self._domain_timeout = get_timeout_manager()
 
+        # ====================================================================
+        # ARCH-001: Unified Data Source Orchestration
+        # Pre-fetch data from all available sources in parallel
+        # ====================================================================
+        enable_unified = os.getenv("ENABLE_UNIFIED_FETCH", "true").lower() == "true"
+        self._unified_data: Optional[UnifiedResult] = None
+
+        if enable_unified:
+            try:
+                unified_fetcher = UnifiedDataFetcher(timeout_seconds=60.0)
+                # Convert CompanyProfile to RouterProfile for routing decisions
+                router_profile = RouterProfile(
+                    name=company.name,
+                    country=company.country or "",
+                    industry=company.industry or "",
+                    website=company.website,
+                    ticker=getattr(company, "ticker", None),
+                    exchange=getattr(company, "exchange", None),
+                )
+
+                logger.info(f"=== UNIFIED ORCHESTRATION: Pre-fetching from available sources ===")
+                self._unified_data = await unified_fetcher.fetch_all(router_profile)
+
+                if self._unified_data.sources_used:
+                    logger.info(
+                        f"Unified fetch complete: {len(self._unified_data.sources_used)} sources "
+                        f"({', '.join(s.value for s in self._unified_data.sources_used)}), "
+                        f"{len(self._unified_data.sources_failed)} failed, "
+                        f"{self._unified_data.total_duration_seconds:.2f}s"
+                    )
+
+                    # Store unified data for use by section research
+                    result.sections["_unified_data"] = {
+                        "sources_used": [s.value for s in self._unified_data.sources_used],
+                        "sources_failed": [s.value for s in self._unified_data.sources_failed],
+                        "metadata": self._unified_data.metadata,
+                    }
+                else:
+                    logger.info("Unified fetch: No additional sources available")
+
+                await unified_fetcher.close()
+
+            except Exception as e:
+                logger.warning(f"Unified data orchestration failed: {e}")
+                self._unified_data = None
+
         # Execute research for each section with rate limiting
         # Use semaphore to limit concurrent sections and avoid rate limiting
         section_semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_SECTIONS)
@@ -307,6 +373,124 @@ class ComprehensiveResearchService:
                 for file_result in section_result.values():
                     result.total_sources += len(file_result.sources)
 
+        # ====================================================================
+        # SEC EDGAR Integration (for US-listed companies)
+        # ====================================================================
+        enable_sec = os.getenv("ENABLE_SEC_FILINGS", "true").lower() == "true"
+        if enable_sec:
+            try:
+                # Check if company has SEC filings available
+                sec_ticker = await self._detect_sec_filings_available(
+                    company_name=company.name,
+                    ticker=getattr(company, 'ticker', None),
+                )
+
+                if sec_ticker:
+                    logger.info(f"=== SEC FILINGS: Researching {sec_ticker} ===")
+                    sec_results = await self._research_sec_filings(
+                        company=company,
+                        ticker=sec_ticker,
+                    )
+
+                    # Add SEC results to main results
+                    if sec_results:
+                        result.sections["sec_filings"] = sec_results
+                        sec_source_count = sum(
+                            len(r.sources) for r in sec_results.values()
+                        )
+                        result.total_sources += sec_source_count
+                        logger.info(
+                            f"SEC filings added: {sec_source_count} sources "
+                            f"across {len(sec_results)} files"
+                        )
+                else:
+                    logger.info(f"No SEC filings available for {company.name}")
+            except Exception as e:
+                logger.warning(f"SEC integration failed: {e}")
+
+        # ====================================================================
+        # News Intelligence (NewsAPI)
+        # ====================================================================
+        try:
+            # Get output directory for news reports
+            output_dir = Path(os.getenv("OUTPUT_DIR", "outputs")) / company.name.replace(" ", "_")
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            news_results = await self._research_news_intelligence(
+                company=company,
+                output_dir=output_dir,
+            )
+
+            if news_results.get("enabled") and news_results.get("api_available"):
+                logger.info(
+                    f"News intelligence: {news_results.get('articles_found', 0)} articles, "
+                    f"sentiment={news_results.get('sentiment_label', 'neutral')}, "
+                    f"signals={news_results.get('signals_detected', 0)}"
+                )
+                if news_results.get("crisis_alert"):
+                    logger.warning(f"CRISIS ALERT: Potential crisis indicators detected for {company.name}")
+            elif news_results.get("error"):
+                logger.debug(f"News intelligence skipped: {news_results.get('error')}")
+        except Exception as e:
+            logger.warning(f"News intelligence failed: {e}")
+
+        # ====================================================================
+        # Social Intelligence (Reddit + Twitter)
+        # ====================================================================
+        enable_social = os.getenv("ENABLE_SOCIAL_INTELLIGENCE", "true").lower() == "true"
+        if enable_social:
+            try:
+                social_results = await self._research_social_intelligence(
+                    company=company,
+                    output_dir=output_dir,
+                )
+
+                if social_results.get("enabled"):
+                    reddit_mentions = social_results.get("reddit_mentions", 0)
+                    twitter_mentions = social_results.get("twitter_mentions", 0)
+                    if reddit_mentions > 0 or twitter_mentions > 0:
+                        logger.info(
+                            f"Social intelligence: Reddit={reddit_mentions} mentions, "
+                            f"Twitter={twitter_mentions} mentions, "
+                            f"sentiment={social_results.get('overall_sentiment', 'neutral')}"
+                        )
+                    else:
+                        logger.info("Social intelligence: No API credentials configured")
+                elif social_results.get("error"):
+                    logger.debug(f"Social intelligence skipped: {social_results.get('error')}")
+            except Exception as e:
+                logger.warning(f"Social intelligence failed: {e}")
+
+        # ====================================================================
+        # Financial Deep Dive (Financial Modeling Prep)
+        # Only runs if company has a known ticker symbol
+        # ====================================================================
+        ticker = getattr(company, 'ticker', None)
+        if not ticker and enable_sec:
+            # Try to reuse ticker from SEC detection
+            ticker = sec_ticker if 'sec_ticker' in dir() else None
+
+        if ticker:
+            try:
+                fmp_results = await self._research_financial_deep_dive(
+                    company=company,
+                    ticker=ticker,
+                    output_dir=output_dir,
+                )
+
+                if fmp_results.get("enabled") and fmp_results.get("api_available"):
+                    logger.info(
+                        f"Financial deep dive: {ticker} - "
+                        f"Rating={fmp_results.get('rating', 'N/A')}, "
+                        f"Recommendation={fmp_results.get('rating_recommendation', 'N/A')}"
+                    )
+                elif fmp_results.get("error"):
+                    logger.debug(f"Financial deep dive skipped: {fmp_results.get('error')}")
+            except Exception as e:
+                logger.warning(f"Financial deep dive failed: {e}")
+        else:
+            logger.debug(f"Financial deep dive skipped: No ticker symbol for {company.name}")
+
         # Retry failed sections if enabled (default: enabled)
         enable_retry = os.getenv("SECTION_RETRY_ENABLED", "true").lower() == "true"
         if enable_retry:
@@ -329,6 +513,11 @@ class ComprehensiveResearchService:
                if result.sections_retried > 0 else "")
         )
 
+        # Close observability context - flush traces to Langfuse
+        if hasattr(self, '_obs_context') and self._obs_context:
+            self._obs_context.__exit__(None, None, None)
+            logger.info(f"Completed observability trace for {company.name}")
+
         return result
 
     async def _research_section(
@@ -339,6 +528,15 @@ class ComprehensiveResearchService:
     ) -> Dict[str, SectionResearchResult]:
         """Research a single section with all its queries."""
         logger.info(f"Researching section: {section_name} ({len(queries)} queries)")
+
+        # Create observability span for this section
+        section_span = None
+        if hasattr(self, '_obs_context') and self._obs_context:
+            section_span = self._obs_context.span(
+                name=f"section_{section_name}",
+                input_data={"query_count": len(queries)},
+                metadata={"section": section_name},
+            )
 
         # Get AI query plan for this section (provides context + smarter queries)
         query_plan = None
@@ -380,6 +578,14 @@ class ComprehensiveResearchService:
                 query_plan=query_plan,
             )
             results[filename] = result
+
+        # End observability span with results summary
+        if section_span:
+            total_sources = sum(len(r.sources) for r in results.values())
+            section_span.end(
+                output={"file_count": len(results), "total_sources": total_sources},
+                metadata={"files": list(results.keys())},
+            )
 
         return results
 
@@ -672,6 +878,1243 @@ class ComprehensiveResearchService:
 
         return total_new_sources
 
+    # =========================================================================
+    # SEC EDGAR Integration (for US-listed companies)
+    # =========================================================================
+
+    async def _detect_sec_filings_available(
+        self,
+        company_name: str,
+        ticker: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        Check if company has SEC filings and return ticker.
+
+        Args:
+            company_name: Company name to search for
+            ticker: Optional known ticker symbol
+
+        Returns:
+            Ticker symbol if SEC filings exist, None otherwise
+        """
+        sec_tool = SECTool()
+
+        # If ticker provided, verify it exists in SEC
+        if ticker:
+            if sec_tool.check_sec_availability(ticker):
+                logger.info(f"SEC filings available for ticker: {ticker}")
+                return ticker
+
+        # Try to find ticker from company name
+        found_ticker = sec_tool.find_ticker(company_name)
+        if found_ticker and sec_tool.check_sec_availability(found_ticker):
+            logger.info(f"Found SEC ticker '{found_ticker}' for company '{company_name}'")
+            return found_ticker
+
+        logger.debug(f"No SEC filings found for: {company_name}")
+        return None
+
+    async def _research_sec_filings(
+        self,
+        company: CompanyProfile,
+        ticker: str,
+    ) -> Dict[str, SectionResearchResult]:
+        """
+        Extract and analyze SEC filings for a US-listed company.
+
+        Args:
+            company: Company profile being researched
+            ticker: SEC ticker symbol
+
+        Returns:
+            Dictionary of section results with SEC filing data
+        """
+        sec_tool = SECTool()
+        results: Dict[str, SectionResearchResult] = {}
+
+        # Define SEC output files and their extraction methods
+        sec_files = [
+            ("01-Business-Overview.md", "10-K", "business_overview"),
+            ("02-Risk-Factors.md", "10-K", "risk_factors"),
+            ("03-Financial-Highlights.md", "10-K", "financial_highlights"),
+            ("04-MDA-Summary.md", "10-K", "mda"),
+            ("05-Recent-Events.md", "8-K", "recent_events"),
+            ("06-Executive-Compensation.md", "DEF 14A", "compensation"),
+        ]
+
+        # Get 10-K content (contains most sections)
+        ten_k_content = ""
+        try:
+            ten_k_content = sec_tool.get_latest_10k_content(ticker)
+            if ten_k_content:
+                logger.info(f"Retrieved 10-K for {ticker}: {len(ten_k_content)} chars")
+        except Exception as e:
+            logger.warning(f"Failed to retrieve 10-K for {ticker}: {e}")
+
+        # Get recent 8-K filings
+        eight_k_filings = []
+        try:
+            eight_k_filings = sec_tool.get_8k_filings(ticker, limit=5)
+            logger.info(f"Retrieved {len(eight_k_filings)} 8-K filings for {ticker}")
+        except Exception as e:
+            logger.warning(f"Failed to retrieve 8-K filings for {ticker}: {e}")
+
+        # Process each SEC output file
+        for filename, filing_type, section_type in sec_files:
+            result = SectionResearchResult(
+                section="10-SEC-Filings",
+                file=filename,
+            )
+
+            try:
+                if filing_type == "10-K" and ten_k_content:
+                    # Extract relevant section from 10-K
+                    extracted = await self._extract_10k_section(
+                        ten_k_content, section_type, company.name
+                    )
+                    if extracted:
+                        source = ResearchSource(
+                            url=f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={ticker}&type=10-K",
+                            title=f"{company.name} 10-K {section_type.replace('_', ' ').title()}",
+                            content=extracted,
+                            source_type="sec_filing",
+                        )
+                        result.sources.append(source)
+                        self.source_tracker.track_source(source, "10-SEC-Filings")
+
+                elif filing_type == "8-K" and eight_k_filings:
+                    # Create sources from 8-K filings
+                    for filing in eight_k_filings:
+                        source = ResearchSource(
+                            url=filing.get("url", ""),
+                            title=f"{company.name} 8-K - {filing.get('filing_date', 'Unknown Date')}",
+                            content=f"8-K filed on {filing.get('filing_date', 'Unknown')}",
+                            source_type="sec_filing",
+                        )
+                        result.sources.append(source)
+                        self.source_tracker.track_source(source, "10-SEC-Filings")
+
+                result.queries_executed = 1
+                logger.info(f"SEC {filename}: {len(result.sources)} sources")
+
+            except Exception as e:
+                logger.warning(f"Failed to process SEC {filename}: {e}")
+                result.error = str(e)
+
+            results[filename] = result
+
+        return results
+
+    async def _extract_10k_section(
+        self,
+        ten_k_text: str,
+        section_type: str,
+        company_name: str,
+    ) -> str:
+        """
+        Use AI to extract a specific section from 10-K filing.
+
+        Args:
+            ten_k_text: Full 10-K text content
+            section_type: Type of section to extract
+            company_name: Company name for context
+
+        Returns:
+            Extracted and summarized section content
+        """
+        # Define extraction prompts for each section type
+        prompts = {
+            "business_overview": f"""Extract the Business Description (Item 1) from this 10-K filing for {company_name}.
+
+Provide a structured summary including:
+- Company overview and principal products/services
+- Business segments and operations
+- Geographic presence
+- Key customers and markets
+- Competitive position
+
+10-K TEXT (first 80,000 chars):
+{ten_k_text[:80000]}
+
+Provide a concise, well-organized summary (500-1000 words).""",
+
+            "risk_factors": f"""Extract the Risk Factors (Item 1A) from this 10-K filing for {company_name}.
+
+Categorize and summarize the key risks:
+1. Market/Industry Risks
+2. Operational Risks
+3. Financial Risks
+4. Regulatory/Legal Risks
+5. Technology/Cybersecurity Risks
+
+10-K TEXT (first 80,000 chars):
+{ten_k_text[:80000]}
+
+Provide a structured summary of the top 10-15 most significant risks.""",
+
+            "financial_highlights": f"""Extract Financial Highlights from this 10-K filing (Item 8) for {company_name}.
+
+Include:
+- Revenue and growth trends
+- Profitability metrics (gross margin, operating margin, net income)
+- Key balance sheet items (assets, liabilities, equity)
+- Cash flow highlights
+- Key financial ratios
+
+10-K TEXT (first 80,000 chars):
+{ten_k_text[:80000]}
+
+Provide specific numbers and year-over-year comparisons where available.""",
+
+            "mda": f"""Extract the Management Discussion & Analysis (Item 7) from this 10-K for {company_name}.
+
+Summarize:
+- Management's view of business performance
+- Key factors affecting results
+- Liquidity and capital resources
+- Future outlook and guidance
+- Critical accounting policies
+
+10-K TEXT (first 80,000 chars):
+{ten_k_text[:80000]}
+
+Provide a concise executive summary (500-800 words).""",
+
+            "compensation": f"""Extract executive compensation information from this filing for {company_name}.
+
+If available, include:
+- CEO compensation (base salary, bonus, stock awards, total)
+- Other named executive officers' compensation
+- Compensation philosophy
+- Performance metrics tied to pay
+
+10-K TEXT (first 80,000 chars):
+{ten_k_text[:80000]}
+
+Note: Executive compensation details are typically in the proxy statement (DEF 14A), not 10-K.
+Extract any compensation-related information available.""",
+        }
+
+        prompt = prompts.get(section_type)
+        if not prompt:
+            return ""
+
+        try:
+            response = await self.ai_client.generate(
+                prompt,
+                temperature=0.3,
+                max_tokens=2000,
+            )
+            return response
+        except Exception as e:
+            logger.warning(f"AI extraction failed for {section_type}: {e}")
+            return ""
+
+    # =========================================================================
+    # News Intelligence Integration (NewsAPI)
+    # =========================================================================
+
+    async def _research_news_intelligence(
+        self,
+        company: CompanyProfile,
+        output_dir: Path,
+    ) -> Dict[str, Any]:
+        """
+        Fetch and analyze news using NewsAPI.
+
+        This method uses the NewsAggregatorTool to:
+        - Get recent company news (last 30 days)
+        - Get industry news (last 14 days)
+        - Analyze sentiment of articles
+        - Detect business signals (funding, partnerships, etc.)
+
+        Args:
+            company: Company profile to research
+            output_dir: Directory to write news reports
+
+        Returns:
+            Dict with news intelligence results and statistics
+        """
+        # Check if news intelligence is enabled
+        enable_news = os.getenv("ENABLE_NEWS_INTELLIGENCE", "true").lower() == "true"
+        if not enable_news:
+            logger.info("News intelligence disabled via ENABLE_NEWS_INTELLIGENCE=false")
+            return {"enabled": False, "articles_found": 0}
+
+        try:
+            from ..tools.news_aggregator import NewsAggregatorTool
+
+            news_tool = NewsAggregatorTool()
+
+            # Check if NewsAPI client is available
+            if not news_tool.client:
+                logger.warning("NewsAPI client not initialized (missing API key)")
+                return {
+                    "enabled": True,
+                    "api_available": False,
+                    "articles_found": 0,
+                    "error": "NEWSAPI_KEY not configured",
+                }
+
+            # Get configurable parameters
+            company_lookback = int(os.getenv("NEWS_COMPANY_LOOKBACK_DAYS", "30"))
+            industry_lookback = int(os.getenv("NEWS_INDUSTRY_LOOKBACK_DAYS", "14"))
+
+            logger.info(f"Fetching news intelligence for {company.name}...")
+
+            # Fetch company news
+            company_news = await news_tool.get_company_news(
+                company_name=company.name,
+                days_back=company_lookback,
+                max_results=20,
+            )
+            logger.info(f"  Company news: {len(company_news)} articles")
+
+            # Fetch industry news
+            industry = company.industry or "technology"
+            industry_news = await news_tool.get_industry_news(
+                industry=industry,
+                days_back=industry_lookback,
+                max_results=15,
+            )
+            logger.info(f"  Industry news: {len(industry_news)} articles")
+
+            # Analyze sentiment
+            sentiment = await news_tool.analyze_sentiment(
+                company_name=company.name,
+                days_back=company_lookback,
+            )
+            logger.info(
+                f"  Sentiment: {sentiment.get('overall_sentiment', {}).get('label', 'unknown')} "
+                f"(compound: {sentiment.get('overall_sentiment', {}).get('compound', 0):.3f})"
+            )
+
+            # Detect signals
+            signals = await news_tool.detect_signals(
+                company_name=company.name,
+                days_back=company_lookback,
+            )
+            total_signals = sum(
+                len(v) for k, v in signals.items()
+                if isinstance(v, list) and k != "total_articles"
+            )
+            logger.info(f"  Business signals: {total_signals} detected")
+
+            # Write news reports
+            await self._write_news_reports(
+                output_dir=output_dir,
+                company=company,
+                company_news=company_news,
+                industry_news=industry_news,
+                sentiment=sentiment,
+                signals=signals,
+            )
+
+            return {
+                "enabled": True,
+                "api_available": True,
+                "articles_found": len(company_news),
+                "industry_articles": len(industry_news),
+                "sentiment_score": sentiment.get("overall_sentiment", {}).get("compound", 0),
+                "sentiment_label": sentiment.get("overall_sentiment", {}).get("label", "neutral"),
+                "sentiment_trend": sentiment.get("trend", "stable"),
+                "crisis_alert": sentiment.get("crisis_alert", False),
+                "signals_detected": total_signals,
+                "signal_breakdown": {
+                    k: len(v) for k, v in signals.items()
+                    if isinstance(v, list) and k != "total_articles"
+                },
+            }
+
+        except ImportError as e:
+            logger.warning(f"NewsAggregatorTool not available: {e}")
+            return {"enabled": True, "error": str(e), "articles_found": 0}
+        except Exception as e:
+            logger.error(f"News intelligence failed: {e}")
+            return {"enabled": True, "error": str(e), "articles_found": 0}
+
+    async def _write_news_reports(
+        self,
+        output_dir: Path,
+        company: CompanyProfile,
+        company_news: List,
+        industry_news: List,
+        sentiment: Dict[str, Any],
+        signals: Dict[str, Any],
+    ) -> None:
+        """
+        Write news intelligence reports as markdown files.
+
+        Creates 4 files in the 11-News-Intelligence directory:
+        - 01-Recent-News.md
+        - 02-Sentiment-Analysis.md
+        - 03-Business-Signals.md
+        - 04-Crisis-Indicators.md
+        """
+        news_dir = output_dir / "11-News-Intelligence"
+        news_dir.mkdir(parents=True, exist_ok=True)
+
+        generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 01-Recent-News.md
+        recent_news_content = self._generate_recent_news_md(
+            company, company_news, industry_news, generated_at
+        )
+        (news_dir / "01-Recent-News.md").write_text(recent_news_content, encoding="utf-8")
+
+        # 02-Sentiment-Analysis.md
+        sentiment_content = self._generate_sentiment_md(
+            company, sentiment, generated_at
+        )
+        (news_dir / "02-Sentiment-Analysis.md").write_text(sentiment_content, encoding="utf-8")
+
+        # 03-Business-Signals.md
+        signals_content = self._generate_signals_md(
+            company, signals, generated_at
+        )
+        (news_dir / "03-Business-Signals.md").write_text(signals_content, encoding="utf-8")
+
+        # 04-Crisis-Indicators.md
+        crisis_content = self._generate_crisis_md(
+            company, sentiment, signals, generated_at
+        )
+        (news_dir / "04-Crisis-Indicators.md").write_text(crisis_content, encoding="utf-8")
+
+        logger.info(f"  News reports written to {news_dir}")
+
+    def _generate_recent_news_md(
+        self,
+        company: CompanyProfile,
+        company_news: List,
+        industry_news: List,
+        generated_at: str,
+    ) -> str:
+        """Generate Recent News markdown."""
+        md = f"""# Recent News
+
+**Company:** {company.name}
+**Industry:** {company.industry or 'N/A'}
+**Generated:** {generated_at}
+
+---
+
+## Company News ({len(company_news)} articles)
+
+"""
+        if company_news:
+            for article in company_news[:15]:
+                title = article.title or "Untitled"
+                url = article.url or "#"
+                date = article.metadata.get("published_date", "")[:10] if article.metadata else ""
+                source = article.metadata.get("source_name", "") if article.metadata else ""
+                content = (article.content or "")[:200]
+
+                md += f"### [{title}]({url})\n"
+                if date or source:
+                    md += f"*{date}* | *{source}*\n\n"
+                if content:
+                    md += f"{content}...\n\n"
+                md += "---\n\n"
+        else:
+            md += "*No recent company news found.*\n\n"
+
+        md += f"\n## Industry News ({len(industry_news)} articles)\n\n"
+        if industry_news:
+            for article in industry_news[:10]:
+                title = article.title or "Untitled"
+                url = article.url or "#"
+                date = article.metadata.get("published_date", "")[:10] if article.metadata else ""
+                md += f"- [{title}]({url}) ({date})\n"
+        else:
+            md += "*No recent industry news found.*\n"
+
+        return md
+
+    def _generate_sentiment_md(
+        self,
+        company: CompanyProfile,
+        sentiment: Dict[str, Any],
+        generated_at: str,
+    ) -> str:
+        """Generate Sentiment Analysis markdown."""
+        overall = sentiment.get("overall_sentiment", {})
+        compound = overall.get("compound", 0)
+        label = overall.get("label", "neutral")
+        trend = sentiment.get("trend", "stable")
+
+        md = f"""# Sentiment Analysis
+
+**Company:** {company.name}
+**Generated:** {generated_at}
+
+---
+
+## Overall Sentiment
+
+| Metric | Value |
+|--------|-------|
+| **Sentiment** | {label.title()} |
+| **Compound Score** | {compound:.3f} |
+| **Trend** | {trend.title()} |
+| **Articles Analyzed** | {sentiment.get('article_count', 0)} |
+
+### Breakdown
+
+- **Positive Articles:** {sentiment.get('positive_count', 0)}
+- **Negative Articles:** {sentiment.get('negative_count', 0)}
+- **Neutral Articles:** {sentiment.get('neutral_count', 0)}
+
+---
+
+## Article-Level Sentiment
+
+"""
+        article_sentiments = sentiment.get("article_sentiments", [])
+        if article_sentiments:
+            md += "| Date | Title | Sentiment | Score |\n"
+            md += "|------|-------|-----------|-------|\n"
+            for item in article_sentiments[:15]:
+                date = (item.get("date") or "")[:10]
+                title = (item.get("title") or "")[:50]
+                s = item.get("sentiment", {})
+                s_label = s.get("label", "neutral")
+                s_compound = s.get("compound", 0)
+                md += f"| {date} | {title} | {s_label} | {s_compound:.2f} |\n"
+        else:
+            md += "*No article sentiment data available.*\n"
+
+        return md
+
+    def _generate_signals_md(
+        self,
+        company: CompanyProfile,
+        signals: Dict[str, Any],
+        generated_at: str,
+    ) -> str:
+        """Generate Business Signals markdown."""
+        md = f"""# Business Signals
+
+**Company:** {company.name}
+**Generated:** {generated_at}
+
+---
+
+## Signal Summary
+
+| Category | Count |
+|----------|-------|
+| Funding | {len(signals.get('funding', []))} |
+| Partnerships | {len(signals.get('partnerships', []))} |
+| Product Launches | {len(signals.get('product_launches', []))} |
+| Leadership Changes | {len(signals.get('leadership_changes', []))} |
+| Awards | {len(signals.get('awards', []))} |
+| Acquisitions | {len(signals.get('acquisitions', []))} |
+
+---
+
+"""
+        signal_categories = [
+            ("funding", "Funding Signals"),
+            ("partnerships", "Partnership Signals"),
+            ("product_launches", "Product Launch Signals"),
+            ("leadership_changes", "Leadership Change Signals"),
+            ("awards", "Award & Recognition Signals"),
+            ("acquisitions", "Acquisition & Merger Signals"),
+        ]
+
+        for key, title in signal_categories:
+            items = signals.get(key, [])
+            md += f"## {title}\n\n"
+            if items:
+                for item in items[:5]:
+                    t = item.get("title", "Untitled")
+                    u = item.get("url", "#")
+                    d = (item.get("date") or "")[:10]
+                    s = item.get("source", "")
+                    md += f"- [{t}]({u})"
+                    if d or s:
+                        md += f" ({d}, {s})"
+                    md += "\n"
+            else:
+                md += "*No signals detected in this category.*\n"
+            md += "\n"
+
+        return md
+
+    def _generate_crisis_md(
+        self,
+        company: CompanyProfile,
+        sentiment: Dict[str, Any],
+        _signals: Dict[str, Any],  # Reserved for future crisis signal analysis
+        generated_at: str,
+    ) -> str:
+        """Generate Crisis Indicators markdown."""
+        crisis_alert = sentiment.get("crisis_alert", False)
+        crisis_details = sentiment.get("crisis_details", [])
+
+        alert_status = "**ACTIVE**" if crisis_alert else "**None Detected**"
+
+        md = f"""# Crisis Indicators
+
+**Company:** {company.name}
+**Generated:** {generated_at}
+
+---
+
+## Alert Status
+
+{alert_status}
+
+---
+
+## Crisis Keywords Detected
+
+"""
+        if crisis_details:
+            for kw in crisis_details:
+                md += f"- {kw}\n"
+        else:
+            md += "*No crisis keywords detected in recent news.*\n"
+
+        md += "\n---\n\n## Sentiment Red Flags\n\n"
+
+        # Check for negative sentiment trend
+        trend = sentiment.get("trend", "stable")
+        compound = sentiment.get("overall_sentiment", {}).get("compound", 0)
+
+        red_flags_found = False
+        if trend == "declining":
+            md += "- **Declining sentiment trend detected**\n"
+            red_flags_found = True
+        if compound < -0.2:
+            md += f"- **Negative overall sentiment** (score: {compound:.3f})\n"
+            red_flags_found = True
+
+        negative_count = sentiment.get("negative_count", 0)
+        total_count = sentiment.get("article_count", 1)
+        if total_count > 0 and negative_count / total_count > 0.5:
+            md += f"- **High negative article ratio** ({negative_count}/{total_count})\n"
+            red_flags_found = True
+
+        if not red_flags_found:
+            md += "*No red flags detected.*\n"
+
+        md += "\n---\n\n## Recommended Actions\n\n"
+        if crisis_alert or compound < -0.2:
+            md += """1. **Monitor closely** - Set up alerts for new articles
+2. **Review sources** - Examine negative articles for context
+3. **Assess impact** - Evaluate potential business implications
+4. **Prepare response** - Consider communication strategy
+"""
+        else:
+            md += "*No immediate action required. Continue routine monitoring.*\n"
+
+        return md
+
+    # =========================================================================
+    # Social Intelligence Integration (Reddit + Twitter)
+    # =========================================================================
+
+    async def _research_social_intelligence(
+        self,
+        company: CompanyProfile,
+        output_dir: Path,
+    ) -> Dict[str, Any]:
+        """
+        Fetch and analyze social media sentiment using Reddit and Twitter APIs.
+
+        Args:
+            company: Company profile to research
+            output_dir: Directory to write social reports
+
+        Returns:
+            Dict with social intelligence results and statistics
+        """
+        results = {
+            "enabled": True,
+            "reddit_available": False,
+            "twitter_available": False,
+            "reddit_mentions": 0,
+            "twitter_mentions": 0,
+            "overall_sentiment": "neutral",
+        }
+
+        reddit_posts = []
+        twitter_analysis = None
+        reddit_analysis = None
+
+        # Reddit analysis
+        try:
+            reddit_tool = RedditTool()
+            if reddit_tool.is_available():
+                results["reddit_available"] = True
+                logger.info(f"Fetching Reddit mentions for {company.name}...")
+
+                industry = company.industry or "technology"
+                subreddits = await reddit_tool.find_relevant_subreddits(
+                    company.name, industry
+                )
+
+                reddit_posts = await reddit_tool.search_company_mentions(
+                    company_name=company.name,
+                    subreddits=subreddits[:5],
+                    limit=50,
+                    time_filter="month",
+                )
+                results["reddit_mentions"] = len(reddit_posts)
+                logger.info(f"  Reddit: {len(reddit_posts)} posts found")
+
+                if subreddits:
+                    reddit_analysis = await reddit_tool.get_subreddit_sentiment(
+                        company.name, subreddits[0], limit=30
+                    )
+            else:
+                logger.debug("Reddit API not configured")
+
+        except ImportError:
+            logger.debug("praw not installed - Reddit analysis skipped")
+        except Exception as e:
+            logger.warning(f"Reddit analysis failed: {e}")
+            results["reddit_error"] = str(e)
+
+        # Twitter analysis
+        try:
+            twitter_tool = TwitterTool()
+            if twitter_tool.is_available():
+                results["twitter_available"] = True
+                logger.info(f"Fetching Twitter mentions for {company.name}...")
+
+                twitter_analysis = await twitter_tool.analyze_mentions(
+                    company_name=company.name,
+                    hashtags=None,
+                )
+                results["twitter_mentions"] = twitter_analysis.total_mentions if twitter_analysis else 0
+                logger.info(f"  Twitter: {results['twitter_mentions']} mentions found")
+            else:
+                logger.debug("Twitter API not configured")
+
+        except Exception as e:
+            logger.warning(f"Twitter analysis failed: {e}")
+            results["twitter_error"] = str(e)
+
+        # Calculate overall sentiment
+        if reddit_analysis or twitter_analysis:
+            positive = negative = neutral = 0
+
+            if reddit_analysis:
+                s = reddit_analysis.sentiment_breakdown
+                positive += s.get("positive", 0)
+                negative += s.get("negative", 0)
+                neutral += s.get("neutral", 0)
+
+            if twitter_analysis:
+                s = twitter_analysis.sentiment_breakdown
+                positive += s.get("positive", 0)
+                negative += s.get("negative", 0)
+                neutral += s.get("neutral", 0)
+
+            total = positive + negative + neutral
+            if total > 0:
+                if positive / total > 0.4:
+                    results["overall_sentiment"] = "positive"
+                elif negative / total > 0.4:
+                    results["overall_sentiment"] = "negative"
+
+        # Write social intelligence reports
+        if reddit_posts or (twitter_analysis and twitter_analysis.top_tweets):
+            await self._write_social_reports(
+                output_dir, company, reddit_posts, reddit_analysis, twitter_analysis
+            )
+
+        return results
+
+    async def _write_social_reports(
+        self,
+        output_dir: Path,
+        company: CompanyProfile,
+        reddit_posts: List,
+        reddit_analysis,
+        twitter_analysis,
+    ) -> None:
+        """Write social intelligence reports as markdown files."""
+        social_dir = output_dir / "12-Social-Intelligence"
+        social_dir.mkdir(parents=True, exist_ok=True)
+
+        generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Write all 4 report files
+        (social_dir / "01-Reddit-Analysis.md").write_text(
+            self._generate_reddit_md(company, reddit_posts, reddit_analysis, generated_at),
+            encoding="utf-8"
+        )
+        (social_dir / "02-Twitter-Analysis.md").write_text(
+            self._generate_twitter_md(company, twitter_analysis, generated_at),
+            encoding="utf-8"
+        )
+        (social_dir / "03-Sentiment-Summary.md").write_text(
+            self._generate_social_sentiment_md(company, reddit_analysis, twitter_analysis, generated_at),
+            encoding="utf-8"
+        )
+        (social_dir / "04-Social-Risks.md").write_text(
+            self._generate_social_risks_md(company, reddit_posts, generated_at),
+            encoding="utf-8"
+        )
+
+        logger.info(f"  Social reports written to {social_dir}")
+
+    def _generate_reddit_md(self, company: CompanyProfile, posts: List, analysis, generated_at: str) -> str:
+        """Generate Reddit Analysis markdown."""
+        md = f"# Reddit Analysis\n\n**Company:** {company.name}\n**Generated:** {generated_at}\n\n---\n\n"
+
+        if analysis:
+            md += f"## Overview\n\n| Metric | Value |\n|--------|-------|\n"
+            md += f"| **Subreddit** | r/{analysis.subreddit} |\n"
+            md += f"| **Mentions** | {analysis.mention_count} |\n"
+            md += f"| **Avg Score** | {analysis.avg_score:.1f} |\n\n"
+        else:
+            md += "*No Reddit analysis data available.*\n\n"
+
+        md += f"## Top Posts ({len(posts)} total)\n\n"
+        for post in posts[:10]:
+            md += f"### [{post.title}]({post.url})\n"
+            md += f"r/{post.subreddit} | Score: {post.score} | Comments: {post.num_comments}\n\n---\n\n"
+
+        return md if posts else md + "*No posts found.*\n"
+
+    def _generate_twitter_md(self, company: CompanyProfile, analysis, generated_at: str) -> str:
+        """Generate Twitter Analysis markdown."""
+        md = f"# Twitter/X Analysis\n\n**Company:** {company.name}\n**Generated:** {generated_at}\n\n---\n\n"
+
+        if analysis:
+            md += f"## Overview\n\n| Metric | Value |\n|--------|-------|\n"
+            md += f"| **Total Mentions** | {analysis.total_mentions} |\n"
+            md += f"| **Avg Engagement** | {analysis.avg_engagement:.1f} |\n\n"
+
+            if analysis.hashtags:
+                md += "## Trending Hashtags\n\n"
+                for tag in analysis.hashtags[:10]:
+                    md += f"- #{tag}\n"
+                md += "\n"
+
+            if analysis.top_tweets:
+                md += "## Top Tweets\n\n"
+                for tweet in analysis.top_tweets[:5]:
+                    md += f"**@{tweet.author_username or 'unknown'}** | {tweet.likes} likes\n"
+                    md += f"> {tweet.text[:200]}...\n\n---\n\n"
+        else:
+            md += "*No Twitter analysis data available.*\n"
+
+        return md
+
+    def _generate_social_sentiment_md(self, company: CompanyProfile, reddit_analysis, twitter_analysis, generated_at: str) -> str:
+        """Generate Social Sentiment Summary markdown."""
+        md = f"# Social Sentiment Summary\n\n**Company:** {company.name}\n**Generated:** {generated_at}\n\n---\n\n"
+
+        total_pos = total_neg = total_neu = 0
+        if reddit_analysis:
+            s = reddit_analysis.sentiment_breakdown
+            total_pos += s.get("positive", 0)
+            total_neg += s.get("negative", 0)
+            total_neu += s.get("neutral", 0)
+        if twitter_analysis:
+            s = twitter_analysis.sentiment_breakdown
+            total_pos += s.get("positive", 0)
+            total_neg += s.get("negative", 0)
+            total_neu += s.get("neutral", 0)
+
+        total = total_pos + total_neg + total_neu
+        if total > 0:
+            overall = "Positive" if total_pos / total > 0.4 else ("Negative" if total_neg / total > 0.4 else "Neutral")
+            md += f"## Overall Sentiment: **{overall}**\n\n"
+            md += f"| Sentiment | Count |\n|-----------|-------|\n"
+            md += f"| Positive | {total_pos} |\n| Negative | {total_neg} |\n| Neutral | {total_neu} |\n"
+        else:
+            md += "*No sentiment data available.*\n"
+
+        return md
+
+    def _generate_social_risks_md(self, company: CompanyProfile, reddit_posts: List, generated_at: str) -> str:
+        """Generate Social Risks markdown."""
+        md = f"# Social Media Risks\n\n**Company:** {company.name}\n**Generated:** {generated_at}\n\n---\n\n"
+
+        risks = []
+        if reddit_posts:
+            negative_posts = [p for p in reddit_posts if p.score < 0]
+            if len(negative_posts) > 3:
+                risks.append(f"- {len(negative_posts)} posts with negative scores")
+
+            complaint_kw = ["scam", "fraud", "terrible", "worst", "avoid"]
+            complaints = [p for p in reddit_posts if any(kw in p.title.lower() for kw in complaint_kw)]
+            if complaints:
+                risks.append(f"- {len(complaints)} posts with complaint keywords")
+
+        if risks:
+            md += "## Risk Indicators\n\n" + "\n".join(risks) + "\n"
+        else:
+            md += "**No significant risks detected.**\n"
+
+        md += "\n## Recommended Actions\n\n1. Monitor brand mentions\n2. Engage with community\n3. Address complaints promptly\n"
+
+        return md
+
+    # =========================================================================
+    # Financial Modeling Prep Integration (Deep Financials)
+    # =========================================================================
+
+    async def _research_financial_deep_dive(
+        self,
+        company: CompanyProfile,
+        ticker: str,
+        output_dir: Path,
+    ) -> Dict[str, Any]:
+        """
+        Deep financial analysis using Financial Modeling Prep API.
+
+        This method provides comprehensive financial data including:
+        - Company profile with market cap, employees, CEO
+        - Financial ratios and metrics (50+ data points)
+        - Analyst estimates and earnings forecasts
+        - Company rating (buy/sell recommendation)
+
+        Args:
+            company: Company profile being researched
+            ticker: Stock ticker symbol
+            output_dir: Directory to write financial reports
+
+        Returns:
+            Dict with financial analysis results and statistics
+        """
+        # Check if FMP is enabled
+        enable_fmp = os.getenv("ENABLE_FINANCIAL_DEEP_DIVE", "true").lower() == "true"
+        if not enable_fmp:
+            logger.info("Financial deep dive disabled via ENABLE_FINANCIAL_DEEP_DIVE=false")
+            return {"enabled": False}
+
+        try:
+            from ..tools.fmp_tool import FinancialModelingPrepTool
+
+            fmp = FinancialModelingPrepTool()
+
+            if not fmp.is_available():
+                logger.warning("FMP API key not configured")
+                return {
+                    "enabled": True,
+                    "api_available": False,
+                    "error": "FINANCIAL_MODELING_PREP_API_KEY not configured",
+                }
+
+            logger.info(f"Fetching financial deep dive for {ticker}...")
+
+            # Get comprehensive analysis
+            analysis = await fmp.get_full_analysis(ticker)
+
+            # Write financial reports
+            await self._write_financial_reports(
+                output_dir=output_dir,
+                company=company,
+                ticker=ticker,
+                analysis=analysis,
+            )
+
+            # Cleanup
+            await fmp.close()
+
+            profile = analysis.get("profile", {})
+            metrics = analysis.get("metrics", {})
+            rating = analysis.get("rating", {})
+
+            return {
+                "enabled": True,
+                "api_available": True,
+                "ticker": ticker,
+                "market_cap": profile.get("market_cap", 0) if profile else 0,
+                "sector": profile.get("sector", "") if profile else "",
+                "rating": rating.get("rating", "N/A") if rating else "N/A",
+                "rating_recommendation": rating.get("rating_recommendation", "") if rating else "",
+                "pe_ratio": metrics.get("pe_ratio", 0) if metrics else 0,
+                "roe": metrics.get("roe", 0) if metrics else 0,
+                "estimates_count": len(analysis.get("estimates", [])),
+            }
+
+        except ImportError as e:
+            logger.warning(f"FinancialModelingPrepTool not available: {e}")
+            return {"enabled": True, "error": str(e)}
+        except Exception as e:
+            logger.error(f"Financial deep dive failed: {e}")
+            return {"enabled": True, "error": str(e)}
+
+    async def _write_financial_reports(
+        self,
+        output_dir: Path,
+        company: CompanyProfile,
+        ticker: str,
+        analysis: Dict[str, Any],
+    ) -> None:
+        """
+        Write financial analysis reports as markdown files.
+
+        Creates files in the 12-Financial-Deep-Dive directory:
+        - 01-Company-Profile.md
+        - 02-Financial-Metrics.md
+        - 03-Analyst-Estimates.md
+        - 04-Company-Rating.md
+        """
+        fin_dir = output_dir / "12-Financial-Deep-Dive"
+        fin_dir.mkdir(parents=True, exist_ok=True)
+
+        generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 01-Company-Profile.md
+        profile_content = self._generate_fmp_profile_md(
+            company, ticker, analysis.get("profile", {}), generated_at
+        )
+        (fin_dir / "01-Company-Profile.md").write_text(profile_content, encoding="utf-8")
+
+        # 02-Financial-Metrics.md
+        metrics_content = self._generate_fmp_metrics_md(
+            company, ticker, analysis.get("metrics", {}),
+            analysis.get("income_statement", []),
+            analysis.get("key_metrics", []),
+            generated_at
+        )
+        (fin_dir / "02-Financial-Metrics.md").write_text(metrics_content, encoding="utf-8")
+
+        # 03-Analyst-Estimates.md
+        estimates_content = self._generate_fmp_estimates_md(
+            company, ticker, analysis.get("estimates", []), generated_at
+        )
+        (fin_dir / "03-Analyst-Estimates.md").write_text(estimates_content, encoding="utf-8")
+
+        # 04-Company-Rating.md
+        rating_content = self._generate_fmp_rating_md(
+            company, ticker, analysis.get("rating", {}), generated_at
+        )
+        (fin_dir / "04-Company-Rating.md").write_text(rating_content, encoding="utf-8")
+
+        logger.info(f"  Financial reports written to {fin_dir}")
+
+    def _generate_fmp_profile_md(
+        self,
+        company: CompanyProfile,
+        ticker: str,
+        profile: Dict[str, Any],
+        generated_at: str,
+    ) -> str:
+        """Generate Company Profile markdown from FMP data."""
+        if not profile:
+            return f"""# Company Profile
+
+**Company:** {company.name}
+**Ticker:** {ticker}
+**Generated:** {generated_at}
+
+---
+
+*No profile data available from Financial Modeling Prep.*
+"""
+
+        market_cap = profile.get("market_cap", 0)
+        market_cap_str = f"${market_cap:,.0f}" if market_cap else "N/A"
+
+        return f"""# Company Profile
+
+**Company:** {profile.get('company_name', company.name)}
+**Ticker:** {ticker}
+**Generated:** {generated_at}
+
+---
+
+## Overview
+
+| Attribute | Value |
+|-----------|-------|
+| **Exchange** | {profile.get('exchange', 'N/A')} |
+| **Sector** | {profile.get('sector', 'N/A')} |
+| **Industry** | {profile.get('industry', 'N/A')} |
+| **Country** | {profile.get('country', 'N/A')} |
+| **Currency** | {profile.get('currency', 'USD')} |
+
+---
+
+## Key Figures
+
+| Metric | Value |
+|--------|-------|
+| **Market Cap** | {market_cap_str} |
+| **Stock Price** | ${profile.get('price', 0):.2f} |
+| **Beta** | {profile.get('beta', 0):.2f} |
+| **Volume (Avg)** | {profile.get('vol_avg', 0):,} |
+| **Last Dividend** | ${profile.get('last_div', 0):.2f} |
+| **IPO Date** | {profile.get('ipo_date', 'N/A')} |
+
+---
+
+## Leadership & Operations
+
+| Attribute | Value |
+|-----------|-------|
+| **CEO** | {profile.get('ceo', 'N/A')} |
+| **Employees** | {profile.get('employees', 0):,} |
+| **Website** | [{profile.get('website', 'N/A')}]({profile.get('website', '#')}) |
+
+---
+
+## Company Description
+
+{profile.get('description', '*No description available.*')}
+"""
+
+    def _generate_fmp_metrics_md(
+        self,
+        company: CompanyProfile,
+        ticker: str,
+        metrics: Dict[str, Any],
+        income_statements: List[Dict],
+        key_metrics: List[Dict],
+        generated_at: str,
+    ) -> str:
+        """Generate Financial Metrics markdown from FMP data."""
+        md = f"""# Financial Metrics
+
+**Company:** {company.name}
+**Ticker:** {ticker}
+**Generated:** {generated_at}
+
+---
+
+## Key Ratios
+
+"""
+        if metrics:
+            md += f"""| Metric | Value |
+|--------|-------|
+| **Revenue Growth** | {metrics.get('revenue_growth', 0)*100:.1f}% |
+| **Gross Margin** | {metrics.get('gross_profit_margin', 0)*100:.1f}% |
+| **Operating Margin** | {metrics.get('operating_margin', 0)*100:.1f}% |
+| **Net Profit Margin** | {metrics.get('net_profit_margin', 0)*100:.1f}% |
+| **ROE** | {metrics.get('roe', 0)*100:.1f}% |
+| **ROA** | {metrics.get('roa', 0)*100:.1f}% |
+| **Debt/Equity** | {metrics.get('debt_to_equity', 0):.2f} |
+| **Current Ratio** | {metrics.get('current_ratio', 0):.2f} |
+
+---
+
+## Valuation Metrics
+
+| Metric | Value |
+|--------|-------|
+| **P/E Ratio** | {metrics.get('pe_ratio', 0):.2f} |
+| **P/B Ratio** | {metrics.get('pb_ratio', 0):.2f} |
+| **EV/EBITDA** | {metrics.get('ev_to_ebitda', 0):.2f} |
+
+"""
+        else:
+            md += "*No metrics data available.*\n\n"
+
+        # Add income statement highlights
+        if income_statements:
+            md += "---\n\n## Income Statement Highlights\n\n"
+            md += "| Period | Revenue | Net Income | EPS |\n"
+            md += "|--------|---------|------------|-----|\n"
+            for stmt in income_statements[:3]:
+                period = stmt.get("date", "N/A")[:10]
+                revenue = stmt.get("revenue", 0)
+                net_income = stmt.get("netIncome", 0)
+                eps = stmt.get("eps", 0)
+                md += f"| {period} | ${revenue:,.0f} | ${net_income:,.0f} | ${eps:.2f} |\n"
+
+        return md
+
+    def _generate_fmp_estimates_md(
+        self,
+        company: CompanyProfile,
+        ticker: str,
+        estimates: List[Dict],
+        generated_at: str,
+    ) -> str:
+        """Generate Analyst Estimates markdown from FMP data."""
+        md = f"""# Analyst Estimates
+
+**Company:** {company.name}
+**Ticker:** {ticker}
+**Generated:** {generated_at}
+
+---
+
+## Earnings Estimates
+
+"""
+        if estimates:
+            md += "| Period | Est. EPS | Actual EPS | Est. Revenue | Analysts |\n"
+            md += "|--------|----------|------------|--------------|----------|\n"
+            for est in estimates:
+                period = est.get("date", "N/A")[:10]
+                est_eps = est.get("estimated_eps", 0)
+                actual_eps = est.get("actual_eps")
+                actual_str = f"${actual_eps:.2f}" if actual_eps is not None else "Pending"
+                est_rev = est.get("revenue_estimated", 0)
+                analysts = est.get("number_of_analysts", 0)
+                md += f"| {period} | ${est_eps:.2f} | {actual_str} | ${est_rev:,.0f} | {analysts} |\n"
+        else:
+            md += "*No analyst estimates available.*\n"
+
+        return md
+
+    def _generate_fmp_rating_md(
+        self,
+        company: CompanyProfile,
+        ticker: str,
+        rating: Dict[str, Any],
+        generated_at: str,
+    ) -> str:
+        """Generate Company Rating markdown from FMP data."""
+        md = f"""# Company Rating
+
+**Company:** {company.name}
+**Ticker:** {ticker}
+**Generated:** {generated_at}
+
+---
+
+"""
+        if rating:
+            rating_grade = rating.get("rating", "N/A")
+            rating_score = rating.get("rating_score", 0)
+            recommendation = rating.get("rating_recommendation", "N/A")
+
+            md += f"""## Overall Rating
+
+| Metric | Value |
+|--------|-------|
+| **Grade** | **{rating_grade}** |
+| **Score** | {rating_score}/5 |
+| **Recommendation** | **{recommendation}** |
+
+---
+
+## Rating Breakdown
+
+"""
+            details = rating.get("rating_details", {})
+            if details:
+                md += "| Factor | Score |\n"
+                md += "|--------|-------|\n"
+                factor_names = {
+                    "dcf": "DCF Valuation",
+                    "roe": "Return on Equity",
+                    "roa": "Return on Assets",
+                    "de": "Debt/Equity",
+                    "pe": "P/E Ratio",
+                    "pb": "P/B Ratio",
+                }
+                for key, name in factor_names.items():
+                    score = details.get(key, "N/A")
+                    md += f"| {name} | {score} |\n"
+        else:
+            md += "*No rating data available.*\n"
+
+        return md
+
 
 # =============================================================================
 # Content Generation for All Files
@@ -889,6 +2332,124 @@ Return JSON with:
     "recommended_approach": "Sales strategy summary",
     "objections_responses": [{{"objection": "Common objection", "response": "How to address"}}],
     "next_steps": ["Step 1", "Step 2"]
+}}""",
+
+            # SEC Filing prompts (10-SEC-Filings section)
+            "01-Business-Overview.md": f"""Analyze the following SEC 10-K filing content for {company.name}.
+
+CONTENT:
+{context}
+
+Return JSON with:
+{{
+    "company_description": "Official business description from 10-K",
+    "principal_products": ["Product/Service 1", "Product/Service 2"],
+    "business_segments": [{{"segment": "Name", "description": "What it does", "revenue_contribution": "% if known"}}],
+    "geographic_presence": [{{"region": "Name", "operations": "Description"}}],
+    "key_customers": ["Customer type 1", "Customer type 2"],
+    "competitive_position": "Market position description",
+    "employees": "Employee count",
+    "properties": "Key facilities/properties",
+    "fiscal_year_end": "Month"
+}}""",
+
+            "02-Risk-Factors.md": f"""Analyze the following SEC filing risk factors for {company.name}.
+
+CONTENT:
+{context}
+
+Return JSON with:
+{{
+    "market_risks": [{{"risk": "Name", "description": "Details", "severity": "High/Medium/Low"}}],
+    "operational_risks": [{{"risk": "Name", "description": "Details", "severity": "High/Medium/Low"}}],
+    "financial_risks": [{{"risk": "Name", "description": "Details", "severity": "High/Medium/Low"}}],
+    "regulatory_risks": [{{"risk": "Name", "description": "Details", "severity": "High/Medium/Low"}}],
+    "technology_risks": [{{"risk": "Name", "description": "Details", "severity": "High/Medium/Low"}}],
+    "summary": "Overall risk assessment"
+}}""",
+
+            "03-Financial-Highlights.md": f"""Analyze the following SEC filing financial data for {company.name}.
+
+CONTENT:
+{context}
+
+Return JSON with:
+{{
+    "revenue": {{"current": "Amount", "prior_year": "Amount", "growth": "X%"}},
+    "net_income": {{"current": "Amount", "prior_year": "Amount", "growth": "X%"}},
+    "gross_margin": "X%",
+    "operating_margin": "X%",
+    "total_assets": "Amount",
+    "total_liabilities": "Amount",
+    "shareholders_equity": "Amount",
+    "cash_and_equivalents": "Amount",
+    "debt": "Amount",
+    "eps": {{"basic": "Amount", "diluted": "Amount"}},
+    "key_ratios": [{{"ratio": "Name", "value": "X"}}],
+    "fiscal_year": "Year"
+}}""",
+
+            "04-MDA-Summary.md": f"""Analyze the following Management Discussion & Analysis from SEC filing for {company.name}.
+
+CONTENT:
+{context}
+
+Return JSON with:
+{{
+    "performance_summary": "Management's view of overall performance",
+    "key_factors": [{{"factor": "Name", "impact": "Description"}}],
+    "segment_performance": [{{"segment": "Name", "performance": "Description"}}],
+    "liquidity": "Liquidity and capital resources summary",
+    "capital_expenditures": "CapEx plans and amounts",
+    "outlook": "Future outlook and guidance",
+    "critical_accounting": ["Policy 1", "Policy 2"],
+    "management_focus": "Key priorities mentioned"
+}}""",
+
+            "05-Recent-Events.md": f"""Analyze the following SEC 8-K filings (current reports) for {company.name}.
+
+CONTENT:
+{context}
+
+Return JSON with:
+{{
+    "events": [
+        {{
+            "date": "Filing date",
+            "type": "Event type (earnings, M&A, leadership, etc.)",
+            "description": "Event summary",
+            "significance": "High/Medium/Low",
+            "market_impact": "Potential impact description"
+        }}
+    ],
+    "patterns": "Any patterns in recent events",
+    "upcoming": "Upcoming expected events if mentioned"
+}}""",
+
+            "06-Executive-Compensation.md": f"""Analyze the following executive compensation data from SEC filings for {company.name}.
+
+CONTENT:
+{context}
+
+Return JSON with:
+{{
+    "ceo_compensation": {{
+        "name": "CEO Name",
+        "base_salary": "Amount",
+        "bonus": "Amount",
+        "stock_awards": "Amount",
+        "total": "Amount"
+    }},
+    "other_executives": [
+        {{
+            "name": "Name",
+            "title": "Title",
+            "total_compensation": "Amount"
+        }}
+    ],
+    "compensation_philosophy": "Description of pay approach",
+    "performance_metrics": ["Metric 1", "Metric 2"],
+    "say_on_pay": "Shareholder vote results if available"
 }}""",
         }
 
