@@ -3,7 +3,7 @@
 import pytest
 import base64
 
-from src.core.browser_agent import (
+from src.core.browser.browser_agent import (
     AccessibilityNode,
     BrowserAction,
     BrowserActionType,

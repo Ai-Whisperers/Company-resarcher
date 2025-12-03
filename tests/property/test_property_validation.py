@@ -26,7 +26,7 @@ class TestURLValidationProperties:
     @settings(max_examples=50)
     def test_public_urls_accepted(self, protocol, domain):
         """Property: Valid public URLs are accepted."""
-        from src.core.url_validator import URLValidator
+        from src.core.validation.url_validator import URLValidator
 
         url = f"{protocol}://{domain}"
         result = URLValidator.validate_url(url)
@@ -41,7 +41,7 @@ class TestURLValidationProperties:
     @settings(max_examples=30)
     def test_urls_with_paths_accepted(self, protocol, path):
         """Property: URLs with paths are accepted."""
-        from src.core.url_validator import URLValidator
+        from src.core.validation.url_validator import URLValidator
 
         url = f"{protocol}://example.com{path}"
         result = URLValidator.validate_url(url)
@@ -55,7 +55,7 @@ class TestURLValidationProperties:
     @settings(max_examples=20)
     def test_localhost_variants_blocked(self, ip_part):
         """Property: All localhost variants are blocked."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         # Test 127.x.x.x range
         url = f"http://127.{ip_part}.{ip_part}.{ip_part}"
@@ -72,7 +72,7 @@ class TestURLValidationProperties:
     @settings(max_examples=20)
     def test_private_172_range_blocked(self, octet2, octet3, octet4):
         """Property: 172.16.0.0/12 range is blocked."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         url = f"http://172.{octet2}.{octet3}.{octet4}"
 
@@ -86,7 +86,7 @@ class TestURLValidationProperties:
     @settings(max_examples=10)
     def test_dangerous_protocols_blocked(self, protocol):
         """Property: Dangerous protocols are blocked."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         url = f"{protocol}://something"
 

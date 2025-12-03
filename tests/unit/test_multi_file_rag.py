@@ -5,7 +5,7 @@ import tempfile
 import shutil
 from pathlib import Path
 
-from src.core.multi_file_rag import (
+from src.core.indexing.multi_file_rag import (
     ChunkingStrategy,
     CodeExtractor,
     CSVExtractor,

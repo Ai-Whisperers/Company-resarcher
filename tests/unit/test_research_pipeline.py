@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock, MagicMock
 from dataclasses import dataclass
 
 from src.core.result import Result, Ok, Err
-from src.core.types import CompanyProfile, ResearchSource
+from src.core.types.base import CompanyProfile, ResearchSource
 from src.pipeline.context import (
     RequestContext,
     TimeoutBudget,

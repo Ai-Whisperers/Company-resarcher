@@ -5,7 +5,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
-from src.core.human_loop import (
+from src.core.workflow.human_loop import (
     ApprovalManager,
     ApprovalRequest,
     ApprovalStatus,

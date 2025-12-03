@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 from src.agents.reasoning_agent import ReasoningAgent
-from src.core.types import ResearchSource
+from src.core.types.base import ResearchSource
 
 
 @pytest.mark.asyncio

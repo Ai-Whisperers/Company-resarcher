@@ -6,7 +6,7 @@ import shutil
 import os
 from pathlib import Path
 
-from src.core.agent_computer_interface import (
+from src.core.agents.agent_computer_interface import (
     Action,
     ActionResult,
     ActionStatus,

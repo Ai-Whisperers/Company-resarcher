@@ -11,7 +11,7 @@ Tests the tech stack tool including:
 import pytest
 from unittest.mock import MagicMock, patch
 
-from src.tools.tech_stack_tool import TechStackTool
+from src.tools.specialized.tech_stack import TechStackTool
 
 
 # =============================================================================
@@ -112,7 +112,7 @@ class TestURLValidation:
     @pytest.mark.security
     def test_blocks_invalid_url(self, tech_stack_tool, mock_webtech):
         """Verify invalid URLs are blocked."""
-        from src.core.url_validator import URLValidationError
+        from src.core.validation.url_validator import URLValidationError
 
         with patch("src.tools.tech_stack_tool.URLValidator.validate_url") as mock_validate:
             mock_validate.side_effect = URLValidationError("Blocked URL")
@@ -126,7 +126,7 @@ class TestURLValidation:
     @pytest.mark.security
     def test_blocks_localhost(self, tech_stack_tool, mock_webtech):
         """Verify localhost URLs are blocked."""
-        from src.core.url_validator import URLValidationError
+        from src.core.validation.url_validator import URLValidationError
 
         with patch("src.tools.tech_stack_tool.URLValidator.validate_url") as mock_validate:
             mock_validate.side_effect = URLValidationError("Localhost blocked")
@@ -139,7 +139,7 @@ class TestURLValidation:
     @pytest.mark.security
     def test_blocks_private_ip(self, tech_stack_tool, mock_webtech):
         """Verify private IPs are blocked."""
-        from src.core.url_validator import URLValidationError
+        from src.core.validation.url_validator import URLValidationError
 
         with patch("src.tools.tech_stack_tool.URLValidator.validate_url") as mock_validate:
             mock_validate.side_effect = URLValidationError("Private IP blocked")
@@ -244,7 +244,7 @@ class TestEdgeCases:
     @pytest.mark.unit
     def test_handles_empty_url(self, tech_stack_tool, mock_webtech):
         """Verify empty URL is handled."""
-        from src.core.url_validator import URLValidationError
+        from src.core.validation.url_validator import URLValidationError
 
         with patch("src.tools.tech_stack_tool.URLValidator.validate_url") as mock_validate:
             mock_validate.side_effect = URLValidationError("Empty URL")

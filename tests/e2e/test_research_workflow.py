@@ -51,7 +51,7 @@ def mock_search_results():
 @pytest.fixture
 def mock_browser_results():
     """Mock browser fetch results."""
-    from src.core.types import ResearchSource
+    from src.core.types.base import ResearchSource
 
     return [
         ResearchSource(
@@ -87,7 +87,7 @@ class TestFullResearchWorkflow:
     ):
         """Test complete research workflow from start to finish."""
         from src.graph.state import ResearchState
-        from src.core.types import CompanyProfile
+        from src.core.types.base import CompanyProfile
 
         # Create mocks
         mock_ai = MagicMock()
@@ -300,7 +300,7 @@ class TestGraphExecutionE2E:
         def create_mock_agent(name):
             async def mock_research(*args, **kwargs):
                 execution_order.append(name)
-                from src.core.types import ResearchPhaseResult
+                from src.core.types.base import ResearchPhaseResult
                 return ResearchPhaseResult(
                     phase_name=name,
                     markdown_content=f"# {name} Report",

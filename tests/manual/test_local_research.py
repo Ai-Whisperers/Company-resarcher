@@ -5,10 +5,10 @@ Verification script for Local & Free Research Transition.
 import asyncio
 import sys
 import io
-from src.tools.local_search import LocalSearchTool
+from src.tools.specialized.local_search import LocalSearchTool
 from src.agents.factory import AgentFactory
-from src.core.smart_router import SmartAIRouter
-from src.core.ai_client import OllamaClient, OpenAIClient
+from src.core.ai.routing.smart_router import SmartAIRouter
+from src.core.ai.ai_client import OllamaClient, OpenAIClient
 
 # Force UTF-8 for stdout to avoid Windows console encoding errors
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")

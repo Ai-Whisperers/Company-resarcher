@@ -6,7 +6,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-from src.core.file_indexer import (
+from src.core.indexing.file_indexer import (
     ContentExtractor,
     FileIndexer,
     FileMetadata,

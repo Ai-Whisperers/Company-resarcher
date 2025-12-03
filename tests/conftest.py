@@ -633,7 +633,7 @@ def reset_all_singletons():
     originals = {}
 
     try:
-        from src.core.ai_client import AIClient
+        from src.core.ai.ai_client import AIClient
         if hasattr(AIClient, '_instance'):
             originals['AIClient'] = AIClient._instance
             AIClient._instance = None
@@ -641,7 +641,7 @@ def reset_all_singletons():
         pass
 
     try:
-        from src.core.smart_router import SmartRouter
+        from src.core.ai.routing.smart_router import SmartRouter
         if hasattr(SmartRouter, '_instance'):
             originals['SmartRouter'] = SmartRouter._instance
             SmartRouter._instance = None
@@ -652,14 +652,14 @@ def reset_all_singletons():
 
     # Restore originals
     try:
-        from src.core.ai_client import AIClient
+        from src.core.ai.ai_client import AIClient
         if 'AIClient' in originals:
             AIClient._instance = originals['AIClient']
     except ImportError:
         pass
 
     try:
-        from src.core.smart_router import SmartRouter
+        from src.core.ai.routing.smart_router import SmartRouter
         if 'SmartRouter' in originals:
             SmartRouter._instance = originals['SmartRouter']
     except ImportError:
@@ -844,13 +844,13 @@ def capture_global_state():
         }
 
         try:
-            from src.core.ai_client import AIClient
+            from src.core.ai.ai_client import AIClient
             state["AIClient._instance"] = id(getattr(AIClient, "_instance", None))
         except ImportError:
             pass
 
         try:
-            from src.core.smart_router import SmartRouter
+            from src.core.ai.routing.smart_router import SmartRouter
             state["SmartRouter._instance"] = id(getattr(SmartRouter, "_instance", None))
         except ImportError:
             pass

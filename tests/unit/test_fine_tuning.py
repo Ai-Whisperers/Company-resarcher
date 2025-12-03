@@ -6,7 +6,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-from src.core.fine_tuning import (
+from src.core.ai.fine_tuning import (
     DatasetCollector,
     DatasetFormat,
     FineTuningPipeline,

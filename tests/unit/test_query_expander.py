@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
-from src.services.query_expander import QueryExpander
+from src.services.ai import QueryExpander
 
 
 @pytest.mark.asyncio

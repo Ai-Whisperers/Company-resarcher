@@ -4,7 +4,7 @@ import pytest
 import math
 from datetime import datetime, timedelta
 
-from src.core.market_regime import (
+from src.core.quant.market_regime import (
     BaseRegimeDetector,
     HMMRegimeDetector,
     KMeansRegimeDetector,

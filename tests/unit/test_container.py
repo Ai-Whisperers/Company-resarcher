@@ -4,7 +4,7 @@ import pytest
 import threading
 from unittest.mock import Mock, MagicMock
 
-from src.core.container import (
+from src.core.di.container import (
     Container,
     Lifecycle,
     ServiceDescriptor,
@@ -345,7 +345,7 @@ class TestGlobalContainer:
         """Test that default services are registered in global container."""
         from src.core.config import Settings
         from src.core.cache import AICache
-        from src.core.ai_client import AIClientManager
+        from src.core.ai.ai_client import AIClientManager
 
         container = get_container()
 

@@ -5,7 +5,7 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-from src.core.prompt_version import (
+from src.core.prompts.prompt_version import (
     Prompt,
     PromptMetadata,
     PromptStore,

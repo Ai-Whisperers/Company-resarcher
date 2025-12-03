@@ -38,8 +38,11 @@ def cache_instance(temp_cache_dir):
     # Reset singleton
     AICache._instance = None
 
-    with patch("src.core.cache.settings") as mock_settings:
+    with patch("src.core.cache.manager.get_settings") as mock_get_settings:
+        mock_settings = MagicMock()
         mock_settings.BASE_DIR = temp_cache_dir.parent.parent
+        mock_settings.get_cache_dir.return_value = temp_cache_dir
+        mock_get_settings.return_value = mock_settings
         cache = AICache()
         cache.cache_dir = temp_cache_dir
         yield cache

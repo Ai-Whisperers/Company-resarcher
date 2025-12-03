@@ -5,7 +5,7 @@ import os
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.core.sandbox import DockerSandbox
+from src.core.security.sandbox import DockerSandbox
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

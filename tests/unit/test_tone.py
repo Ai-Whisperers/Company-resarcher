@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.core.tone import (
+from src.core.prompts.tone import (
     Tone,
     ToneConfig,
     DEFAULT_TONE,

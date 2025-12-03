@@ -7,7 +7,7 @@ import os
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.core.quant_engine import QuantEngine
+from src.core.quant.quant_engine import QuantEngine
 
 
 class TestQuantEngine(unittest.TestCase):

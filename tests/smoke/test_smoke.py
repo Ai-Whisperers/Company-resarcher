@@ -29,7 +29,7 @@ class TestImports:
     @pytest.mark.timeout(5)
     def test_import_ai_client(self):
         """Verify AI client module imports."""
-        from src.core.ai_client import (
+        from src.core.ai.ai_client import (
             BaseAIClient,
             MockAIClient,
             AIClientManager,
@@ -41,7 +41,7 @@ class TestImports:
     @pytest.mark.timeout(5)
     def test_import_smart_router(self):
         """Verify smart router module imports."""
-        from src.core.smart_router import SmartAIRouter
+        from src.core.ai.routing.smart_router import SmartAIRouter
         assert SmartAIRouter is not None
 
     @pytest.mark.smoke
@@ -180,7 +180,7 @@ class TestMockAISmoke:
     @pytest.mark.asyncio
     async def test_mock_client_generates_response(self):
         """Verify mock AI client can generate response."""
-        from src.core.ai_client import MockAIClient
+        from src.core.ai.ai_client import MockAIClient
 
         client = MockAIClient()
         response = await client.generate("Test prompt")
@@ -195,7 +195,7 @@ class TestMockAISmoke:
     async def test_mock_client_generates_json(self):
         """Verify mock AI client can generate JSON response."""
         import json
-        from src.core.ai_client import MockAIClient
+        from src.core.ai.ai_client import MockAIClient
 
         client = MockAIClient()
         response = await client.generate("Test prompt", response_format="json")

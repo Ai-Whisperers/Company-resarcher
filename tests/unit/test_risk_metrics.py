@@ -3,7 +3,7 @@
 import pytest
 import math
 
-from src.core.risk_metrics import (
+from src.core.quant.risk_metrics import (
     RiskCalculator,
     RiskMetrics,
     calculate_risk_metrics,

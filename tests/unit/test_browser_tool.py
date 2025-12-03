@@ -14,7 +14,7 @@ import asyncio
 from bs4 import BeautifulSoup
 
 from src.tools.browser import BrowserTool, FETCH_OVERALL_TIMEOUT
-from src.core.types import ResearchSource
+from src.core.types.base import ResearchSource
 
 
 # =============================================================================
@@ -255,7 +255,7 @@ class TestURLValidation:
     @pytest.mark.unit
     async def test_returns_error_for_invalid_url(self, browser_tool):
         """Verify error response for invalid URLs."""
-        from src.core.url_validator import URLValidationError
+        from src.core.validation.url_validator import URLValidationError
 
         with patch("src.tools.browser.URLValidator.validate_url") as mock_validate:
             mock_validate.side_effect = URLValidationError("Blocked URL")

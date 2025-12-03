@@ -170,7 +170,7 @@ class TestCommandInjection:
     def test_search_query_command_injection(self, payload):
         """Verify search queries don't allow command injection."""
         try:
-            from src.tools.search_tool import sanitize_search_query
+            from src.tools.search import sanitize_search_query
 
             sanitized = sanitize_search_query(payload)
 
@@ -187,7 +187,7 @@ class TestCommandInjection:
     def test_output_filename_command_injection(self, payload):
         """Verify output filenames don't allow command injection."""
         try:
-            from src.core.output_manager import OutputManager
+            from src.core.managers.output_manager import OutputManager
 
             manager = OutputManager()
             sanitized = manager._sanitize_filename(payload)
@@ -214,7 +214,7 @@ class TestPathTraversal:
     def test_output_path_traversal(self, payload, tmp_path):
         """Verify output paths are protected against traversal."""
         try:
-            from src.core.output_manager import OutputManager, PathTraversalError
+            from src.core.managers.output_manager import OutputManager, PathTraversalError
 
             manager = OutputManager(base_output_dir=str(tmp_path / "outputs"))
 
@@ -229,7 +229,7 @@ class TestPathTraversal:
     def test_company_name_path_traversal(self, payload, tmp_path):
         """Verify company names are protected against traversal."""
         try:
-            from src.core.output_manager import OutputManager
+            from src.core.managers.output_manager import OutputManager
 
             manager = OutputManager(base_output_dir=str(tmp_path / "outputs"))
 
@@ -245,7 +245,7 @@ class TestPathTraversal:
     def test_url_path_traversal(self):
         """Verify URL validation prevents path traversal."""
         try:
-            from src.core.url_validator import validate_url
+            from src.core.validation.url_validator import validate_url
 
             malicious_urls = [
                 "file:///etc/passwd",
@@ -291,7 +291,7 @@ class TestXSS:
     def test_output_content_xss(self, payload, tmp_path):
         """Verify output files handle XSS payloads safely."""
         try:
-            from src.core.output_manager import OutputManager
+            from src.core.managers.output_manager import OutputManager
 
             manager = OutputManager(base_output_dir=str(tmp_path / "outputs"))
 
@@ -315,7 +315,7 @@ class TestXSS:
     def test_filename_xss_sanitization(self, payload):
         """Verify filenames are sanitized against XSS."""
         try:
-            from src.core.output_manager import OutputManager
+            from src.core.managers.output_manager import OutputManager
 
             manager = OutputManager()
             sanitized = manager._sanitize_filename(payload)
@@ -340,7 +340,7 @@ class TestPromptInjection:
     def test_search_query_prompt_injection(self, payload):
         """Verify search queries are sanitized against prompt injection."""
         try:
-            from src.tools.search_tool import sanitize_search_query
+            from src.tools.search import sanitize_search_query
 
             sanitized = sanitize_search_query(payload)
 
@@ -469,7 +469,7 @@ class TestRateLimiting:
     def test_search_rate_limiting(self):
         """Verify search operations can be rate limited."""
         try:
-            from src.tools.search_tool import SearchTool
+            from src.tools.search import SearchTool
 
             tool = SearchTool()
 
@@ -517,7 +517,7 @@ class TestErrorMessages:
     def test_exception_no_sensitive_data(self):
         """Verify exceptions don't expose sensitive data."""
         try:
-            from src.core.exceptions import CompanyResearcherError
+            from src.core.exceptions.base import CompanyResearcherError
 
             error = CompanyResearcherError(
                 "Test error",

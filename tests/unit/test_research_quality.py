@@ -7,9 +7,9 @@ sys.modules["sentence_transformers"] = MagicMock()
 sys.modules["rank_bm25"] = MagicMock()
 
 # Now we can import
-from src.core.hybrid_retriever import HybridRetriever
-from src.services.grounding_service import GroundingService
-from src.core.types import ResearchSource
+from src.core.sources.hybrid_retriever import HybridRetriever
+from src.services.quality import GroundingService
+from src.core.types.base import ResearchSource
 
 
 @pytest.fixture

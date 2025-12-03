@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, AsyncMock, patch
 import json
 
 # Import the modules under test
-from src.core.ai_client import (
+from src.core.ai.ai_client import (
     BaseAIClient,
     MockAIClient,
     OpenAIClient,
@@ -23,7 +23,7 @@ from src.core.ai_client import (
     OllamaClient,
     AIClientManager,
 )
-from src.core.exceptions import (
+from src.core.exceptions.base import (
     AIProviderError,
     AIRateLimitError,
 )

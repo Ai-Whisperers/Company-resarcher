@@ -12,7 +12,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from src.core.output_manager import OutputManager, PathTraversalError
+from src.core.managers.output_manager import OutputManager, PathTraversalError
 
 
 # =============================================================================

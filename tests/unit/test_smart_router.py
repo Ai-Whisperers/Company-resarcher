@@ -13,8 +13,8 @@ import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 import time
 
-from src.core.smart_router import SmartAIRouter, COUNTER_RESET_INTERVAL
-from src.core.ai_client import MockAIClient, BaseAIClient
+from src.core.ai.routing.smart_router import SmartAIRouter, COUNTER_RESET_INTERVAL
+from src.core.ai.ai_client import MockAIClient, BaseAIClient
 
 
 # =============================================================================

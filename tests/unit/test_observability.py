@@ -12,7 +12,7 @@ import pytest
 import asyncio
 from unittest.mock import patch, MagicMock
 
-from src.core.observability import (
+from src.core.logging.observability import (
     get_langfuse,
     reset_langfuse,
     ObservabilityContext,
@@ -212,7 +212,7 @@ class TestIntegration:
 
     def test_import_from_ai_client(self):
         """Should be able to import observability from ai_client."""
-        from src.core.ai_client import get_langfuse, ObservabilityContext
+        from src.core.ai.ai_client import get_langfuse, ObservabilityContext
 
         assert get_langfuse is not None
         assert ObservabilityContext is not None

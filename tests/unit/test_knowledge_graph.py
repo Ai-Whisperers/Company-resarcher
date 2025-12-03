@@ -5,7 +5,7 @@ import tempfile
 import shutil
 from pathlib import Path
 
-from src.core.knowledge_graph import (
+from src.core.indexing.knowledge_graph import (
     Entity,
     EntityType,
     GraphPath,

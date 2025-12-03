@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime, timedelta
 
-from src.core.point_in_time import (
+from src.core.quant.point_in_time import (
     BacktestContext,
     DataAccessMode,
     DataPoint,

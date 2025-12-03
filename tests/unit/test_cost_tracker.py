@@ -1,7 +1,7 @@
 """Tests for the cost tracking system."""
 
 import pytest
-from src.core.cost_tracker import (
+from src.core.tracking.cost_tracker import (
     CostTracker,
     ModelPricing,
     MODEL_PRICING,

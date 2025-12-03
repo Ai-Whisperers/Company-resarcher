@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
-from src.services.fact_verifier import FactVerifier, VerificationResult
-from src.core.types import ResearchSource
+from src.services.quality import FactVerifier, VerificationResult
+from src.core.types.base import ResearchSource
 
 
 @pytest.mark.asyncio

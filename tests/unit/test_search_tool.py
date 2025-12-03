@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 import asyncio
 
 from src.tools.search import SearchTool, SEARCH_TIMEOUT_SECONDS
-from src.core.types import ResearchSource
+from src.core.types.base import ResearchSource
 
 
 # =============================================================================

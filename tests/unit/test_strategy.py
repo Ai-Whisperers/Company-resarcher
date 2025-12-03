@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 
-from src.core.strategy import (
+from src.core.strategies.strategy import (
     BaseStrategy,
     BuyAndHoldStrategy,
     ExecutionResult,

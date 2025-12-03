@@ -1,6 +1,6 @@
 import asyncio
 from src.agents.specialists import SalesAgent
-from src.core.types import CompanyProfile
+from src.core.types.base import CompanyProfile
 
 
 async def main():

@@ -81,7 +81,7 @@ class TestStringBoundaries:
     def test_url_boundary_handling(self, url):
         """Test URL boundary conditions are handled safely."""
         try:
-            from src.core.url_validator import validate_url
+            from src.core.validation.url_validator import validate_url
             try:
                 result = validate_url(url)
                 # If passes validation, should be a safe URL

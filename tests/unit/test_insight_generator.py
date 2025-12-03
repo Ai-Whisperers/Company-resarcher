@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, AsyncMock, patch
 import json
 
 from src.agents.insight_generator import InsightGenerator
-from src.core.types import CompanyProfile, ResearchPhaseResult
+from src.core.types.base import CompanyProfile, ResearchPhaseResult
 
 
 # =============================================================================

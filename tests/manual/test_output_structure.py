@@ -1,6 +1,6 @@
 import os
 import shutil
-from src.core.output_manager import OutputManager
+from src.core.managers.output_manager import OutputManager
 
 
 def test_output_manager():

@@ -203,7 +203,7 @@ class TestCompanyProfileProperties:
     @settings(max_examples=50)
     def test_name_stripped_and_validated(self, name, industry_val):
         """Property: Name is always stripped."""
-        from src.core.types import CompanyProfile
+        from src.core.types.base import CompanyProfile
 
         assume(name.strip())
 
@@ -218,7 +218,7 @@ class TestCompanyProfileProperties:
     @settings(max_examples=30)
     def test_website_normalized(self, name, website):
         """Property: Website is normalized with https:// prefix."""
-        from src.core.types import CompanyProfile
+        from src.core.types.base import CompanyProfile
 
         assume(name.strip())
 
@@ -237,7 +237,7 @@ class TestCompanyProfileProperties:
     @settings(max_examples=30)
     def test_competitors_filtered(self, name, competitors):
         """Property: Empty competitor names are filtered out."""
-        from src.core.types import CompanyProfile
+        from src.core.types.base import CompanyProfile
 
         assume(name.strip())
 

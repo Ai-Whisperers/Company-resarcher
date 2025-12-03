@@ -5,7 +5,7 @@ import tempfile
 import shutil
 from pathlib import Path
 
-from src.core.text_to_speech import (
+from src.core.streaming.text_to_speech import (
     AudioFormat,
     AudioResult,
     BaseTTSProvider,

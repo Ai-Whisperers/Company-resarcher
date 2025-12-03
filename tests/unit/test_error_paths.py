@@ -27,7 +27,7 @@ class TestAIClientErrors:
         mock_client.chat.completions.create.side_effect = Exception("Rate limit exceeded")
 
         try:
-            from src.core.ai_client import AIClient
+            from src.core.ai.ai_client import AIClient
             # Test that rate limits are handled
             with pytest.raises(Exception) as exc_info:
                 client = AIClient()
@@ -45,7 +45,7 @@ class TestAIClientErrors:
         mock_client.chat.completions.create.side_effect = asyncio.TimeoutError()
 
         try:
-            from src.core.ai_client import AIClient
+            from src.core.ai.ai_client import AIClient
             with pytest.raises((asyncio.TimeoutError, Exception)):
                 client = AIClient()
                 client._openai_client = mock_client
@@ -63,7 +63,7 @@ class TestAIClientErrors:
         mock_client.chat.completions.create.return_value = mock_response
 
         try:
-            from src.core.ai_client import AIClient
+            from src.core.ai.ai_client import AIClient
             client = AIClient()
             client._openai_client = mock_client
             result = await client.generate("test prompt")
@@ -82,7 +82,7 @@ class TestAIClientErrors:
         mock_client.chat.completions.create.side_effect = ConnectionError("Network unreachable")
 
         try:
-            from src.core.ai_client import AIClient
+            from src.core.ai.ai_client import AIClient
             with pytest.raises((ConnectionError, Exception)):
                 client = AIClient()
                 client._openai_client = mock_client
@@ -97,7 +97,7 @@ class TestAIClientErrors:
         mock_client.chat.completions.create.side_effect = Exception("Invalid API key")
 
         try:
-            from src.core.ai_client import AIClient
+            from src.core.ai.ai_client import AIClient
             with pytest.raises(Exception) as exc_info:
                 client = AIClient()
                 client._openai_client = mock_client

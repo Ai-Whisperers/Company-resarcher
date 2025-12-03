@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.core.quantization import (
+from src.core.quant.quantization import (
     ComputeType,
     ModelQuantizer,
     QuantizationConfig,

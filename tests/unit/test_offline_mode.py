@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.core.offline_mode import (
+from src.core.persistence.offline_mode import (
     BaseEmbeddingProvider,
     BaseLLMProvider,
     EmbeddingProvider,

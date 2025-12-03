@@ -21,7 +21,7 @@ from src.agents.specialists import (
     BrandAuditor,
     SalesAgent,
 )
-from src.core.types import CompanyProfile, ResearchPhaseResult
+from src.core.types.base import CompanyProfile, ResearchPhaseResult
 
 
 # =============================================================================

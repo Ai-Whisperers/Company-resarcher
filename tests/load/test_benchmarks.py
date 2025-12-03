@@ -181,7 +181,7 @@ class TestURLValidationBenchmarks:
     @pytest.mark.benchmark(group="validation")
     def test_url_validation_valid(self, benchmark):
         """Benchmark valid URL validation."""
-        from src.core.url_validator import URLValidator
+        from src.core.validation.url_validator import URLValidator
 
         result = benchmark(lambda: URLValidator.validate_url("https://example.com"))
         assert result is not None
@@ -189,7 +189,7 @@ class TestURLValidationBenchmarks:
     @pytest.mark.benchmark(group="validation")
     def test_url_validation_invalid(self, benchmark):
         """Benchmark invalid URL validation."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         def validate_invalid():
             try:

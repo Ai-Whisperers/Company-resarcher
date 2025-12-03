@@ -12,7 +12,7 @@ import pytest
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.tools.opencorporates_tool import (
+from src.tools.data.company.opencorporates import (
     OpenCorporatesTool,
     CompanyRegistration,
     Officer,
@@ -22,7 +22,7 @@ from src.tools.opencorporates_tool import (
     get_shared_opencorporates_tool,
     reset_opencorporates_tool,
 )
-from src.tools.whois_tool import (
+from src.tools.data.company.whois import (
     WhoisTool,
     DomainInfo,
     DomainVerification,

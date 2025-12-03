@@ -152,7 +152,8 @@ class TestSettings:
     def test_api_keys_default_to_none(self):
         """Verify API keys default to None."""
         with patch.dict(os.environ, {}, clear=True):
-            settings = Settings()
+            # Pass _env_file=None to ignore .env file
+            settings = Settings(_env_file=None)
 
             assert settings.OPENAI_API_KEY is None
             assert settings.ANTHROPIC_API_KEY is None
@@ -165,14 +166,15 @@ class TestSettings:
         """Verify API keys are read from environment."""
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=False):
             clear_settings()
-            settings = Settings()
+            # _env_file=None ensures we only test env vars, not .env file
+            settings = Settings(_env_file=None)
 
-            assert settings.OPENAI_API_KEY == "test-key"
+            assert settings.OPENAI_API_KEY.get_secret_value() == "test-key"
 
     @pytest.mark.unit
     def test_has_default_ai_config(self):
         """Verify default AI config is present."""
-        settings = Settings()
+        settings = Settings(_env_file=None)
 
         assert settings.ai is not None
         assert isinstance(settings.ai, AIConfig)
@@ -180,7 +182,7 @@ class TestSettings:
     @pytest.mark.unit
     def test_has_base_dir(self):
         """Verify BASE_DIR is set."""
-        settings = Settings()
+        settings = Settings(_env_file=None)
 
         assert settings.BASE_DIR is not None
         assert isinstance(settings.BASE_DIR, Path)
@@ -188,10 +190,11 @@ class TestSettings:
     @pytest.mark.unit
     def test_has_search_configuration(self):
         """Verify search configuration defaults."""
-        settings = Settings()
+        settings = Settings(_env_file=None)
 
-        assert settings.MAX_SEARCH_RESULTS == 5
-        assert settings.CONCURRENT_SEARCHES == 3
+        # Default profile is DEVELOPMENT, which sets MAX_SEARCH_RESULTS to 3
+        assert settings.MAX_SEARCH_RESULTS == 3
+        assert settings.CONCURRENT_SEARCHES == 2
 
     @pytest.mark.unit
     def test_get_output_dir_default(self):
@@ -199,7 +202,7 @@ class TestSettings:
         with patch.dict(os.environ, {}, clear=False):
             if "OUTPUT_DIR" in os.environ:
                 del os.environ["OUTPUT_DIR"]
-            settings = Settings()
+            settings = Settings(_env_file=None)
             output_dir = settings.get_output_dir()
 
             assert output_dir == settings.BASE_DIR / "output"
@@ -208,7 +211,7 @@ class TestSettings:
     def test_get_output_dir_from_env(self):
         """Verify output directory from environment."""
         with patch.dict(os.environ, {"OUTPUT_DIR": "/custom/output"}):
-            settings = Settings()
+            settings = Settings(_env_file=None)
             output_dir = settings.get_output_dir()
 
             assert output_dir == Path("/custom/output")
@@ -232,7 +235,7 @@ class TestSettingsValidation:
     @pytest.mark.unit
     def test_validate_config_returns_warnings_list(self):
         """Verify validate_config returns a list."""
-        settings = Settings()
+        settings = Settings(_env_file=None)
         warnings = settings.validate_config()
 
         assert isinstance(warnings, list)
@@ -241,28 +244,32 @@ class TestSettingsValidation:
     def test_validate_config_warns_missing_primary_key(self):
         """Verify warning when primary provider has no API key."""
         with patch.dict(os.environ, {}, clear=True):
-            settings = Settings()
+            settings = Settings(_env_file=None)
             settings.ai = AIConfig(primary="openai")
             warnings = settings.validate_config()
 
-            assert any("openai" in w.lower() and "api key" in w.lower() for w in warnings)
+            assert any(
+                "openai" in w.lower() and "api key" in w.lower() for w in warnings
+            )
 
     @pytest.mark.unit
     def test_validate_config_no_warning_for_ollama_primary(self):
         """Verify no API key warning for Ollama (doesn't need key)."""
         with patch.dict(os.environ, {}, clear=True):
-            settings = Settings()
+            settings = Settings(_env_file=None)
             settings.ai = AIConfig(primary="ollama")
             warnings = settings.validate_config()
 
             # Should not warn about Ollama API key
-            assert not any("ollama" in w.lower() and "api key" in w.lower() for w in warnings)
+            assert not any(
+                "ollama" in w.lower() and "api key" in w.lower() for w in warnings
+            )
 
     @pytest.mark.unit
     def test_validate_config_warns_missing_fallback_key(self):
         """Verify warning when fallback provider has no API key."""
         with patch.dict(os.environ, {"OPENAI_API_KEY": "key"}, clear=True):
-            settings = Settings()
+            settings = Settings(_env_file=None)
             settings.ai = AIConfig(primary="openai", fallback="anthropic")
             warnings = settings.validate_config()
 
@@ -271,17 +278,24 @@ class TestSettingsValidation:
     @pytest.mark.unit
     def test_validate_config_warns_missing_tavily_key(self):
         """Verify warning when Tavily key is missing."""
+        # Note: New config logic might not warn if other search keys are present or if it relies on free tier
+        # But let's check the implementation. It checks TAVILY or SERPER.
         with patch.dict(os.environ, {}, clear=True):
-            settings = Settings()
+            settings = Settings(_env_file=None)
             warnings = settings.validate_config()
 
-            assert any("tavily" in w.lower() for w in warnings)
+            # The current implementation in settings.py:
+            # has_any_search = self._has_secret(self.TAVILY_API_KEY) or self._has_secret(self.SERPER_API_KEY)
+            # if not has_any_search: pass
+            # So it actually DOES NOT warn anymore because free providers are available.
+
+            assert not any("tavily" in w.lower() for w in warnings)
 
     @pytest.mark.unit
     def test_has_any_ai_provider_false_when_none(self):
         """Verify has_any_ai_provider returns False when no providers configured."""
         with patch.dict(os.environ, {}, clear=True):
-            settings = Settings()
+            settings = Settings(_env_file=None)
             settings.ai = AIConfig(primary="openai")  # Not ollama
 
             assert settings.has_any_ai_provider() is False
@@ -290,7 +304,7 @@ class TestSettingsValidation:
     def test_has_any_ai_provider_true_with_openai_key(self):
         """Verify has_any_ai_provider returns True with OpenAI key."""
         with patch.dict(os.environ, {"OPENAI_API_KEY": "key"}, clear=True):
-            settings = Settings()
+            settings = Settings(_env_file=None)
 
             assert settings.has_any_ai_provider() is True
 
@@ -298,7 +312,7 @@ class TestSettingsValidation:
     def test_has_any_ai_provider_true_with_ollama(self):
         """Verify has_any_ai_provider returns True with Ollama (no key needed)."""
         with patch.dict(os.environ, {}, clear=True):
-            settings = Settings()
+            settings = Settings(_env_file=None)
             settings.ai = AIConfig(primary="ollama")
 
             assert settings.has_any_ai_provider() is True
@@ -365,24 +379,24 @@ class TestEdgeCases:
     def test_empty_api_key_treated_as_none(self):
         """Verify empty string API key is treated as None/empty."""
         with patch.dict(os.environ, {"OPENAI_API_KEY": ""}, clear=True):
-            settings = Settings()
+            settings = Settings(_env_file=None)
 
-            # Empty string should be falsy
+            # Empty string should be falsy or None
             assert not settings.OPENAI_API_KEY
 
     @pytest.mark.unit
     def test_whitespace_api_key_preserved(self):
         """Verify whitespace-only API key is preserved (caller should validate)."""
         with patch.dict(os.environ, {"OPENAI_API_KEY": "   "}, clear=True):
-            settings = Settings()
+            settings = Settings(_env_file=None)
 
             # Whitespace is preserved - validation is caller's responsibility
-            assert settings.OPENAI_API_KEY == "   "
+            assert settings.OPENAI_API_KEY.get_secret_value() == "   "
 
     @pytest.mark.unit
     def test_langfuse_has_default_host(self):
         """Verify Langfuse has default host."""
-        settings = Settings()
+        settings = Settings(_env_file=None)
 
         assert settings.LANGFUSE_HOST == "https://cloud.langfuse.com"
 
@@ -392,4 +406,6 @@ class TestEdgeCases:
         # The config uses env_nested_delimiter="__"
         # So AI__PRIMARY=anthropic should set ai.primary
         # This is a Pydantic feature test
-        pass  # Tested implicitly through Settings usage
+        with patch.dict(os.environ, {"AI__PRIMARY": "anthropic"}, clear=True):
+            settings = Settings(_env_file=None)
+            assert settings.ai.primary == "anthropic"

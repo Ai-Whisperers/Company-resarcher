@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.core.hybrid_search import (
+from src.core.sources.hybrid_search import (
     BM25Searcher,
     Document,
     HybridSearcher,

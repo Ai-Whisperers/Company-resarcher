@@ -273,7 +273,7 @@ class TestAPIKeyExposure:
             def emit(self, record):
                 captured_logs.append(record.getMessage())
 
-        from src.core.logger import setup_logger
+        from src.core.logging import setup_logger
 
         logger = setup_logger("test_security")
         logger.addHandler(CaptureHandler())

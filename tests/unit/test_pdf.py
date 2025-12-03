@@ -1,6 +1,6 @@
 import asyncio
 import os
-from src.tools.pdf_parser import PDFParser
+from src.tools.data.content.pdf_parser import PDFParser
 
 
 async def main():

@@ -22,9 +22,9 @@ if sys.platform == "win32":
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.tools.financial_data import FinancialDataTool
-from src.tools.news_aggregator import NewsAggregatorTool
-from src.tools.structured_extractor import StructuredExtractorTool
+from src.tools.data.market.stock_data import FinancialDataTool
+from src.tools.data.content.news_aggregator import NewsAggregatorTool
+from src.tools.data.content.structured_extractor import StructuredExtractorTool
 
 
 async def test_financial_tool():

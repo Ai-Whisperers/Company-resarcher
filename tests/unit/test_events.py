@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime, timedelta
 
-from src.core.events import (
+from src.core.logging.events import (
     Event,
     EventType,
     EventStream,

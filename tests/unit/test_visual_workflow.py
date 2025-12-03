@@ -5,7 +5,7 @@ import tempfile
 import json
 from pathlib import Path
 
-from src.core.visual_workflow import (
+from src.core.workflow.visual_workflow import (
     Edge,
     EdgeType,
     EndNodeExecutor,

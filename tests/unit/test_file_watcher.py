@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock
 
-from src.core.file_watcher import (
+from src.core.filesystem.file_watcher import (
     FileEvent,
     FileEventType,
     FileWatcher,

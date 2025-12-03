@@ -1,6 +1,6 @@
 import asyncio
 from src.agents.sector_analyst import SectorAnalyst
-from src.core.vault import VaultManager
+from src.core.security.vault import VaultManager
 
 
 async def main():

@@ -4,7 +4,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
-from src.core.evaluation import (
+from src.core.validation.evaluation import (
     Evaluator,
     EvaluationReport,
     EvaluationResult,

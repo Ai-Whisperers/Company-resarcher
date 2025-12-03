@@ -7,8 +7,8 @@ import sys
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.core.indexer import DocumentIndexer
-from src.tools.local_search import LocalSearchTool
+from src.core.indexing.indexer import DocumentIndexer
+from src.tools.specialized.local_search import LocalSearchTool
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

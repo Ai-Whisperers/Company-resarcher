@@ -21,7 +21,7 @@ class TestSSRFPrevention:
     @pytest.mark.security
     def test_blocks_localhost(self):
         """Regression: Ensure localhost URLs are blocked."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         dangerous_urls = [
             "http://localhost",
@@ -39,7 +39,7 @@ class TestSSRFPrevention:
     @pytest.mark.security
     def test_blocks_private_networks(self):
         """Regression: Ensure private network IPs are blocked."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         private_urls = [
             "http://192.168.1.1",
@@ -56,7 +56,7 @@ class TestSSRFPrevention:
     @pytest.mark.security
     def test_blocks_file_protocol(self):
         """Regression: Ensure file:// protocol is blocked."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         file_urls = [
             "file:///etc/passwd",
@@ -72,7 +72,7 @@ class TestSSRFPrevention:
     @pytest.mark.security
     def test_blocks_metadata_endpoints(self):
         """Regression: Ensure cloud metadata endpoints are blocked."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         metadata_urls = [
             "http://169.254.169.254",  # AWS/Azure/GCP metadata
@@ -97,7 +97,7 @@ class TestInputSanitization:
     @pytest.mark.security
     def test_handles_null_bytes(self):
         """Regression: Ensure null bytes don't bypass validation."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         # URLs with null bytes that might try to truncate strings
         null_byte_urls = [
@@ -118,7 +118,7 @@ class TestInputSanitization:
     @pytest.mark.security
     def test_handles_url_encoding_bypass(self):
         """Regression: Ensure URL encoding doesn't bypass validation."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         encoded_urls = [
             "http://127.0.0.1%2f",  # Encoded slash
@@ -144,7 +144,7 @@ class TestProtocolHandling:
     @pytest.mark.regression
     def test_allows_https(self):
         """Regression: Ensure HTTPS URLs are allowed."""
-        from src.core.url_validator import URLValidator
+        from src.core.validation.url_validator import URLValidator
 
         https_urls = [
             "https://example.com",
@@ -160,7 +160,7 @@ class TestProtocolHandling:
     @pytest.mark.regression
     def test_allows_http(self):
         """Regression: Ensure HTTP URLs to public hosts are allowed."""
-        from src.core.url_validator import URLValidator
+        from src.core.validation.url_validator import URLValidator
 
         http_urls = [
             "http://example.com",
@@ -176,7 +176,7 @@ class TestProtocolHandling:
     @pytest.mark.security
     def test_blocks_javascript_protocol(self):
         """Regression: Ensure javascript: protocol is blocked."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         with pytest.raises(URLValidationError):
             URLValidator.validate_url("javascript:alert('xss')")
@@ -185,7 +185,7 @@ class TestProtocolHandling:
     @pytest.mark.security
     def test_blocks_data_protocol(self):
         """Regression: Ensure data: protocol is blocked."""
-        from src.core.url_validator import URLValidator, URLValidationError
+        from src.core.validation.url_validator import URLValidator, URLValidationError
 
         with pytest.raises(URLValidationError):
             URLValidator.validate_url("data:text/html,<script>alert('xss')</script>")

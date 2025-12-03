@@ -7,9 +7,9 @@ import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.agents.specialists import FinancialAgent
-from src.core.types import CompanyProfile
-from src.tools.financial_data import FinancialDataTool
-from src.core.ai_client import BaseAIClient
+from src.core.types.base import CompanyProfile
+from src.tools.data.market.stock_data import FinancialDataTool
+from src.core.ai.ai_client import BaseAIClient
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

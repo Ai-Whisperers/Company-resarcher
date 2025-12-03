@@ -3,7 +3,7 @@
 import pytest
 import time
 
-from src.core.context_trimmer import (
+from src.core.content.context_trimmer import (
     ContextTrimmer,
     ContextItem,
     ContentPriority,

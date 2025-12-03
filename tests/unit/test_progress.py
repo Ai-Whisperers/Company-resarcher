@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 
-from src.core.progress import (
+from src.core.logging.progress import (
     ResearchProgress,
     ResearchStage,
     ProgressTracker,

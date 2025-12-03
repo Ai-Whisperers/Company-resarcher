@@ -6,7 +6,7 @@ import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from src.core.local_sync import (
+from src.core.persistence.local_sync import (
     ConflictResolution,
     SyncConflict,
     SyncItem,

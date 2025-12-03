@@ -5,7 +5,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
-from src.core.hierarchical_planner import (
+from src.core.strategies.hierarchical_planner import (
     Executor,
     HierarchicalPlanner,
     Manager,

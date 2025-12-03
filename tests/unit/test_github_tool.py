@@ -13,7 +13,7 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.tools.github_tool import (
+from src.tools.data.company.github import (
     GitHubTool,
     GitHubOrg,
     Repository,

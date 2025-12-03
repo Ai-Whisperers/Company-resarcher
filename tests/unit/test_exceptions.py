@@ -14,7 +14,7 @@ Tests all exception types from the exception hierarchy:
 import pytest
 from typing import Dict, Any
 
-from src.core.exceptions import (
+from src.core.exceptions.base import (
     # Base
     CompanyResearcherError,
     # AI

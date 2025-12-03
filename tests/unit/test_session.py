@@ -4,7 +4,7 @@ import pytest
 import tempfile
 from pathlib import Path
 
-from src.core.session import (
+from src.core.session.session import (
     Session,
     SessionManager,
     SessionCheckpoint,

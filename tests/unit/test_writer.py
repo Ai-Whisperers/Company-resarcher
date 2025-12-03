@@ -12,7 +12,7 @@ import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 
 from src.agents.writer import ReportWriter
-from src.core.types import CompanyProfile, ResearchPhaseResult
+from src.core.types.base import CompanyProfile, ResearchPhaseResult
 
 
 # =============================================================================

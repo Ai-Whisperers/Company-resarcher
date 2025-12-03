@@ -13,7 +13,7 @@ import asyncio
 from unittest.mock import MagicMock, AsyncMock, patch
 from typing import List, Any, Optional
 
-from src.core.exceptions import (
+from src.core.exceptions.base import (
     CompanyResearcherError,
     AIError,
     AIRateLimitError,

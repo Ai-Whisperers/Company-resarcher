@@ -4,7 +4,7 @@ import pytest
 import math
 from unittest.mock import MagicMock, patch
 
-from src.core.alpha_factors import (
+from src.core.quant.alpha_factors import (
     AlphaFactorManager,
     ExpressionParser,
     Factor,

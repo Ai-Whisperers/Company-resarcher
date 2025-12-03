@@ -13,8 +13,8 @@ from unittest.mock import MagicMock, AsyncMock, patch
 import asyncio
 
 from src.agents.base_agent import BaseAgent, MAX_CONCURRENT_QUERIES
-from src.core.types import CompanyProfile, ResearchPhaseResult, ResearchSource
-from src.core.exceptions import AITimeoutError, AIRateLimitError
+from src.core.types.base import CompanyProfile, ResearchPhaseResult, ResearchSource
+from src.core.exceptions.base import AITimeoutError, AIRateLimitError
 
 
 # =============================================================================

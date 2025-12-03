@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.core.follow_up import (
+from src.core.research.follow_up import (
     ClarifyingQuestion,
     FollowUpGenerator,
     QuestionSet,

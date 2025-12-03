@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from src.core.query_generator import (
+from src.core.research.query_generator import (
     QueryGenerator,
     get_query_generator,
     reset_query_generator,
