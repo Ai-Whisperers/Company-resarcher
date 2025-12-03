@@ -60,3 +60,13 @@ temp_deep_research/
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+
+# External reference repos (cloned for study)
+docs/reference/external-repos/*/
+docs/reference/temp_repos_from_profesional_examples_github/*/
+
+# Windows artifacts
+nul
+
+# Test outputs
+outputs/test/
