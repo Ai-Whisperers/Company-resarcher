@@ -13,7 +13,7 @@ from enum import Enum
 from typing import List, Optional, Dict, Any
 from urllib.parse import urlparse
 
-from .logger import setup_logger
+from .logging import setup_logger
 
 logger = setup_logger("company_probe")
 
@@ -154,7 +154,7 @@ class CompanyProbe:
     async def _get_search_tool(self):
         """Lazy load search tool."""
         if self._search_tool is None:
-            from ..tools.search_tool import SearchTool
+            from ..tools.search import SearchTool
             self._search_tool = SearchTool()
         return self._search_tool
 

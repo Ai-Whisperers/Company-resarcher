@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List
 from enum import Enum
 
-from ..core.logger import setup_logger
+from .logging import setup_logger
 
 
 logger = setup_logger("company_classifier")

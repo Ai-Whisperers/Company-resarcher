@@ -115,3 +115,18 @@ __all__ = [
     "get_country_categories",
     "get_country_sources_by_category",
 ]
+
+# Import additional modules moved here
+from .data_router import *
+from .data_sources import *
+from .source_classifier import *
+from .source_quality import *
+from .source_registry import *
+from .hybrid_search import *
+from .unified_fetcher import *
+
+# Optional: requires sentence_transformers
+try:
+    from .hybrid_retriever import *
+except ImportError:
+    pass  # sentence_transformers not installed

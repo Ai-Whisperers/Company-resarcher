@@ -16,7 +16,7 @@ from datetime import date
 from typing import Any, Dict, Optional
 
 from .base import Strategy, StrategySignal, SignalType, Position
-from ..logger import setup_logger
+from ..logging import setup_logger
 
 logger = setup_logger("graham_strategy")
 

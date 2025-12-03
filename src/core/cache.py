@@ -2,8 +2,8 @@ import hashlib
 import json
 import threading
 from typing import Optional
-from ..core.config import get_settings
-from ..core.logger import setup_logger
+from .config import get_settings
+from .logging import setup_logger
 
 logger = setup_logger("cache")
 settings = get_settings()
