@@ -25,16 +25,16 @@ from ..core.comprehensive_queries import (
     QueryTemplate,
     format_query,
 )
-from ..services.source_tracker import SourceTracker, reset_source_tracker
-from ..services.json_parser_helper import robust_json_parse
-from ..core.logger import setup_logger
+from ..services.data import SourceTracker, reset_source_tracker
+from ..services.content import robust_json_parse
+from ..core.logging import setup_logger
 from ..utils.url_utils import add_country_context_to_query
-from ..core.relevance_filter import RelevanceFilter
-from ..core.adaptive_timeout import get_adaptive_timeout_manager
+from ..core.content.relevance_filter import RelevanceFilter
+from ..core.resilience.adaptive_timeout import get_adaptive_timeout_manager
 from ..core.company_probe import probe_company_presence, CompanyPresence, RESEARCH_PROFILES
-from ..core.url_cache import reset_url_cache
-from ..services.html_cache import get_html_cache
-from ..core.ai_query_planner import get_query_planner, QueryPlan
+from ..core.cache.url_cache import reset_url_cache
+from ..services.content import get_html_cache
+from ..core.ai.features import get_query_planner, QueryPlan
 from ..core.ai_enhancements import (
     AIEnhancementOrchestrator,
     get_ai_orchestrator,
@@ -46,25 +46,25 @@ from ..core.adaptive_query_strategy import (
     get_query_strategy,
     QueryStrategy,
 )
-from ..core.cross_company_cache import (
+from ..core.cache import (
     get_cross_company_cache,
     reset_cross_company_cache,
 )
-from ..core.domain_timeout import (
+from ..core.domain.domain_timeout import (
     get_timeout_manager,
     is_domain_circuit_open,
 )
-from ..core.search_fallback import (
+from ..core.resilience.search_fallback import (
     SearchFallbackManager,
     get_fallback_queries,
 )
-from ..core.observability import ObservabilityContext
-from ..tools.sec_tool import SECTool
-from ..tools.reddit_tool import RedditTool
-from ..tools.twitter_tool import TwitterTool
+from ..core.logging.observability import ObservabilityContext
+from ..tools.data.financial.sec import SECTool
+from ..tools.data.social.reddit import RedditTool
+from ..tools.data.social.twitter import TwitterTool
 # ARCH-001: Unified Pipeline Orchestration
-from ..core.unified_fetcher import UnifiedDataFetcher, UnifiedResult
-from ..core.data_router import CompanyProfile as RouterProfile, create_profile_from_dict
+from ..core.sources.unified_fetcher import UnifiedDataFetcher, UnifiedResult
+from ..core.sources.data_router import CompanyProfile as RouterProfile, create_profile_from_dict
 
 logger = setup_logger("comprehensive_research")
 
@@ -1142,7 +1142,7 @@ Extract any compensation-related information available.""",
             return {"enabled": False, "articles_found": 0}
 
         try:
-            from ..tools.news_aggregator import NewsAggregatorTool
+            from ..tools.data.content.news_aggregator import NewsAggregatorTool
 
             news_tool = NewsAggregatorTool()
 
@@ -1791,7 +1791,7 @@ Extract any compensation-related information available.""",
             return {"enabled": False}
 
         try:
-            from ..tools.fmp_tool import FinancialModelingPrepTool
+            from ..tools.data.financial.fmp import FinancialModelingPrepTool
 
             fmp = FinancialModelingPrepTool()
 

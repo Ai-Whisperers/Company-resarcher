@@ -34,14 +34,14 @@ from .state import (
     get_state_manager_sync,
 )
 from ..core.types import CompanyProfile, ResearchContext
-from ..core.logger import setup_logger
+from ..core.logging import setup_logger
 from ..agents.base_agent import BaseAgent
 from ..agents.insight_generator import InsightGenerator
 from ..agents.writer import ReportWriter
 from ..agents.writer import ReportWriter
 from ..agents.critic import LogicCritic
 from ..evaluation.research_evaluator import ResearchEvaluator
-from src.core.constants import UNKNOWN_VALUE
+from src.core.config import UNKNOWN_VALUE
 
 logger = setup_logger("graph_builder")
 
@@ -1609,6 +1609,28 @@ class ResearchGraph:
                 industry=UNKNOWN_VALUE,
             )
 
+            insights_text = s.drafts.get("insights", "")
+            insights_dict = {"executive_summary": insights_text, "swot": {}}
+
+            drafts = await self.report_writer.write_report(
+                company=profile,
+                financial_data=s.financial_data,
+                market_data=s.market_data,
+                competitor_data=s.competitor_data or {},
+                brand_data=s.brand_data or {},
+                insights=insights_dict,
+            )
+            return {
+                "drafts": drafts,
+                "current_wave": ResearchPhase.WRITING.value,
+            }
+
+        return await self._execute_with_resilience(
+            node_name="report_writer",
+            func=_execute,
+            state=state,
+        )
+
     async def evaluator_node(self, state: ResearchState) -> Dict[str, Any]:
         """Evaluate the quality of the research report."""
         logger.info("=== RESEARCH EVALUATOR ===")
@@ -1638,28 +1660,6 @@ class ResearchGraph:
 
         return await self._execute_with_resilience(
             node_name="evaluator",
-            func=_execute,
-            state=state,
-        )
-
-            insights_text = s.drafts.get("insights", "")
-            insights_dict = {"executive_summary": insights_text, "swot": {}}
-
-            drafts = await self.report_writer.write_report(
-                company=profile,
-                financial_data=s.financial_data,
-                market_data=s.market_data,
-                competitor_data=s.competitor_data or {},
-                brand_data=s.brand_data or {},
-                insights=insights_dict,
-            )
-            return {
-                "drafts": drafts,
-                "current_wave": ResearchPhase.WRITING.value,
-            }
-
-        return await self._execute_with_resilience(
-            node_name="report_writer",
             func=_execute,
             state=state,
         )

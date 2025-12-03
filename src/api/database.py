@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import StaticPool
 from src.core.config import get_settings
-from src.core.logger import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("database")
 

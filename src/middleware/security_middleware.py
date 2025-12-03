@@ -23,7 +23,7 @@ from ..core.security import (
     ThreatLevel,
     SecurityAction,
 )
-from ..core.logger import setup_logger, get_request_id
+from ..core.logging import setup_logger, get_request_id
 
 
 logger = setup_logger("middleware.security")

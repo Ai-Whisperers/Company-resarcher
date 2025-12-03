@@ -15,11 +15,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from ..core.telemetry import (
+from ..core.logging.telemetry import (
     get_tracer,
     record_request,
 )
-from ..core.logger import setup_logger, get_request_id, set_request_id
+from ..core.logging import setup_logger, get_request_id, set_request_id
 
 
 logger = setup_logger("middleware.tracing")
@@ -180,7 +180,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         finally:
             # Clear context
             if token:
-                from ..core.logger import clear_request_id
+                from ..core.logging import clear_request_id
                 clear_request_id(token)
 
 

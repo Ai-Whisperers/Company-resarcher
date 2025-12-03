@@ -29,7 +29,7 @@ from typing import (
 )
 
 from ..core.config import Settings, get_settings
-from ..core.logger import setup_logger
+from ..core.logging import setup_logger
 
 T = TypeVar("T")
 
@@ -427,10 +427,10 @@ def create_context(
 
     # Resolve services from container if not provided
     # Import here to avoid circular imports
-    from ..core.container import get_container
-    from ..core.ai_client import AIClientManager
+    from ..core.di import get_container
+    from ..core.ai import AIClientManager
     from ..core.cache import AICache
-    from ..tools.search_tool import SearchTool
+    from ..tools.search import SearchTool
     from ..tools.browser import BrowserTool
 
     container = get_container()

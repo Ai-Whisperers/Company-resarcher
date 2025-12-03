@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 import re
 
-from ...core.logger import setup_logger
+from ...core.logging import setup_logger
 
 logger = setup_logger("financial_processors")
 

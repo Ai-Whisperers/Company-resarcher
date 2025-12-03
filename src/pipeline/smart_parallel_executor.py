@@ -35,7 +35,7 @@ from typing import (
 )
 import logging
 
-from ..core.timeout_budget import TimeoutBudget, StagePriority
+from ..core.resilience.timeout_budget import TimeoutBudget, StagePriority
 
 logger = logging.getLogger(__name__)
 

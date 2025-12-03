@@ -28,11 +28,11 @@ from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
 from ..core.types import CompanyProfile
-from ..core.logger import setup_logger
-from ..services.html_cache import get_html_cache
-from ..tools.github_tool import GitHubTool, GitHubPresence
-from ..tools.opencorporates_tool import OpenCorporatesTool, CorporateRegistryData
-from ..tools.whois_tool import WhoisTool, DomainAnalysis
+from ..core.logging import setup_logger
+from ..services.content import get_html_cache
+from ..tools.data.company.github import GitHubTool, GitHubPresence
+from ..tools.data.company.opencorporates import OpenCorporatesTool, CorporateRegistryData
+from ..tools.data.company.whois import WhoisTool, DomainAnalysis
 
 from .context import create_context
 from .research_pipeline import (

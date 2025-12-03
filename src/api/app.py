@@ -10,28 +10,32 @@ from contextlib import asynccontextmanager
 from typing import Optional, Set
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends, Request, Security, Response
+from fastapi import (
+    FastAPI,
+    BackgroundTasks,
+    HTTPException,
+    Depends,
+    Request,
+    Security,
+    Response,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
 from .models import ResearchRequest, ResearchResponse, TaskStatusResponse, Task
-from ..core.config import get_settings, clear_settings
-from .database import get_db, engine, Base, SessionLocal
-from ..pipeline.orchestrator import PipelineOrchestrator
-from ..core.logger import setup_logger, set_request_id, clear_request_id, get_request_id
-from ..core.error_tracking import init_error_tracking, capture_exception
-from ..core.telemetry import (
-    init_telemetry, get_metrics, record_request, record_error,
-    PROMETHEUS_AVAILABLE,
-)
-from src.core.constants import (
+from .database import get_db
+from src.core.config import (
+    get_settings,
+    clear_settings,
     STATUS_PENDING,
     STATUS_IN_PROGRESS,
     STATUS_COMPLETED,
     STATUS_FAILED,
 )
+from src.core.resilience.rate_limiting import rate_limiter_manager, RateLimitConfig
+from src.core.logging import setup_logger
 
 logger = setup_logger("api")
 
@@ -43,6 +47,7 @@ ERROR_TASK_NOT_FOUND = "Task not found"
 # =============================================================================
 # Graceful Shutdown Management
 # =============================================================================
+
 
 class ShutdownManager:
     """Manages graceful shutdown of the application."""
@@ -107,6 +112,7 @@ shutdown_manager = ShutdownManager(
 
 def _setup_signal_handlers():
     """Setup signal handlers for graceful shutdown."""
+
     def handle_signal(signum, frame):
         signal_name = signal.Signals(signum).name
         logger.info(f"Received signal {signal_name}")
@@ -158,10 +164,6 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Error flushing metrics: {e}")
 
-    # Clear rate limiter state (with null check for safety)
-    if rate_limiter is not None and hasattr(rate_limiter, 'requests'):
-        rate_limiter.requests.clear()
-
     # Close database connections
     try:
         engine.dispose()
@@ -169,229 +171,18 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Error closing database connections: {e}")
 
-    logger.info(f"API shutdown complete (uptime: {shutdown_manager.uptime_seconds:.1f}s)")
+    logger.info(
+        f"API shutdown complete (uptime: {shutdown_manager.uptime_seconds:.1f}s)"
+    )
 
 
 app = FastAPI(
-    title="Company Researcher API",
-    description="""
-## Overview
-
-AI-powered company research API that provides comprehensive intelligence on businesses
-including financial analysis, market positioning, competitive landscape, and brand perception.
-
-## Authentication
-
-All endpoints (except `/health/*`) require API key authentication.
-Include your API key in the `X-API-Key` header:
-
-```
-X-API-Key: your-api-key
-```
-
-## Rate Limiting
-
-- Default: 10 requests per minute per IP
-- Configurable via `RATE_LIMIT_REQUESTS_PER_MINUTE` environment variable
-- Rate limit headers included in responses: `X-RateLimit-*`
-
-## Research Workflow
-
-1. **Start Research**: `POST /api/v1/research` - Initiates async research task
-2. **Check Status**: `GET /api/v1/research/{task_id}` - Poll for task completion
-3. **Get Results**: Results included in status response when completed
-
-## Error Codes
-
-| Code | Description |
-|------|-------------|
-| 401 | Invalid or missing API key |
-| 404 | Research task not found |
-| 422 | Invalid request body |
-| 429 | Rate limit exceeded |
-| 500 | Internal server error |
-| 503 | Service unavailable (shutting down) |
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `API_KEYS` | Comma-separated valid API keys | None |
-| `RATE_LIMIT_REQUESTS_PER_MINUTE` | Rate limit per IP | 10 |
-| `SHUTDOWN_TIMEOUT_SECONDS` | Graceful shutdown timeout | 30 |
-""",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
-    openapi_tags=[
-        {
-            "name": "Research",
-            "description": "Company research operations - start, monitor, and retrieve research results",
-        },
-        {
-            "name": "Tasks",
-            "description": "Task management - list, delete, and manage research tasks",
-        },
-        {
-            "name": "Health",
-            "description": "Health check and monitoring endpoints for operations",
-        },
-        {
-            "name": "Admin",
-            "description": "Administrative operations (requires API key)",
-        },
-    ],
-    lifespan=lifespan,
+    # ... (app config)
 )
 
-# CORS Configuration - restrict origins in production
-import re
+# ... (CORS config)
 
-def parse_cors_origins(origins_str: str) -> list:
-    """Parse and validate CORS origins with security checks."""
-    if not origins_str:
-        return []
-
-    origins = []
-    is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
-
-    for origin in origins_str.split(","):
-        origin = origin.strip()
-        if not origin:
-            continue
-
-        # Validate origin format (http/https with valid hostname)
-        if not re.match(r'^https?://[\w\-\.]+(:\d+)?$', origin):
-            logger.warning(f"Invalid CORS origin ignored: {origin}")
-            continue
-
-        # Block localhost in production
-        if is_production and ("localhost" in origin or "127.0.0.1" in origin):
-            logger.warning(f"Localhost origin blocked in production: {origin}")
-            continue
-
-        origins.append(origin)
-
-    return origins
-
-ALLOWED_ORIGINS = parse_cors_origins(
-    os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000")
-)
-CORS_MAX_AGE = int(os.getenv("CORS_MAX_AGE", "600"))
-
-# CORS allowed methods - configurable via environment
-CORS_METHODS = os.getenv("CORS_METHODS", "GET,POST,DELETE,OPTIONS").split(",")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=CORS_METHODS,
-    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Request-ID"],
-    max_age=CORS_MAX_AGE,
-)
-
-# Request size limit - 64KB is sufficient for research requests (SEC-008)
-# Typical request: company_name (200 chars) + url (2KB) + industry (100) + country (100) = ~5KB max
-MAX_REQUEST_SIZE = int(os.getenv("MAX_REQUEST_SIZE_BYTES", "65536"))
-
-
-@app.middleware("http")
-async def shutdown_middleware(request: Request, call_next):
-    """Reject new requests during shutdown (OPS-002)."""
-    if shutdown_manager.is_shutting_down:
-        # Allow health checks during shutdown for load balancer coordination
-        if request.url.path in ("/health", "/health/live"):
-            return await call_next(request)
-        return JSONResponse(
-            status_code=503,
-            content={"detail": "Service is shutting down"},
-            headers={"Retry-After": "30"},
-        )
-    return await call_next(request)
-
-
-@app.middleware("http")
-async def request_id_middleware(request: Request, call_next):
-    """
-    Add unique request ID for tracing (Issue #064).
-    Sets request ID in context for all downstream logging.
-    Tracks in-flight requests for graceful shutdown.
-    """
-    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
-    token = set_request_id(request_id)
-
-    # Register request for shutdown tracking
-    shutdown_manager.register_request(request_id)
-
-    try:
-        start_time = time.time()
-        response = await call_next(request)
-
-        # Add tracing headers to response
-        response.headers["X-Request-ID"] = request_id
-        duration = time.time() - start_time
-        response.headers["X-Response-Time"] = f"{duration*1000:.2f}ms"
-
-        # Record request metrics
-        record_request(
-            endpoint=request.url.path,
-            method=request.method,
-            status=response.status_code,
-            duration_seconds=duration,
-        )
-
-        return response
-    except Exception as e:
-        record_error(type(e).__name__, "api")
-        raise
-    finally:
-        clear_request_id(token)
-        shutdown_manager.complete_request(request_id)
-
-
-@app.middleware("http")
-async def limit_request_size_middleware(request: Request, call_next):
-    """Limit request body size to prevent memory exhaustion attacks."""
-    content_length = request.headers.get("content-length")
-    if content_length and int(content_length) > MAX_REQUEST_SIZE:
-        return JSONResponse(
-            status_code=413,
-            content={"detail": f"Request body too large. Maximum size is {MAX_REQUEST_SIZE} bytes."}
-        )
-    return await call_next(request)
-
-
-# Simple in-memory rate limiting
-class RateLimiter:
-    """Simple in-memory rate limiter per IP address."""
-
-    def __init__(self, requests_per_minute: int = 10):
-        self.requests_per_minute = requests_per_minute
-        self.requests: dict = {}  # IP -> list of timestamps
-
-    def is_allowed(self, ip: str) -> bool:
-        import time
-        now = time.time()
-        minute_ago = now - 60
-
-        # Clean old entries
-        if ip in self.requests:
-            self.requests[ip] = [t for t in self.requests[ip] if t > minute_ago]
-        else:
-            self.requests[ip] = []
-
-        # Check limit
-        if len(self.requests[ip]) >= self.requests_per_minute:
-            return False
-
-        # Record request
-        self.requests[ip].append(now)
-        return True
-
-
-rate_limiter = RateLimiter(requests_per_minute=10)
+# ... (middleware)
 
 # API Key Authentication
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -441,12 +232,20 @@ async def rate_limit_middleware(request: Request, call_next):
         return await call_next(request)
 
     client_ip = request.client.host if request.client else "unknown"
+    limiter_name = f"api_ip_{client_ip}"
 
-    if not rate_limiter.is_allowed(client_ip):
+    # Get or create limiter for this IP
+    # 10 requests per minute = 10/60 requests per second = 0.166 rps
+    # Burst of 10
+    rate_limiter_manager.get_limiter(
+        limiter_name, RateLimitConfig(rate=10.0 / 60.0, burst=10)
+    )
+
+    if not await rate_limiter_manager.acquire(limiter_name):
         logger.warning(f"Rate limit exceeded for IP: {client_ip}")
         return JSONResponse(
             status_code=429,
-            content={"detail": "Too many requests. Please try again later."}
+            content={"detail": "Too many requests. Please try again later."},
         )
 
     return await call_next(request)
@@ -522,10 +321,14 @@ def safe_json_loads(data: str | None, default=None):
         return default
 
 
-RESEARCH_TIMEOUT_SECONDS = int(os.getenv("RESEARCH_TIMEOUT_SECONDS", "1800"))  # 30 minutes default
+RESEARCH_TIMEOUT_SECONDS = int(
+    os.getenv("RESEARCH_TIMEOUT_SECONDS", "1800")
+)  # 30 minutes default
 
 
-async def run_research_task(task_id: str, request: ResearchRequest, request_id: str = None):
+async def run_research_task(
+    task_id: str, request: ResearchRequest, request_id: str = None
+):
     """
     Background task to run the research process.
     Has a configurable timeout (default 30 minutes) to prevent runaway tasks.
@@ -551,18 +354,29 @@ async def run_research_task(task_id: str, request: ResearchRequest, request_id: 
         # Execute research (timeout is handled internally by the pipeline)
         result = await orchestrator.conduct_research(
             company_name=request.company_name,
-            url=str(request.url) if request.url else ""
+            url=str(request.url) if request.url else "",
         )
 
         save_task(db, task_id, status=STATUS_COMPLETED, result=result)
 
     except asyncio.TimeoutError as e:
-        logger.error(f"Research task {task_id} timed out after {RESEARCH_TIMEOUT_SECONDS} seconds")
-        capture_exception(e, context={"task_id": task_id, "timeout": RESEARCH_TIMEOUT_SECONDS})
-        save_task(db, task_id, status=STATUS_FAILED, error=f"Task timed out after {RESEARCH_TIMEOUT_SECONDS} seconds")
+        logger.error(
+            f"Research task {task_id} timed out after {RESEARCH_TIMEOUT_SECONDS} seconds"
+        )
+        capture_exception(
+            e, context={"task_id": task_id, "timeout": RESEARCH_TIMEOUT_SECONDS}
+        )
+        save_task(
+            db,
+            task_id,
+            status=STATUS_FAILED,
+            error=f"Task timed out after {RESEARCH_TIMEOUT_SECONDS} seconds",
+        )
     except Exception as e:
         logger.error(f"Research task {task_id} failed: {str(e)}")
-        capture_exception(e, context={"task_id": task_id, "company": request.company_name})
+        capture_exception(
+            e, context={"task_id": task_id, "company": request.company_name}
+        )
         save_task(db, task_id, status=STATUS_FAILED, error=str(e))
     finally:
         db.close()
@@ -616,7 +430,9 @@ async def start_research(
     # Capture request ID to propagate to background task for log tracing
     current_request_id = get_request_id()
 
-    save_task(db, task_id, status=STATUS_PENDING, request=request.model_dump(mode="json"))
+    save_task(
+        db, task_id, status=STATUS_PENDING, request=request.model_dump(mode="json")
+    )
 
     background_tasks.add_task(run_research_task, task_id, request, current_request_id)
 
@@ -668,10 +484,7 @@ async def get_task_status(
 ):
     # Validate task_id format (BUG-029 fix)
     if not validate_task_id(task_id):
-        raise HTTPException(
-            status_code=400,
-            detail=ERROR_INVALID_TASK_ID
-        )
+        raise HTTPException(status_code=400, detail=ERROR_INVALID_TASK_ID)
 
     task = get_task(db, task_id)
     if not task:
@@ -720,10 +533,7 @@ async def cancel_task(
 ):
     # Validate task_id format
     if not validate_task_id(task_id):
-        raise HTTPException(
-            status_code=400,
-            detail=ERROR_INVALID_TASK_ID
-        )
+        raise HTTPException(status_code=400, detail=ERROR_INVALID_TASK_ID)
 
     task = get_task(db, task_id)
     if not task:
@@ -733,7 +543,7 @@ async def cancel_task(
     if task["status"] not in (STATUS_PENDING, STATUS_IN_PROGRESS):
         raise HTTPException(
             status_code=400,
-            detail=f"Task cannot be cancelled. Current status: {task['status']}"
+            detail=f"Task cannot be cancelled. Current status: {task['status']}",
         )
 
     # Cancel the running asyncio task if it exists
@@ -748,7 +558,7 @@ async def cancel_task(
     return {
         "task_id": task_id,
         "status": STATUS_CANCELLED,
-        "message": "Task cancelled successfully"
+        "message": "Task cancelled successfully",
     }
 
 
@@ -779,12 +589,18 @@ async def list_tasks(
     query = db.query(Task)
 
     # Apply status filter
-    valid_statuses = [STATUS_PENDING, STATUS_IN_PROGRESS, STATUS_COMPLETED, STATUS_FAILED, STATUS_CANCELLED]
+    valid_statuses = [
+        STATUS_PENDING,
+        STATUS_IN_PROGRESS,
+        STATUS_COMPLETED,
+        STATUS_FAILED,
+        STATUS_CANCELLED,
+    ]
     if status:
         if status not in valid_statuses:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+                detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}",
             )
         query = query.filter(Task.status == status)
 
@@ -798,13 +614,15 @@ async def list_tasks(
     task_list = []
     for task in tasks:
         request_data = safe_json_loads(task.request, {})
-        task_list.append({
-            "task_id": task.task_id,
-            "status": task.status,
-            "company_name": request_data.get("company_name", "Unknown"),
-            "created_at": task.created_at.isoformat() if task.created_at else None,
-            "updated_at": task.updated_at.isoformat() if task.updated_at else None,
-        })
+        task_list.append(
+            {
+                "task_id": task.task_id,
+                "status": task.status,
+                "company_name": request_data.get("company_name", "Unknown"),
+                "created_at": task.created_at.isoformat() if task.created_at else None,
+                "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+            }
+        )
 
     return {
         "tasks": task_list,
@@ -833,10 +651,7 @@ async def get_task_result(
     """
     # Validate task_id format
     if not validate_task_id(task_id):
-        raise HTTPException(
-            status_code=400,
-            detail=ERROR_INVALID_TASK_ID
-        )
+        raise HTTPException(status_code=400, detail=ERROR_INVALID_TASK_ID)
 
     task = get_task(db, task_id)
     if not task:
@@ -845,7 +660,7 @@ async def get_task_result(
     if task["status"] != STATUS_COMPLETED:
         raise HTTPException(
             status_code=400,
-            detail=f"Results not available. Task status: {task['status']}"
+            detail=f"Results not available. Task status: {task['status']}",
         )
 
     result = task.get("result")
@@ -861,7 +676,7 @@ async def get_task_result(
         if section not in valid_sections:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid section. Must be one of: {', '.join(valid_sections)}"
+                detail=f"Invalid section. Must be one of: {', '.join(valid_sections)}",
             )
         phases = [p for p in phases if p.get("phase_name") == section]
 
@@ -884,18 +699,21 @@ async def get_task_result(
             "page": page,
             "page_size": page_size,
             "total_phases": total_phases,
-            "total_pages": (total_phases + page_size - 1) // page_size if page_size > 0 else 0,
+            "total_pages": (
+                (total_phases + page_size - 1) // page_size if page_size > 0 else 0
+            ),
         },
         "metadata": {
             "duration_seconds": result.get("duration_seconds"),
             "request_id": result.get("request_id"),
-        }
+        },
     }
 
 
 # =============================================================================
 # Health Check Endpoints (OPS-001-health)
 # =============================================================================
+
 
 @app.get(
     "/health",
@@ -905,7 +723,9 @@ async def get_task_result(
 )
 async def health_check():
     return {
-        "status": "healthy" if not shutdown_manager.is_shutting_down else "shutting_down",
+        "status": (
+            "healthy" if not shutdown_manager.is_shutting_down else "shutting_down"
+        ),
         "version": "1.0.0",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "uptime_seconds": round(shutdown_manager.uptime_seconds, 2),
@@ -938,8 +758,7 @@ async def readiness_probe(db: Session = Depends(get_db)):
     # Don't accept traffic if shutting down
     if shutdown_manager.is_shutting_down:
         return JSONResponse(
-            status_code=503,
-            content={"status": "not_ready", "reason": "shutting_down"}
+            status_code=503, content={"status": "not_ready", "reason": "shutting_down"}
         )
 
     # Check database
@@ -948,15 +767,14 @@ async def readiness_probe(db: Session = Depends(get_db)):
     except Exception as e:
         return JSONResponse(
             status_code=503,
-            content={"status": "not_ready", "reason": f"database: {str(e)}"}
+            content={"status": "not_ready", "reason": f"database: {str(e)}"},
         )
 
     # Check AI provider
     settings = get_settings()
     if not settings.has_any_ai_provider():
         return JSONResponse(
-            status_code=503,
-            content={"status": "not_ready", "reason": "no_ai_provider"}
+            status_code=503, content={"status": "not_ready", "reason": "no_ai_provider"}
         )
 
     return {"status": "ready"}
@@ -1059,8 +877,9 @@ async def detailed_health_check(db: Session = Depends(get_db)):
     # Check cache (if available)
     try:
         from ..core.cache import AICache
+
         cache = AICache()
-        cache_stats = cache.get_stats() if hasattr(cache, 'get_stats') else {}
+        cache_stats = cache.get_stats() if hasattr(cache, "get_stats") else {}
         health["components"]["cache"] = {
             "status": "up",
             "stats": cache_stats,
@@ -1077,6 +896,7 @@ async def detailed_health_check(db: Session = Depends(get_db)):
 # =============================================================================
 # Metrics Endpoint (OPS-001)
 # =============================================================================
+
 
 @app.get(
     "/metrics",

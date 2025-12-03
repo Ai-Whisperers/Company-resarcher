@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from .core.logger import setup_logger
+from .core.logging import setup_logger
 
 logger = setup_logger("mcp_server")
 

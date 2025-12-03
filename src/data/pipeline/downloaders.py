@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from ...core.logger import setup_logger
+from ...core.logging import setup_logger
 from ...core.config import get_settings
 
 logger = setup_logger("financial_downloaders")

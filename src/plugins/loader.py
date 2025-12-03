@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 from typing import Dict, List, Optional, Type
 
-from ..core.logger import setup_logger
+from ..core.logging import setup_logger
 from .base import BaseTool
 
 logger = setup_logger("plugin_loader")

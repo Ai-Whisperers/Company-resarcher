@@ -16,13 +16,13 @@ import jinja2
 
 from ...core.result import Result, Ok, Err
 from ...core.types import CompanyProfile, ResearchSource, ResearchPhaseResult
-from ...services.json_parser_helper import robust_json_parse
+from ...services.content import robust_json_parse
 from ...services.security import sanitize_company_name
-from ...services.query_optimizer import (
+from ...services.ai.query_optimizer import (
     generate_fallback_queries,
     should_retry_query,
 )
-from ...services.source_quality_scorer import (
+from ...services.quality.source_quality_scorer import (
     rank_search_results,
     get_domain_authority_score,
 )
@@ -560,7 +560,7 @@ class AnalysisStage(Stage[SearchPhaseOutput, AnalysisOutput]):
         a richer context than raw source content.
         """
         try:
-            from ...services.deep_research import DeepResearchService
+            from ...services.research import DeepResearchService
 
             deep_research = DeepResearchService(
                 ai_client=ctx.ai_client,
@@ -608,11 +608,11 @@ class ReportGenerationStage(Stage[AnalysisOutput, ResearchPhaseResult]):
     """
 
     TEMPLATE_FILES = {
-        "market": "01-Market-Size-Growth.md",
-        "financial": "01-Financials.md",
-        "competitor": "01-Competitor-List.md",
-        "brand": "01-Positioning.md",
-        "sales": "05-Sales-Strategy.md",
+        "market": "market_intelligence/market_size_growth.md",
+        "financial": "data_room/financials.md",
+        "competitor": "competitive_landscape/competitor_list.md",
+        "brand": "brand_strategy/positioning.md",
+        "sales": "sales_intelligence/sales_strategy.md",
     }
 
     def __init__(self, research_type: str):
@@ -632,7 +632,7 @@ class ReportGenerationStage(Stage[AnalysisOutput, ResearchPhaseResult]):
             template_name = f"{self._research_type}.md"
 
         # Import template renderer
-        from ...core.template_renderer import get_template_renderer
+        from ...core.output.template_renderer import get_template_renderer
 
         renderer = get_template_renderer()
 
@@ -845,7 +845,7 @@ class ResearchPhaseStage(Stage[ResearchInput, ResearchPhaseResult]):
         and generates targeted followup queries.
         """
         try:
-            from ...services.deep_research import DeepResearchService
+            from ...services.research import DeepResearchService
 
             deep_research = DeepResearchService(
                 ai_client=ctx.ai_client,
@@ -868,7 +868,7 @@ class ResearchPhaseStage(Stage[ResearchInput, ResearchPhaseResult]):
             ctx.logger.info(f"Identified {len(gaps)} gaps, generating followup queries")
 
             # Create a temporary state for followup query generation
-            from ...services.deep_research import ResearchState, Learning
+            from ...services.research.deep_research import ResearchState, Learning
 
             state = ResearchState(
                 company=input.company,

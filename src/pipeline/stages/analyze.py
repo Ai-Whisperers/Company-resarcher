@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from ...core.result import Result, Ok, Err
-from ...services.json_parser_helper import robust_json_parse
+from ...services.content import robust_json_parse
 
 from ..context import RequestContext
 from ..stage import Stage, StageError
