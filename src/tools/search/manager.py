@@ -26,15 +26,17 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 
 from .base import SearchProvider, SearchResult, SearchError, RateLimitError
-from .duckduckgo import DuckDuckGoProvider
-from .jina import JinaSearchProvider
-from .langsearch import LangSearchProvider
-from .serper import SerperProvider
-from .tavily_provider import TavilyProvider
-from .brave import BraveSearchProvider
-from .bing import BingSearchProvider
-from ...core.logger import setup_logger
+from .providers.duckduckgo import DuckDuckGoProvider
+from .providers.jina import JinaSearchProvider
+from .providers.langsearch import LangSearchProvider
+from .providers.serper import SerperProvider
+from .providers.tavily_provider import TavilyProvider
+from .providers.brave import BraveSearchProvider
+from .providers.bing import BingSearchProvider
+from ...core.logging import setup_logger
 from ...core.config import get_settings
+
+from ...core.resilience.rate_limiting import rate_limiter_manager, RateLimitConfig
 
 logger = setup_logger("search.manager")
 
@@ -66,7 +68,9 @@ class ProviderHealth:
         self.total_requests += 1
         self.successful_requests += 1
 
-    def record_failure(self, is_rate_limit: bool = False, retry_after: Optional[float] = None) -> None:
+    def record_failure(
+        self, is_rate_limit: bool = False, retry_after: Optional[float] = None
+    ) -> None:
         """Record a failed request."""
         self.total_requests += 1
         self.failed_requests += 1
@@ -107,55 +111,17 @@ class ProviderHealth:
             "name": self.name,
             "is_healthy": self.is_healthy,
             "consecutive_failures": self.consecutive_failures,
-            "rate_limited": self.rate_limited_until is not None and time.monotonic() < self.rate_limited_until,
+            "rate_limited": self.rate_limited_until is not None
+            and time.monotonic() < self.rate_limited_until,
             "time_until_available": self.time_until_available(),
             "total_requests": self.total_requests,
-            "success_rate": (self.successful_requests / self.total_requests * 100) if self.total_requests > 0 else 100.0,
+            "success_rate": (
+                (self.successful_requests / self.total_requests * 100)
+                if self.total_requests > 0
+                else 100.0
+            ),
             "rate_limit_hits": self.rate_limit_hits,
         }
-
-
-@dataclass
-class RateLimiter:
-    """Simple token bucket rate limiter."""
-
-    requests_per_minute: int = DEFAULT_REQUESTS_PER_MINUTE
-    _tokens: float = field(default=0.0, init=False)
-    _last_update: float = field(default_factory=time.monotonic, init=False)
-    _lock: asyncio.Lock = field(default_factory=asyncio.Lock, init=False)
-
-    def __post_init__(self):
-        self._tokens = float(self.requests_per_minute)
-
-    async def acquire(self, timeout: float = 10.0) -> bool:
-        """
-        Acquire permission to make a request.
-
-        Returns True if permitted, False if timeout exceeded.
-        """
-        async with self._lock:
-            now = time.monotonic()
-            # Refill tokens based on time elapsed
-            elapsed = now - self._last_update
-            self._tokens = min(
-                float(self.requests_per_minute),
-                self._tokens + elapsed * (self.requests_per_minute / 60.0)
-            )
-            self._last_update = now
-
-            if self._tokens >= 1.0:
-                self._tokens -= 1.0
-                return True
-
-            # Calculate wait time
-            wait_time = (1.0 - self._tokens) / (self.requests_per_minute / 60.0)
-            if wait_time > timeout:
-                return False
-
-            await asyncio.sleep(wait_time)
-            self._tokens = 0.0
-            self._last_update = time.monotonic()
-            return True
 
 
 class SearchManager:
@@ -200,7 +166,15 @@ class SearchManager:
         self.providers: List[SearchProvider] = []
         self._stats: Dict[str, Dict[str, int]] = {}
         self._provider_health: Dict[str, ProviderHealth] = {}
-        self._rate_limiter = RateLimiter(requests_per_minute=requests_per_minute)
+
+        # Configure global search rate limiter
+        self._limiter_name = "search_global"
+        rate_limiter_manager.get_limiter(
+            self._limiter_name,
+            RateLimitConfig(
+                rate=requests_per_minute / 60.0, burst=int(requests_per_minute / 2)
+            ),
+        )
 
         if providers:
             self.providers = sorted(providers, key=lambda p: p.priority)
@@ -257,6 +231,7 @@ class SearchManager:
     def _calculate_backoff(self, attempt: int) -> float:
         """Calculate exponential backoff with jitter."""
         import random
+
         base_delay = BASE_BACKOFF_SECONDS * (2 ** (attempt - 1))
         jitter = random.uniform(0, base_delay * 0.25)
         return min(base_delay + jitter, 30.0)  # Cap at 30 seconds
@@ -277,10 +252,14 @@ class SearchManager:
         for attempt in range(1, MAX_RETRIES + 1):
             try:
                 # Apply global rate limiting
-                if not await self._rate_limiter.acquire(timeout=5.0):
+                if not await rate_limiter_manager.acquire(
+                    self._limiter_name, timeout=5.0
+                ):
                     logger.warning(f"Global rate limit reached, waiting...")
                     await asyncio.sleep(1.0)
-                    if not await self._rate_limiter.acquire(timeout=10.0):
+                    if not await rate_limiter_manager.acquire(
+                        self._limiter_name, timeout=10.0
+                    ):
                         logger.error("Rate limit timeout, skipping provider")
                         return None
 
@@ -295,16 +274,15 @@ class SearchManager:
                     return None
 
             except RateLimitError as e:
-                health.record_failure(
-                    is_rate_limit=True,
-                    retry_after=e.retry_after
-                )
+                health.record_failure(is_rate_limit=True, retry_after=e.retry_after)
                 self._record_stat(provider.name, "rate_limit")
 
                 if attempt < MAX_RETRIES and e.retry_after and e.retry_after < 10:
                     # Short retry-after, wait and retry same provider
                     backoff = e.retry_after or self._calculate_backoff(attempt)
-                    logger.info(f"Rate limited by {provider.name}, retrying in {backoff:.1f}s (attempt {attempt}/{MAX_RETRIES})")
+                    logger.info(
+                        f"Rate limited by {provider.name}, retrying in {backoff:.1f}s (attempt {attempt}/{MAX_RETRIES})"
+                    )
                     await asyncio.sleep(backoff)
                 else:
                     # Long cooldown or max retries, move to next provider
@@ -318,7 +296,9 @@ class SearchManager:
 
                 if attempt < MAX_RETRIES:
                     backoff = self._calculate_backoff(attempt)
-                    logger.info(f"Retrying {provider.name} in {backoff:.1f}s (attempt {attempt}/{MAX_RETRIES})")
+                    logger.info(
+                        f"Retrying {provider.name} in {backoff:.1f}s (attempt {attempt}/{MAX_RETRIES})"
+                    )
                     await asyncio.sleep(backoff)
                 else:
                     return None
@@ -371,8 +351,12 @@ class SearchManager:
             health = self._get_health(provider.name)
             if not health.is_available():
                 wait_time = health.time_until_available()
-                logger.debug(f"Skipping {provider.name} - in cooldown ({wait_time:.1f}s remaining)")
-                errors.append((provider.name, "cooldown", f"Rate limited for {wait_time:.1f}s"))
+                logger.debug(
+                    f"Skipping {provider.name} - in cooldown ({wait_time:.1f}s remaining)"
+                )
+                errors.append(
+                    (provider.name, "cooldown", f"Rate limited for {wait_time:.1f}s")
+                )
                 continue
 
             logger.info(f"Searching with {provider.name}: '{query[:50]}...'")
@@ -399,14 +383,14 @@ class SearchManager:
             error_summary = "; ".join([f"{p}: {t}" for p, t, _ in errors])
             logger.error(f"All search providers failed (BUG-053): {error_summary}")
             raise SearchError(
-                f"All providers failed: {error_summary}",
-                "manager",
-                query
+                f"All providers failed: {error_summary}", "manager", query
             )
 
         # No providers available (all skipped due to missing API keys)
         available = [p.name for p in self.providers if p.is_available()]
-        logger.error(f"No search providers available. Checked: {[p.name for p in self.providers]}, Available: {available}")
+        logger.error(
+            f"No search providers available. Checked: {[p.name for p in self.providers]}, Available: {available}"
+        )
         return []
 
     async def search_with_provider(
@@ -435,7 +419,7 @@ class SearchManager:
                     raise SearchError(
                         f"Provider {provider_name} is not available",
                         provider_name,
-                        query
+                        query,
                     )
                 return await provider.search(query, max_results)
 
@@ -474,7 +458,8 @@ class SearchManager:
         """Get health summary of all providers."""
         healthy_count = sum(1 for h in self._provider_health.values() if h.is_healthy)
         rate_limited_count = sum(
-            1 for h in self._provider_health.values()
+            1
+            for h in self._provider_health.values()
             if h.rate_limited_until and time.monotonic() < h.rate_limited_until
         )
         return {
@@ -482,8 +467,7 @@ class SearchManager:
             "healthy_providers": healthy_count,
             "rate_limited_providers": rate_limited_count,
             "providers": {
-                name: health.to_dict()
-                for name, health in self._provider_health.items()
+                name: health.to_dict() for name, health in self._provider_health.items()
             },
         }
 
@@ -491,7 +475,9 @@ class SearchManager:
         """Reset health status for a provider or all providers."""
         if provider_name:
             if provider_name in self._provider_health:
-                self._provider_health[provider_name] = ProviderHealth(name=provider_name)
+                self._provider_health[provider_name] = ProviderHealth(
+                    name=provider_name
+                )
         else:
             for name in self._provider_health:
                 self._provider_health[name] = ProviderHealth(name=name)
@@ -547,7 +533,9 @@ class SearchManager:
             logger.warning("No search providers available for parallel search")
             return await self.search(query, max_results)  # Fall back to sequential
 
-        logger.info(f"Parallel search with {len(available)} providers: {[p.name for p in available]}")
+        logger.info(
+            f"Parallel search with {len(available)} providers: {[p.name for p in available]}"
+        )
 
         # Create search tasks for all providers
         async def search_provider(provider: SearchProvider) -> tuple:
@@ -573,9 +561,7 @@ class SearchManager:
         # Run all searches in parallel with timeout using asyncio.wait for partial results
         tasks = [asyncio.create_task(search_provider(p)) for p in available]
         done, pending = await asyncio.wait(
-            tasks,
-            timeout=timeout_seconds,
-            return_when=asyncio.ALL_COMPLETED
+            tasks, timeout=timeout_seconds, return_when=asyncio.ALL_COMPLETED
         )
 
         # Cancel any pending tasks
@@ -592,7 +578,9 @@ class SearchManager:
                 logger.debug(f"Task failed: {e}")
 
         if pending:
-            logger.info(f"Parallel search: {len(done)} providers completed, {len(pending)} timed out")
+            logger.info(
+                f"Parallel search: {len(done)} providers completed, {len(pending)} timed out"
+            )
 
         # Process results
         all_results = []
@@ -673,7 +661,9 @@ class SearchManager:
                 # Each page requests more results to get "deeper" in search
                 total_to_fetch = results_per_page * (page + 1)
 
-                logger.info(f"Fetching page {page + 1}/{max_pages} for '{query[:30]}...' (requesting {total_to_fetch} results)")
+                logger.info(
+                    f"Fetching page {page + 1}/{max_pages} for '{query[:30]}...' (requesting {total_to_fetch} results)"
+                )
 
                 results = await self.search(
                     query,
@@ -695,11 +685,15 @@ class SearchManager:
                 start_idx = len(all_results)
                 all_results.extend(new_results[start_idx:])
 
-                logger.info(f"Page {page + 1}: got {len(new_results)} new results (total: {len(all_results)})")
+                logger.info(
+                    f"Page {page + 1}: got {len(new_results)} new results (total: {len(all_results)})"
+                )
 
                 # If no new results, stop pagination
                 if len(new_results) <= len(all_results) - results_per_page:
-                    logger.info(f"No new results on page {page + 1}, stopping pagination")
+                    logger.info(
+                        f"No new results on page {page + 1}, stopping pagination"
+                    )
                     break
 
                 # Rate limiting between pages
@@ -713,7 +707,9 @@ class SearchManager:
                 logger.error(f"Unexpected error fetching page {page + 1}: {e}")
                 break
 
-        logger.info(f"Paginated search complete: {len(all_results)} total results from {max_pages} pages")
+        logger.info(
+            f"Paginated search complete: {len(all_results)} total results from {max_pages} pages"
+        )
         return all_results
 
 

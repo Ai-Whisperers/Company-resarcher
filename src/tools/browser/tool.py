@@ -15,12 +15,12 @@ from .manager import BrowserManager, BrowserConfig
 from .navigator import Navigator, NavigationResult
 from .extractor import ContentExtractor, ExtractedContent, ExtractionConfig
 
-from ...core.logger import setup_logger
+from ...core.logging import setup_logger
 from ...core.types import ResearchSource
-from ...services.html_cache import get_html_cache
-from ...core.url_cache import get_url_cache
-from ...core.domain_filter import is_domain_allowed
-from ...core.domain_timeout import get_timeout_for_url, get_timeout_manager, is_domain_circuit_open
+from ...services.content import get_html_cache
+from ...core.cache.url_cache import get_url_cache
+from ...core.domain.domain_filter import is_domain_allowed
+from ...core.domain.domain_timeout import get_timeout_for_url, get_timeout_manager, is_domain_circuit_open
 
 logger = setup_logger("modular_browser_tool")
 

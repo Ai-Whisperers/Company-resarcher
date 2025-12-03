@@ -14,8 +14,8 @@ from dataclasses import dataclass
 
 from playwright.async_api import Page, TimeoutError as PlaywrightTimeout
 
-from ...core.logger import setup_logger
-from ...core.url_validator import URLValidator, URLValidationError
+from ...core.logging import setup_logger
+from ...core.validation import URLValidator, URLValidationError
 
 logger = setup_logger("browser_navigator")
 

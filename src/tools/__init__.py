@@ -5,13 +5,13 @@ Thread-safe singleton pattern using locks.
 """
 
 import threading
-from .search_tool import SearchTool
+from .search.tool import SearchTool
 from .browser import ModularBrowserTool as BrowserTool
-from .local_search import LocalSearchTool
-from .patent_tool import PatentSearchTool
-from .chart_tool import ChartGeneratorTool
+from .specialized.local_search import LocalSearchTool
+from .specialized.patent import PatentSearchTool
+from .specialized.chart import ChartGeneratorTool
 from .search.manager import reset_search_manager
-from .github_tool import GitHubTool, get_shared_github_tool, reset_github_tool
+from .data.company.github import GitHubTool, get_shared_github_tool, reset_github_tool
 
 # Singleton instances
 _search_tool_instance: SearchTool | None = None

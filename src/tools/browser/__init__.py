@@ -11,7 +11,7 @@ Splits browser functionality into focused components:
 from .manager import BrowserManager
 from .navigator import Navigator
 from .extractor import ContentExtractor
-from .tool import ModularBrowserTool
+from .tool import ModularBrowserTool, FETCH_OVERALL_TIMEOUT
 
 # Backwards compatibility alias (P1 fix)
 BrowserTool = ModularBrowserTool
@@ -22,4 +22,5 @@ __all__ = [
     "ContentExtractor",
     "ModularBrowserTool",
     "BrowserTool",  # Alias for backwards compatibility
+    "FETCH_OVERALL_TIMEOUT",
 ]

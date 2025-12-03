@@ -16,8 +16,8 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from playwright.async_api import Page
 
-from ...core.logger import setup_logger
-from ...core.source_classifier import classify_source
+from ...core.logging import setup_logger
+from ...core.sources.source_classifier import classify_source
 
 logger = setup_logger("browser_extractor")
 
