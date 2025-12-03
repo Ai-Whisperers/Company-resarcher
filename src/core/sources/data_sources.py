@@ -35,6 +35,9 @@ class DataSourceType(Enum):
     DOMAIN = "domain"  # WHOIS for domain info
     SOCIAL_REDDIT = "social_reddit"  # Reddit for sentiment
     SOCIAL_TWITTER = "social_twitter"  # Twitter/X for social presence
+    CRUNCHBASE = "crunchbase"  # Crunchbase for startup/funding data
+    LINKEDIN = "linkedin"  # LinkedIn for company/employee data
+    GLASSDOOR = "glassdoor"  # Glassdoor for employee sentiment
 
 
 class DataSourceCapability(Enum):
@@ -52,6 +55,9 @@ class DataSourceCapability(Enum):
     DOMAIN_INFO = "domain_info"
     SEC_FILINGS = "sec_filings"
     ANALYST_ESTIMATES = "analyst_estimates"
+    FUNDING_DATA = "funding_data"  # Funding rounds, investors
+    EMPLOYEE_DATA = "employee_data"  # Employee count, key personnel
+    EMPLOYEE_SENTIMENT = "employee_sentiment"  # Glassdoor reviews, ratings
 
 
 @dataclass
@@ -134,7 +140,7 @@ DATA_SOURCE_REGISTRY: Dict[DataSourceType, DataSourceConfig] = {
         api_key_env_var=None,
         priority=1,
         rate_limit_per_minute=30,
-        tool_class_path="src.tools.search_tool",
+        tool_class_path="src.tools.search.tool",
         tool_class_name="SearchTool",
         conditions={},  # Always available
         description="General web search using multiple engines",
@@ -149,7 +155,7 @@ DATA_SOURCE_REGISTRY: Dict[DataSourceType, DataSourceConfig] = {
         api_key_env_var="NEWSAPI_KEY",
         priority=2,
         rate_limit_per_minute=10,  # 100/day free tier
-        tool_class_path="src.tools.news_aggregator",
+        tool_class_path="src.tools.data.content.news_aggregator",
         tool_class_name="NewsAggregatorTool",
         conditions={},
         description="Real-time news aggregation via NewsAPI",
@@ -169,7 +175,7 @@ DATA_SOURCE_REGISTRY: Dict[DataSourceType, DataSourceConfig] = {
         api_key_env_var="SEC_IDENTITY",
         priority=2,
         rate_limit_per_minute=10,
-        tool_class_path="src.tools.sec_tool",
+        tool_class_path="src.tools.data.financial.sec",
         tool_class_name="SECTool",
         conditions={"has_sec_filings": True},
         description="SEC EDGAR filings for US public companies",
@@ -187,7 +193,7 @@ DATA_SOURCE_REGISTRY: Dict[DataSourceType, DataSourceConfig] = {
         api_key_env_var="ALPHA_VANTAGE_API_KEY",
         priority=3,
         rate_limit_per_minute=5,  # 25/day free tier
-        tool_class_path="src.tools.alpha_vantage_tool",
+        tool_class_path="src.tools.data.financial.alpha_vantage",
         tool_class_name="AlphaVantageTool",
         conditions={"has_ticker": True},
         description="Stock prices and financial data via Alpha Vantage",
@@ -207,7 +213,7 @@ DATA_SOURCE_REGISTRY: Dict[DataSourceType, DataSourceConfig] = {
         api_key_env_var="FINANCIAL_MODELING_PREP_API_KEY",
         priority=3,
         rate_limit_per_minute=4,  # ~250/day free tier
-        tool_class_path="src.tools.fmp_tool",
+        tool_class_path="src.tools.data.financial.fmp",
         tool_class_name="FinancialModelingPrepTool",
         conditions={"has_ticker": True},
         description="Comprehensive financials via Financial Modeling Prep",
@@ -222,7 +228,7 @@ DATA_SOURCE_REGISTRY: Dict[DataSourceType, DataSourceConfig] = {
         api_key_env_var="GITHUB_API_TOKEN",
         priority=4,
         rate_limit_per_minute=30,
-        tool_class_path="src.tools.github_tool",
+        tool_class_path="src.tools.data.company.github",
         tool_class_name="GitHubTool",
         conditions={"industry": ["technology", "software", "telecommunications"]},
         description="GitHub API for tech stack analysis",
@@ -237,7 +243,7 @@ DATA_SOURCE_REGISTRY: Dict[DataSourceType, DataSourceConfig] = {
         api_key_env_var="OPENCORPORATES_API_KEY",
         priority=5,
         rate_limit_per_minute=8,  # ~500/month free
-        tool_class_path="src.tools.opencorporates_tool",
+        tool_class_path="src.tools.data.company.opencorporates",
         tool_class_name="OpenCorporatesTool",
         conditions={},
         description="Corporate registry data via OpenCorporates",
@@ -252,7 +258,7 @@ DATA_SOURCE_REGISTRY: Dict[DataSourceType, DataSourceConfig] = {
         api_key_env_var="WHOIS_API_KEY",
         priority=5,
         rate_limit_per_minute=8,
-        tool_class_path="src.tools.whois_tool",
+        tool_class_path="src.tools.data.company.whois",
         tool_class_name="WhoisTool",
         conditions={"has_website": True},
         description="Domain ownership data via WHOIS API",
@@ -267,7 +273,7 @@ DATA_SOURCE_REGISTRY: Dict[DataSourceType, DataSourceConfig] = {
         api_key_env_var="REDDIT_CLIENT_ID",
         priority=6,
         rate_limit_per_minute=10,
-        tool_class_path="src.tools.reddit_tool",
+        tool_class_path="src.tools.data.social.reddit",
         tool_class_name="RedditTool",
         conditions={},
         description="Social sentiment from Reddit discussions",
@@ -282,10 +288,66 @@ DATA_SOURCE_REGISTRY: Dict[DataSourceType, DataSourceConfig] = {
         api_key_env_var="TWITTER_BEARER_TOKEN",
         priority=6,
         rate_limit_per_minute=10,
-        tool_class_path="src.tools.twitter_tool",
+        tool_class_path="src.tools.data.social.twitter",
         tool_class_name="TwitterTool",
         conditions={},
         description="Social presence from Twitter/X",
+    ),
+    # -------------------------------------------------------------------------
+    # Crunchbase (Startup/Funding Data)
+    # -------------------------------------------------------------------------
+    DataSourceType.CRUNCHBASE: DataSourceConfig(
+        source_type=DataSourceType.CRUNCHBASE,
+        capabilities=[
+            DataSourceCapability.COMPANY_OVERVIEW,
+            DataSourceCapability.FUNDING_DATA,
+            DataSourceCapability.EXECUTIVE_INFO,
+        ],
+        requires_api_key=True,
+        api_key_env_var="CRUNCHBASE_API_KEY",
+        priority=3,
+        rate_limit_per_minute=10,
+        tool_class_path="src.tools.data.company.crunchbase",
+        tool_class_name="CrunchbaseTool",
+        conditions={},
+        description="Startup and funding data via Crunchbase API",
+    ),
+    # -------------------------------------------------------------------------
+    # LinkedIn (Company/Employee Data)
+    # -------------------------------------------------------------------------
+    DataSourceType.LINKEDIN: DataSourceConfig(
+        source_type=DataSourceType.LINKEDIN,
+        capabilities=[
+            DataSourceCapability.COMPANY_OVERVIEW,
+            DataSourceCapability.EMPLOYEE_DATA,
+            DataSourceCapability.EXECUTIVE_INFO,
+        ],
+        requires_api_key=True,
+        api_key_env_var="PROXYCURL_API_KEY",
+        priority=4,
+        rate_limit_per_minute=5,
+        tool_class_path="src.tools.data.company.linkedin",
+        tool_class_name="LinkedInTool",
+        conditions={},
+        description="Company and employee data via LinkedIn/Proxycurl",
+    ),
+    # -------------------------------------------------------------------------
+    # Glassdoor (Employee Sentiment)
+    # -------------------------------------------------------------------------
+    DataSourceType.GLASSDOOR: DataSourceConfig(
+        source_type=DataSourceType.GLASSDOOR,
+        capabilities=[
+            DataSourceCapability.EMPLOYEE_SENTIMENT,
+            DataSourceCapability.COMPANY_OVERVIEW,
+        ],
+        requires_api_key=True,
+        api_key_env_var="GLASSDOOR_API_KEY",
+        priority=5,
+        rate_limit_per_minute=5,
+        tool_class_path="src.tools.data.company.glassdoor",
+        tool_class_name="GlassdoorTool",
+        conditions={},
+        description="Employee reviews and ratings from Glassdoor",
     ),
 }
 

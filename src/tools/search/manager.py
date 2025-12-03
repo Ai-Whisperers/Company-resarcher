@@ -41,7 +41,10 @@ from ...core.resilience.rate_limiting import rate_limiter_manager, RateLimitConf
 logger = setup_logger("search.manager")
 
 # Rate limiting configuration
-DEFAULT_REQUESTS_PER_MINUTE = int(os.getenv("SEARCH_RATE_LIMIT_PER_MIN", "30"))
+# Global limit: 360 RPM (6 RPS) with large burst for parallelism
+# Individual providers have their own limits (DuckDuckGo: 30 RPM, Jina: 200 RPM, etc.)
+DEFAULT_REQUESTS_PER_MINUTE = int(os.getenv("SEARCH_RATE_LIMIT_PER_MIN", "360"))
+DEFAULT_BURST_SIZE = int(os.getenv("SEARCH_BURST_SIZE", "120"))  # Allow 120 concurrent requests
 DEFAULT_COOLDOWN_SECONDS = float(os.getenv("SEARCH_COOLDOWN_SECONDS", "60"))
 MAX_RETRIES = int(os.getenv("SEARCH_MAX_RETRIES", "3"))
 BASE_BACKOFF_SECONDS = float(os.getenv("SEARCH_BASE_BACKOFF", "2.0"))
@@ -167,12 +170,14 @@ class SearchManager:
         self._stats: Dict[str, Dict[str, int]] = {}
         self._provider_health: Dict[str, ProviderHealth] = {}
 
-        # Configure global search rate limiter
+        # Configure global search rate limiter with high burst for parallelism
+        # The global limiter prevents total overload, while individual providers
+        # have their own limits (DuckDuckGo: 30 RPM, Jina: 200 RPM, Serper: 300 RPM, etc.)
         self._limiter_name = "search_global"
         rate_limiter_manager.get_limiter(
             self._limiter_name,
             RateLimitConfig(
-                rate=requests_per_minute / 60.0, burst=int(requests_per_minute / 2)
+                rate=requests_per_minute / 60.0, burst=DEFAULT_BURST_SIZE
             ),
         )
 
@@ -181,9 +186,12 @@ class SearchManager:
         else:
             self._init_default_providers()
 
-        # Initialize health tracking for all providers
+        # Initialize health tracking and per-provider rate limiters
         for provider in self.providers:
             self._provider_health[provider.name] = ProviderHealth(name=provider.name)
+            # Initialize per-provider rate limiter from api_limits.py
+            # The rate_limiter_manager auto-configures from api_limits
+            rate_limiter_manager.get_limiter(provider.name)
 
     def _init_default_providers(self):
         """Initialize default providers in priority order."""
@@ -251,16 +259,17 @@ class SearchManager:
 
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                # Apply global rate limiting
+                # Apply per-provider rate limiting (uses limits from api_limits.py)
+                # Each provider has its own limits: DuckDuckGo 30 RPM, Jina 200 RPM, Serper 300 RPM, etc.
                 if not await rate_limiter_manager.acquire(
-                    self._limiter_name, timeout=5.0
+                    provider.name, timeout=5.0
                 ):
-                    logger.warning(f"Global rate limit reached, waiting...")
-                    await asyncio.sleep(1.0)
+                    logger.debug(f"{provider.name} rate limit reached, waiting...")
+                    await asyncio.sleep(0.5)
                     if not await rate_limiter_manager.acquire(
-                        self._limiter_name, timeout=10.0
+                        provider.name, timeout=10.0
                     ):
-                        logger.error("Rate limit timeout, skipping provider")
+                        logger.warning(f"{provider.name} rate limit timeout, trying next provider")
                         return None
 
                 results = await provider.search(query, max_results)
@@ -617,6 +626,228 @@ class SearchManager:
             f"{len(successful_providers)} providers ({successful_providers})"
         )
         return all_results
+
+    async def search_distributed(
+        self,
+        queries: List[str],
+        max_results_per_query: int = 5,
+        timeout_seconds: float = 60.0,
+    ) -> Dict[str, List[SearchResult]]:
+        """
+        Execute MULTIPLE queries using a queue-based pull architecture.
+
+        This method uses a central queue that provider workers pull from:
+        - All queries go into a shared asyncio.Queue
+        - Each provider has a worker that pulls queries when ready
+        - Faster providers (Serper 3000 RPM) naturally handle more queries
+        - Slower providers (DuckDuckGo 30 RPM) handle fewer but still contribute
+        - Failed queries are requeued for retry by a different provider
+
+        This is much more efficient than round-robin because:
+        1. Fast providers aren't waiting while slow ones process
+        2. Rate limits are respected per-provider
+        3. Load balancing is automatic based on actual throughput
+
+        Real Provider Limits (from api_limits.py):
+        - Serper: 3000 RPM, 50 concurrent (FASTEST)
+        - Jina: 200 RPM, 10 concurrent
+        - Tavily: 100 RPM, 10 concurrent
+        - Brave: 60 RPM, 5 concurrent
+        - DuckDuckGo: 30 RPM, 3 concurrent
+        - LangSearch: 30 RPM, 5 concurrent
+
+        Args:
+            queries: List of search queries to execute
+            max_results_per_query: Results per query (default 5)
+            timeout_seconds: Timeout for entire operation
+
+        Returns:
+            Dict mapping query -> list of SearchResult
+
+        Example:
+            results = await manager.search_distributed([
+                "company funding history",
+                "company CEO background",
+                "company competitors",
+                "company news 2024",
+            ])
+            # Queries distributed based on provider availability
+        """
+        if not queries:
+            return {}
+
+        # Get available providers sorted by priority (fastest first)
+        available = []
+        for provider in self.providers:
+            if not provider.is_available():
+                continue
+            health = self._get_health(provider.name)
+            if not health.is_available():
+                continue
+            available.append(provider)
+
+        if not available:
+            logger.warning("No providers available for distributed search")
+            # Fall back to sequential
+            results = {}
+            for query in queries:
+                try:
+                    results[query] = await self.search(query, max_results_per_query)
+                except Exception as e:
+                    logger.error(f"Sequential fallback failed for '{query}': {e}")
+                    results[query] = []
+            return results
+
+        logger.info(
+            f"Queue-based distributed search: {len(queries)} queries across "
+            f"{len(available)} providers: {[p.name for p in available]}"
+        )
+
+        # Create the central query queue
+        query_queue: asyncio.Queue = asyncio.Queue()
+        for query in queries:
+            await query_queue.put((query, 0))  # (query, retry_count)
+
+        # Results storage (thread-safe via asyncio)
+        results: Dict[str, List[SearchResult]] = {}
+        results_lock = asyncio.Lock()
+
+        # Track which providers processed which queries (for stats)
+        provider_stats: Dict[str, int] = {p.name: 0 for p in available}
+
+        # Retry queue for failed queries
+        retry_queue: asyncio.Queue = asyncio.Queue()
+
+        async def provider_worker(provider: SearchProvider) -> None:
+            """Worker that pulls queries from queue and processes them."""
+            while True:
+                try:
+                    # Try to get a query (non-blocking check for shutdown)
+                    try:
+                        query, retry_count = query_queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        # Check retry queue
+                        try:
+                            query, retry_count = retry_queue.get_nowait()
+                        except asyncio.QueueEmpty:
+                            # No work available, exit
+                            return
+
+                    # Skip if query already has results (from another provider)
+                    async with results_lock:
+                        if query in results and results[query]:
+                            query_queue.task_done()
+                            continue
+
+                    # Apply rate limiting for this provider
+                    if not await rate_limiter_manager.acquire(provider.name, timeout=2.0):
+                        # Rate limited - put query back for another provider
+                        await retry_queue.put((query, retry_count))
+                        query_queue.task_done()
+                        await asyncio.sleep(0.1)  # Brief pause before next attempt
+                        continue
+
+                    # Execute search
+                    try:
+                        search_results = await provider.search(query, max_results_per_query)
+
+                        if search_results:
+                            async with results_lock:
+                                results[query] = search_results
+                            health = self._get_health(provider.name)
+                            health.record_success()
+                            self._record_stat(provider.name, "success")
+                            provider_stats[provider.name] += 1
+                            logger.debug(f"{provider.name} completed: '{query[:30]}...'")
+                        else:
+                            # Empty results - try another provider if retries left
+                            if retry_count < 2:
+                                await retry_queue.put((query, retry_count + 1))
+                            else:
+                                async with results_lock:
+                                    results[query] = []
+
+                    except RateLimitError as e:
+                        health = self._get_health(provider.name)
+                        health.record_failure(is_rate_limit=True, retry_after=e.retry_after)
+                        self._record_stat(provider.name, "rate_limit")
+                        # Requeue for different provider
+                        if retry_count < 2:
+                            await retry_queue.put((query, retry_count + 1))
+                        else:
+                            async with results_lock:
+                                results[query] = []
+
+                    except Exception as e:
+                        health = self._get_health(provider.name)
+                        health.record_failure()
+                        self._record_stat(provider.name, "failure")
+                        logger.debug(f"{provider.name} failed for '{query[:30]}...': {e}")
+                        # Requeue for different provider
+                        if retry_count < 2:
+                            await retry_queue.put((query, retry_count + 1))
+                        else:
+                            async with results_lock:
+                                results[query] = []
+
+                    query_queue.task_done()
+
+                except asyncio.CancelledError:
+                    return
+                except Exception as e:
+                    logger.error(f"Worker error for {provider.name}: {e}")
+                    return
+
+        # Create worker tasks for all providers
+        # Faster providers get more workers based on their concurrent limit
+        worker_tasks = []
+        for provider in available:
+            # Get concurrent limit from rate limiter config
+            from ...core.config.api_limits import get_provider_limits
+            limits = get_provider_limits(provider.name)
+            num_workers = min(limits.concurrent_requests if limits else 3, 10)  # Cap at 10 workers
+
+            for _ in range(num_workers):
+                task = asyncio.create_task(provider_worker(provider))
+                worker_tasks.append(task)
+
+        logger.info(f"Started {len(worker_tasks)} workers across {len(available)} providers")
+
+        # Wait for all queries to be processed or timeout
+        try:
+            # Wait for main queue to empty
+            await asyncio.wait_for(
+                query_queue.join(),
+                timeout=timeout_seconds
+            )
+            # Also wait for retry queue
+            await asyncio.wait_for(
+                retry_queue.join(),
+                timeout=5.0  # Short timeout for retries
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Distributed search timed out after {timeout_seconds}s")
+        finally:
+            # Cancel all workers
+            for task in worker_tasks:
+                task.cancel()
+
+            # Wait for workers to finish
+            await asyncio.gather(*worker_tasks, return_exceptions=True)
+
+        # Ensure all queries have an entry (even if empty)
+        for query in queries:
+            if query not in results:
+                results[query] = []
+
+        # Log statistics
+        successful = sum(1 for r in results.values() if r)
+        logger.info(
+            f"Queue-based search complete: {successful}/{len(queries)} queries successful"
+        )
+        logger.info(f"Provider distribution: {provider_stats}")
+
+        return results
 
     async def search_paginated(
         self,

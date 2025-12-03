@@ -29,8 +29,13 @@ from typing import Dict, Optional, Any
 from contextlib import asynccontextmanager
 
 from ..logging import setup_logger
+from .memory_monitor import get_memory_monitor, MemoryMonitor, PSUTIL_AVAILABLE
 
 logger = setup_logger("concurrency_manager")
+
+# Memory-aware concurrency settings
+ENABLE_MEMORY_AWARE = os.getenv("ENABLE_MEMORY_AWARE_CONCURRENCY", "true").lower() == "true"
+MEMORY_WAIT_TIMEOUT = float(os.getenv("MEMORY_WAIT_TIMEOUT", "30"))
 
 
 class ConcurrencyStrategy(str, Enum):
@@ -119,6 +124,7 @@ class ConcurrencyManager:
     - Dynamic adjustment based on rate limit headers
     - Backpressure handling on errors
     - Configurable min/max limits per provider
+    - Memory-aware concurrency control (IMP-002)
     """
 
     # Default limits per provider type
@@ -133,6 +139,8 @@ class ConcurrencyManager:
         self,
         strategy: ConcurrencyStrategy = ConcurrencyStrategy.ADAPTIVE,
         adjustment_interval: float = 30.0,
+        enable_memory_aware: bool = ENABLE_MEMORY_AWARE,
+        memory_wait_timeout: float = MEMORY_WAIT_TIMEOUT,
     ):
         """
         Initialize the concurrency manager.
@@ -140,11 +148,23 @@ class ConcurrencyManager:
         Args:
             strategy: How to adjust concurrency (fixed, adaptive, aggressive)
             adjustment_interval: Minimum seconds between adjustments
+            enable_memory_aware: Whether to check memory before acquiring slots
+            memory_wait_timeout: Seconds to wait for memory to become available
         """
         self.strategy = strategy
         self.adjustment_interval = adjustment_interval
+        self.enable_memory_aware = enable_memory_aware and PSUTIL_AVAILABLE
+        self.memory_wait_timeout = memory_wait_timeout
         self.providers: Dict[str, ProviderState] = {}
         self._lock = threading.Lock()
+        self._memory_monitor: Optional[MemoryMonitor] = None
+
+    @property
+    def memory_monitor(self) -> MemoryMonitor:
+        """Lazy-load memory monitor."""
+        if self._memory_monitor is None:
+            self._memory_monitor = get_memory_monitor()
+        return self._memory_monitor
 
     def _get_or_create_provider(self, name: str) -> ProviderState:
         """Get or create provider state."""
@@ -168,12 +188,34 @@ class ConcurrencyManager:
         """
         Acquire a concurrency slot for the given provider.
 
+        If memory-aware mode is enabled, waits for memory to be available
+        before acquiring the slot (prevents OOM during high load).
+
         Usage:
             async with manager.acquire("search"):
                 result = await search_api.query(...)
         """
         state = self._get_or_create_provider(provider)
         start_time = time.time()
+
+        # Memory-aware: wait for memory if high
+        if self.enable_memory_aware:
+            if self.memory_monitor.is_memory_critical():
+                logger.warning(
+                    f"Memory critical ({self.memory_monitor.get_memory_usage():.1f}%), "
+                    f"waiting before acquiring '{provider}' slot"
+                )
+                memory_available = await self.memory_monitor.wait_for_memory(
+                    timeout=self.memory_wait_timeout
+                )
+                if not memory_available:
+                    logger.warning(
+                        f"Memory still high after {self.memory_wait_timeout}s wait, "
+                        f"proceeding anyway for '{provider}'"
+                    )
+            elif self.memory_monitor.is_memory_high():
+                # Memory is high but not critical - reduce concurrency proactively
+                self._maybe_reduce_for_memory(state)
 
         try:
             async with state.semaphore:
@@ -186,6 +228,19 @@ class ConcurrencyManager:
             state.record_error()
             self._maybe_adjust_down(state)
             raise
+
+    def _maybe_reduce_for_memory(self, state: ProviderState) -> None:
+        """Proactively reduce concurrency when memory is high."""
+        if self.strategy == ConcurrencyStrategy.FIXED:
+            return
+
+        # Only adjust if enough time has passed
+        if time.time() - state.last_adjustment < self.adjustment_interval:
+            return
+
+        # Reduce if memory is high and we're above minimum
+        if state.current_limit > state.min_limit:
+            self._decrease_limit(state, reason="high memory usage")
 
     def report_rate_limit(
         self,
@@ -272,9 +327,10 @@ class ConcurrencyManager:
                 )
 
     def get_stats(self) -> Dict[str, Any]:
-        """Get statistics for all providers."""
-        return {
+        """Get statistics for all providers including memory status."""
+        stats = {
             "strategy": self.strategy.value,
+            "memory_aware_enabled": self.enable_memory_aware,
             "providers": {
                 name: {
                     "current_limit": state.current_limit,
@@ -288,6 +344,12 @@ class ConcurrencyManager:
                 for name, state in self.providers.items()
             },
         }
+
+        # Include memory stats if memory-aware mode is enabled
+        if self.enable_memory_aware:
+            stats["memory"] = self.memory_monitor.get_stats()
+
+        return stats
 
     def set_limit(self, provider: str, limit: int) -> None:
         """Manually set concurrency limit for a provider."""

@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional, Set
 from .base_agent import BaseAgent
 from ..core.ai import BaseAIClient
 from ..core.types import CompanyProfile, ResearchPhaseResult, ResearchSource
-from ..core.report_generator import ReportGenerator
+from ..core.output import ReportGenerator
 from ..tools.browser import BrowserTool
 from ..tools.search import SearchTool
 

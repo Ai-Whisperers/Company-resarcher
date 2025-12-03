@@ -8,7 +8,7 @@ from typing import Dict, Optional
 from ..core.ai import BaseAIClient, get_ai_manager
 from ..plugins import BaseTool, get_plugin_loader
 from ..core.ai.wrappers import CachedAIClient, RateLimitedAIClient, CostTrackedAIClient
-from ..core.ai.routing import SmartRouter
+from ..core.ai.routing import SmartAIRouter
 from ..core.tracking import CostTracker
 from ..core.tracking.cost_tracker import get_cost_tracker
 from ..core.logging import setup_logger
@@ -81,15 +81,15 @@ class AgentFactory:
 
                 # We assume llama3 is available as per requirements
                 cheap_client = OllamaClient(model="llama3")
-                optimized_client = SmartRouter(
+                optimized_client = SmartAIRouter(
                     cheap_client=cheap_client, expensive_client=base_client
                 )
                 logger.info("  - Cheap: Ollama (llama3)")
                 logger.info(f"  - Expensive: {base_client.get_provider_name()}")
             else:
                 # Use base client for both cheap and expensive to avoid API key exposure
-                # SmartRouter should read API keys from environment internally if needed
-                optimized_client = SmartRouter(
+                # SmartAIRouter should read API keys from environment internally if needed
+                optimized_client = SmartAIRouter(
                     cheap_client=base_client, expensive_client=base_client
                 )
 
@@ -140,29 +140,137 @@ class AgentFactory:
         # Initialize tools with graceful degradation
         sec_tool = None
         tech_stack_tool = None
+        financial_tool = None
+        github_tool = None
+        patent_tool = None
+        crunchbase_tool = None
+        linkedin_tool = None
+        glassdoor_tool = None
+        youtube_tool = None
+        twitter_tool = None
+        reddit_tool = None
+        app_store_tool = None
 
+        # Financial tools
         try:
             from ..tools.data.financial.sec import SECTool
             sec_tool = SECTool()
+            logger.info("✓ SECTool initialized")
         except ImportError as e:
-            logger.warning(f"SECTool unavailable: {e}", exc_info=True)
+            logger.warning(f"SECTool unavailable: {e}")
 
+        try:
+            from ..tools.data.market.stock_data import FinancialDataTool
+            financial_tool = FinancialDataTool()
+            logger.info("✓ FinancialDataTool initialized (yfinance)")
+        except ImportError as e:
+            logger.warning(f"FinancialDataTool unavailable: {e}")
+
+        # Tech tools
         try:
             from ..tools.specialized.tech_stack import TechStackTool
             tech_stack_tool = TechStackTool()
+            logger.info("✓ TechStackTool initialized")
         except ImportError as e:
-            logger.warning(f"TechStackTool unavailable: {e}", exc_info=True)
+            logger.warning(f"TechStackTool unavailable: {e}")
+
+        try:
+            from ..tools.data.company.github import GitHubTool
+            github_tool = GitHubTool()
+            logger.info("✓ GitHubTool initialized")
+        except ImportError as e:
+            logger.warning(f"GitHubTool unavailable: {e}")
+
+        try:
+            from ..tools.specialized.patent import PatentTool
+            patent_tool = PatentTool()
+            logger.info("✓ PatentTool initialized")
+        except ImportError as e:
+            logger.warning(f"PatentTool unavailable: {e}")
+
+        # Company intelligence tools
+        try:
+            from ..tools.data.company.crunchbase import CrunchbaseTool
+            crunchbase_tool = CrunchbaseTool()
+            logger.info("✓ CrunchbaseTool initialized")
+        except ImportError as e:
+            logger.warning(f"CrunchbaseTool unavailable: {e}")
+
+        try:
+            from ..tools.data.company.linkedin import LinkedInTool
+            linkedin_tool = LinkedInTool()
+            logger.info("✓ LinkedInTool initialized")
+        except ImportError as e:
+            logger.warning(f"LinkedInTool unavailable: {e}")
+
+        try:
+            from ..tools.data.company.glassdoor import GlassdoorTool
+            glassdoor_tool = GlassdoorTool()
+            logger.info("✓ GlassdoorTool initialized")
+        except ImportError as e:
+            logger.warning(f"GlassdoorTool unavailable: {e}")
+
+        # Social media tools
+        try:
+            from ..tools.data.social.youtube import YouTubeTool
+            youtube_tool = YouTubeTool()
+            logger.info("✓ YouTubeTool initialized")
+        except ImportError as e:
+            logger.warning(f"YouTubeTool unavailable: {e}")
+
+        try:
+            from ..tools.data.social.twitter import TwitterTool
+            twitter_tool = TwitterTool()
+            logger.info("✓ TwitterTool initialized")
+        except ImportError as e:
+            logger.warning(f"TwitterTool unavailable: {e}")
+
+        try:
+            from ..tools.data.social.reddit import RedditTool
+            reddit_tool = RedditTool()
+            logger.info("✓ RedditTool initialized")
+        except ImportError as e:
+            logger.warning(f"RedditTool unavailable: {e}")
+
+        try:
+            from ..tools.data.social.app_store import AppStoreTool
+            app_store_tool = AppStoreTool()
+            logger.info("✓ AppStoreTool initialized")
+        except ImportError as e:
+            logger.warning(f"AppStoreTool unavailable: {e}")
 
         return {
             "financial": FinancialAgent(
-                self.ai_client, search_tool=search_tool, sec_tool=sec_tool
+                self.ai_client,
+                search_tool=search_tool,
+                sec_tool=sec_tool,
+                financial_tool=financial_tool,
+                crunchbase_tool=crunchbase_tool,
             ),
             "market": MarketAnalyst(self.ai_client, search_tool=search_tool),
             "competitor": CompetitorScout(
-                self.ai_client, search_tool=search_tool, tech_stack_tool=tech_stack_tool
+                self.ai_client,
+                search_tool=search_tool,
+                tech_stack_tool=tech_stack_tool,
+                github_tool=github_tool,
+                patent_tool=patent_tool,
+                crunchbase_tool=crunchbase_tool,
             ),
-            "brand": BrandAuditor(self.ai_client, search_tool=search_tool),
-            "sales": SalesAgent(self.ai_client, search_tool=search_tool),
+            "brand": BrandAuditor(
+                self.ai_client,
+                search_tool=search_tool,
+                youtube_tool=youtube_tool,
+                twitter_tool=twitter_tool,
+                reddit_tool=reddit_tool,
+                app_store_tool=app_store_tool,
+            ),
+            "sales": SalesAgent(
+                self.ai_client,
+                search_tool=search_tool,
+                linkedin_tool=linkedin_tool,
+                glassdoor_tool=glassdoor_tool,
+                crunchbase_tool=crunchbase_tool,
+            ),
         }
 
     def create_insight_generator(self) -> InsightGenerator:

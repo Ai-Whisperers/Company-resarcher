@@ -149,12 +149,12 @@ class RateLimiterManager:
     def _get_provider_config(self, name: str) -> Optional[RateLimitConfig]:
         """Get rate limit config from api_limits.py for a provider."""
         try:
-            from .api_limits import get_provider_limits
+            from ..config.api_limits import get_provider_limits
             limits = get_provider_limits(name)
             if limits:
                 return RateLimitConfig.from_provider_limits(limits)
-        except ImportError:
-            logger.debug("api_limits module not available, using defaults")
+        except ImportError as e:
+            logger.debug(f"api_limits module not available: {e}")
         except Exception as e:
             logger.warning(f"Error getting provider limits for {name}: {e}")
         return None

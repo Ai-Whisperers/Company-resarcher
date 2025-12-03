@@ -294,6 +294,33 @@ class UnifiedDataFetcher:
             elif hasattr(source, "get_company_news"):
                 # For news tool
                 data = await source.get_company_news(profile.name)
+            elif hasattr(source, "get_company_profile"):
+                # For Crunchbase/LinkedIn tools (INT-001)
+                # Try keyword arg first, fall back to positional
+                try:
+                    result = await source.get_company_profile(company_name=profile.name)
+                except TypeError:
+                    # CrunchbaseTool uses company_identifier as positional arg
+                    result = await source.get_company_profile(profile.name)
+                if result:
+                    # Convert dataclass to dict
+                    if hasattr(result, "__dict__"):
+                        data = result.__dict__
+                    else:
+                        data = {"profile": result}
+                else:
+                    data = {}
+            elif hasattr(source, "get_company_data"):
+                # For Glassdoor tool (INT-001)
+                result = await source.get_company_data(profile.name)
+                if result:
+                    # Convert dataclass to dict
+                    if hasattr(result, "__dict__"):
+                        data = result.__dict__
+                    else:
+                        data = {"data": result}
+                else:
+                    data = {}
             else:
                 logger.warning(f"Source {decision.source_type.value} has no fetch method")
                 return FetchResult(

@@ -1,13 +1,32 @@
+"""
+Legacy ResearchOrchestrator using LangGraph.
+
+.. deprecated::
+    This module is DEPRECATED. Use `src.pipeline.orchestrator.PipelineOrchestrator` instead.
+"""
+
 import threading
-from typing import Dict, Any, Optional
+import warnings
+from typing import Dict, Any, Optional, TYPE_CHECKING
 
 from ..core.logging import setup_logger
 from ..core.ai import BaseAIClient
-from ..graph.graph_builder import ResearchGraph
-from ..graph.state import ResearchState
 from .factory import AgentFactory
 
+# Lazy imports to avoid circular import
+if TYPE_CHECKING:
+    from ..graph.graph_builder import ResearchGraph
+    from ..graph.state import ResearchState
+
 logger = setup_logger(__name__)
+
+# Emit deprecation warning
+warnings.warn(
+    "src.agents.orchestrator.ResearchOrchestrator is deprecated. "
+    "Use src.pipeline.orchestrator.PipelineOrchestrator instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class ResearchOrchestrator:
@@ -20,10 +39,16 @@ class ResearchOrchestrator:
         """
         Initialize the orchestrator with dependency injection.
 
+        .. deprecated::
+            Use `src.pipeline.orchestrator.PipelineOrchestrator` instead.
+
         Args:
             ai_client: Optional AI client. If None, uses global manager.
             use_local_tools: Use free local tools (DuckDuckGo) instead of paid APIs
         """
+        # Lazy import to avoid circular import
+        from ..graph.graph_builder import ResearchGraph
+
         # Create agent factory with dependency injection
         factory = AgentFactory(ai_client=ai_client, use_local_tools=use_local_tools)
 
@@ -47,6 +72,9 @@ class ResearchOrchestrator:
         """
         Main entry point for the research process.
 
+        .. deprecated::
+            Use `src.pipeline.orchestrator.PipelineOrchestrator.conduct_research` instead.
+
         Args:
             company_name: Name of the company to research
             url: Company website URL
@@ -54,6 +82,9 @@ class ResearchOrchestrator:
         Returns:
             Final research state as a dictionary
         """
+        # Lazy import to avoid circular import
+        from ..graph.state import ResearchState
+
         logger.info(f"Starting research for {company_name} ({url})")
 
         # Initialize state

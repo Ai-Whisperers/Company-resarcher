@@ -17,6 +17,7 @@ import aiohttp
 
 from ..base import SearchProvider, SearchResult, SearchError, RateLimitError
 from src.core.logging import setup_logger
+from src.core.config import get_settings
 from src.core.network.http_client import get_http_client
 
 logger = setup_logger("search.jina")
@@ -52,8 +53,19 @@ class JinaSearchProvider(SearchProvider):
             api_key: Optional API key (for higher limits)
             timeout: Request timeout in seconds
         """
-        self.api_key = api_key
+        self._api_key = api_key
         self.timeout = timeout
+
+    @property
+    def api_key(self) -> Optional[str]:
+        """Get API key from init or environment."""
+        if self._api_key:
+            return self._api_key
+        settings = get_settings()
+        jina_key = getattr(settings, "JINA_API_KEY", None)
+        if jina_key:
+            return jina_key.get_secret_value() if hasattr(jina_key, "get_secret_value") else jina_key
+        return None
 
     def _get_headers(self) -> dict:
         """Get request headers."""

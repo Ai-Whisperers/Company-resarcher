@@ -596,6 +596,35 @@ def count_files() -> Dict[str, int]:
     return counts
 
 
+def get_template_path(filename: str) -> str:
+    """
+    Get the template path for a given output filename.
+
+    Args:
+        filename: The output filename (e.g., "01-Company-Overview.md")
+
+    Returns:
+        Template path relative to templates directory (e.g., "strategic_context/company_overview.md")
+    """
+    # Search through all sections for matching filename
+    for section_spec in OUTPUT_STRUCTURE.values():
+        for file_spec in section_spec.files:
+            if file_spec.filename == filename:
+                return file_spec.template
+
+    # Fallback: convert filename to template path heuristically
+    # e.g., "01-Company-Overview.md" -> "common/company_overview.md"
+    base = filename.replace(".md", "")
+    # Remove leading numbers and dashes
+    if "-" in base:
+        parts = base.split("-", 1)
+        if parts[0].isdigit():
+            base = parts[1]
+    # Convert to snake_case
+    template_name = base.replace("-", "_").lower() + ".md"
+    return f"common/{template_name}"
+
+
 # =============================================================================
 # Exports
 # =============================================================================

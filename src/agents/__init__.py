@@ -22,10 +22,19 @@ from .specialists import (
 from .writer import ReportWriter
 from .critic import LogicCritic
 from .insight_generator import InsightGenerator
-from .orchestrator import ResearchOrchestrator
 from .reasoning_agent import ReasoningAgent
 from .deep_research import DeepResearchAgent
 from .sector_analyst import SectorAnalyst
+
+
+# Lazy import for ResearchOrchestrator to avoid circular import with graph module
+def __getattr__(name):
+    """Lazy import for deprecated modules."""
+    if name == "ResearchOrchestrator":
+        from .orchestrator import ResearchOrchestrator
+        return ResearchOrchestrator
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     # Base
@@ -47,7 +56,7 @@ __all__ = [
     "ReportWriter",
     "LogicCritic",
     "InsightGenerator",
-    "ResearchOrchestrator",
+    "ResearchOrchestrator",  # Deprecated - lazy loaded
     "ReasoningAgent",
     "DeepResearchAgent",
     "SectorAnalyst",

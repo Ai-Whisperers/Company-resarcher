@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import jinja2
 
 from ..core.types import CompanyProfile, ResearchSource
-from ..core.comprehensive_queries import (
+from ..core.research import (
     COMPREHENSIVE_QUERIES,
     QueryTemplate,
     format_query,
@@ -35,13 +35,13 @@ from ..core.company_probe import probe_company_presence, CompanyPresence, RESEAR
 from ..core.cache.url_cache import reset_url_cache
 from ..services.content import get_html_cache
 from ..core.ai.features import get_query_planner, QueryPlan
-from ..core.ai_enhancements import (
+from ..core.ai import (
     AIEnhancementOrchestrator,
     get_ai_orchestrator,
     reset_ai_orchestrator,
 )
 # PERF-017 to PERF-020: New optimization modules
-from ..core.adaptive_query_strategy import (
+from ..core.research import (
     AdaptiveQueryStrategy,
     get_query_strategy,
     QueryStrategy,
@@ -135,6 +135,11 @@ class ComprehensiveResearchResult:
     # Retry statistics
     sections_retried: int = 0
     retry_sources_gained: int = 0
+    # AI Enhancement results (FEAT-AI-ENH)
+    extracted_entities: Optional[Dict[str, Any]] = None
+    contradictions: Optional[Dict[str, Any]] = None
+    gap_analysis: Optional[Dict[str, Any]] = None
+    ai_enhancements_applied: bool = False
 
     def get_failed_sections(self) -> List[Tuple[str, str, SectionResearchResult]]:
         """
@@ -145,7 +150,12 @@ class ComprehensiveResearchResult:
         """
         failed = []
         for section_name, section_results in self.sections.items():
+            # Skip internal metadata sections (like _unified_data)
+            if section_name.startswith("_"):
+                continue
             for filename, result in section_results.items():
+                if not isinstance(result, SectionResearchResult):
+                    continue
                 if result.needs_retry:
                     failed.append((section_name, filename, result))
 
@@ -374,121 +384,117 @@ class ComprehensiveResearchService:
                     result.total_sources += len(file_result.sources)
 
         # ====================================================================
-        # SEC EDGAR Integration (for US-listed companies)
+        # PARALLEL ENRICHMENT: SEC, News, Social, Financial run concurrently
+        # PERF-030: These are independent operations - run in parallel for 3-5x speedup
         # ====================================================================
+        output_dir = Path(os.getenv("OUTPUT_DIR", "outputs")) / company.name.replace(" ", "_")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
         enable_sec = os.getenv("ENABLE_SEC_FILINGS", "true").lower() == "true"
+        enable_social = os.getenv("ENABLE_SOCIAL_INTELLIGENCE", "true").lower() == "true"
+        ticker = getattr(company, 'ticker', None)
+
+        # First, detect SEC ticker if needed (quick operation)
+        sec_ticker = None
         if enable_sec:
             try:
-                # Check if company has SEC filings available
                 sec_ticker = await self._detect_sec_filings_available(
                     company_name=company.name,
-                    ticker=getattr(company, 'ticker', None),
+                    ticker=ticker,
                 )
+                if sec_ticker and not ticker:
+                    ticker = sec_ticker
+            except Exception as e:
+                logger.warning(f"SEC ticker detection failed: {e}")
 
-                if sec_ticker:
-                    logger.info(f"=== SEC FILINGS: Researching {sec_ticker} ===")
-                    sec_results = await self._research_sec_filings(
-                        company=company,
-                        ticker=sec_ticker,
-                    )
-
-                    # Add SEC results to main results
-                    if sec_results:
-                        result.sections["sec_filings"] = sec_results
-                        sec_source_count = sum(
-                            len(r.sources) for r in sec_results.values()
-                        )
-                        result.total_sources += sec_source_count
-                        logger.info(
-                            f"SEC filings added: {sec_source_count} sources "
-                            f"across {len(sec_results)} files"
-                        )
-                else:
-                    logger.info(f"No SEC filings available for {company.name}")
+        # Define all enrichment tasks
+        async def run_sec_research():
+            if not enable_sec or not sec_ticker:
+                return None
+            try:
+                logger.info(f"=== SEC FILINGS: Researching {sec_ticker} (parallel) ===")
+                return await self._research_sec_filings(company=company, ticker=sec_ticker)
             except Exception as e:
                 logger.warning(f"SEC integration failed: {e}")
+                return None
 
-        # ====================================================================
-        # News Intelligence (NewsAPI)
-        # ====================================================================
-        try:
-            # Get output directory for news reports
-            output_dir = Path(os.getenv("OUTPUT_DIR", "outputs")) / company.name.replace(" ", "_")
-            output_dir.mkdir(parents=True, exist_ok=True)
-
-            news_results = await self._research_news_intelligence(
-                company=company,
-                output_dir=output_dir,
-            )
-
-            if news_results.get("enabled") and news_results.get("api_available"):
-                logger.info(
-                    f"News intelligence: {news_results.get('articles_found', 0)} articles, "
-                    f"sentiment={news_results.get('sentiment_label', 'neutral')}, "
-                    f"signals={news_results.get('signals_detected', 0)}"
-                )
-                if news_results.get("crisis_alert"):
-                    logger.warning(f"CRISIS ALERT: Potential crisis indicators detected for {company.name}")
-            elif news_results.get("error"):
-                logger.debug(f"News intelligence skipped: {news_results.get('error')}")
-        except Exception as e:
-            logger.warning(f"News intelligence failed: {e}")
-
-        # ====================================================================
-        # Social Intelligence (Reddit + Twitter)
-        # ====================================================================
-        enable_social = os.getenv("ENABLE_SOCIAL_INTELLIGENCE", "true").lower() == "true"
-        if enable_social:
+        async def run_news_research():
             try:
-                social_results = await self._research_social_intelligence(
-                    company=company,
-                    output_dir=output_dir,
-                )
+                return await self._research_news_intelligence(company=company, output_dir=output_dir)
+            except Exception as e:
+                logger.warning(f"News intelligence failed: {e}")
+                return {"error": str(e)}
 
-                if social_results.get("enabled"):
-                    reddit_mentions = social_results.get("reddit_mentions", 0)
-                    twitter_mentions = social_results.get("twitter_mentions", 0)
-                    if reddit_mentions > 0 or twitter_mentions > 0:
-                        logger.info(
-                            f"Social intelligence: Reddit={reddit_mentions} mentions, "
-                            f"Twitter={twitter_mentions} mentions, "
-                            f"sentiment={social_results.get('overall_sentiment', 'neutral')}"
-                        )
-                    else:
-                        logger.info("Social intelligence: No API credentials configured")
-                elif social_results.get("error"):
-                    logger.debug(f"Social intelligence skipped: {social_results.get('error')}")
+        async def run_social_research():
+            if not enable_social:
+                return {"enabled": False}
+            try:
+                return await self._research_social_intelligence(company=company, output_dir=output_dir)
             except Exception as e:
                 logger.warning(f"Social intelligence failed: {e}")
+                return {"error": str(e)}
 
-        # ====================================================================
-        # Financial Deep Dive (Financial Modeling Prep)
-        # Only runs if company has a known ticker symbol
-        # ====================================================================
-        ticker = getattr(company, 'ticker', None)
-        if not ticker and enable_sec:
-            # Try to reuse ticker from SEC detection
-            ticker = sec_ticker if 'sec_ticker' in dir() else None
-
-        if ticker:
+        async def run_financial_research():
+            if not ticker:
+                return {"error": f"No ticker symbol for {company.name}"}
             try:
-                fmp_results = await self._research_financial_deep_dive(
-                    company=company,
-                    ticker=ticker,
-                    output_dir=output_dir,
-                )
-
-                if fmp_results.get("enabled") and fmp_results.get("api_available"):
-                    logger.info(
-                        f"Financial deep dive: {ticker} - "
-                        f"Rating={fmp_results.get('rating', 'N/A')}, "
-                        f"Recommendation={fmp_results.get('rating_recommendation', 'N/A')}"
-                    )
-                elif fmp_results.get("error"):
-                    logger.debug(f"Financial deep dive skipped: {fmp_results.get('error')}")
+                return await self._research_financial_deep_dive(company=company, ticker=ticker, output_dir=output_dir)
             except Exception as e:
                 logger.warning(f"Financial deep dive failed: {e}")
-        else:
+                return {"error": str(e)}
+
+        # Run all enrichment tasks in PARALLEL
+        logger.info("=== PARALLEL ENRICHMENT: Running SEC, News, Social, Financial concurrently ===")
+        enrichment_results = await asyncio.gather(
+            run_sec_research(),
+            run_news_research(),
+            run_social_research(),
+            run_financial_research(),
+            return_exceptions=True,
+        )
+
+        sec_results, news_results, social_results, fmp_results = enrichment_results
+
+        # Process SEC results
+        if sec_results and not isinstance(sec_results, Exception):
+            result.sections["sec_filings"] = sec_results
+            sec_source_count = sum(len(r.sources) for r in sec_results.values())
+            result.total_sources += sec_source_count
+            logger.info(f"SEC filings added: {sec_source_count} sources across {len(sec_results)} files")
+        elif not sec_ticker:
+            logger.info(f"No SEC filings available for {company.name}")
+
+        # Process News results
+        if isinstance(news_results, dict) and news_results.get("enabled") and news_results.get("api_available"):
+            logger.info(
+                f"News intelligence: {news_results.get('articles_found', 0)} articles, "
+                f"sentiment={news_results.get('sentiment_label', 'neutral')}, "
+                f"signals={news_results.get('signals_detected', 0)}"
+            )
+            if news_results.get("crisis_alert"):
+                logger.warning(f"CRISIS ALERT: Potential crisis indicators detected for {company.name}")
+
+        # Process Social results
+        if isinstance(social_results, dict) and social_results.get("enabled"):
+            reddit_mentions = social_results.get("reddit_mentions", 0)
+            twitter_mentions = social_results.get("twitter_mentions", 0)
+            if reddit_mentions > 0 or twitter_mentions > 0:
+                logger.info(
+                    f"Social intelligence: Reddit={reddit_mentions} mentions, "
+                    f"Twitter={twitter_mentions} mentions, "
+                    f"sentiment={social_results.get('overall_sentiment', 'neutral')}"
+                )
+            else:
+                logger.info("Social intelligence: No API credentials configured")
+
+        # Process Financial results
+        if isinstance(fmp_results, dict) and fmp_results.get("enabled") and fmp_results.get("api_available"):
+            logger.info(
+                f"Financial deep dive: {ticker} - "
+                f"Rating={fmp_results.get('rating', 'N/A')}, "
+                f"Recommendation={fmp_results.get('rating_recommendation', 'N/A')}"
+            )
+        elif not ticker:
             logger.debug(f"Financial deep dive skipped: No ticker symbol for {company.name}")
 
         # Retry failed sections if enabled (default: enabled)
@@ -501,6 +507,17 @@ class ComprehensiveResearchService:
                 result.retry_sources_gained = retry_sources
                 result.sections_retried = failed_count
                 result.total_sources += retry_sources
+
+        # ====================================================================
+        # FEAT-AI-ENH: Apply AI Enhancement features
+        # Entity extraction, contradiction detection, gap analysis
+        # ====================================================================
+        enable_ai_enhancements = os.getenv("ENABLE_AI_ENHANCEMENTS", "true").lower() == "true"
+        if enable_ai_enhancements and hasattr(self, '_ai_orchestrator') and self._ai_orchestrator:
+            try:
+                await self._apply_ai_enhancements(company, result)
+            except Exception as ai_err:
+                logger.warning(f"AI enhancements failed (non-fatal): {ai_err}")
 
         result.source_tracker = self.source_tracker
         result.total_queries = sum(len(q) for q in COMPREHENSIVE_QUERIES.values())
@@ -809,71 +826,72 @@ class ComprehensiveResearchService:
             logger.info("No failed sections to retry")
             return 0
 
-        logger.info(f"=== RETRY PASS: {len(failed_sections)} sections need retry ===")
+        logger.info(f"=== RETRY PASS: {len(failed_sections)} sections need retry (PARALLEL) ===")
 
         # Wait before retry to let network/rate limits recover
         retry_delay = int(os.getenv("SECTION_RETRY_DELAY_SECONDS", "30"))
         logger.info(f"Waiting {retry_delay}s before retry pass...")
         await asyncio.sleep(retry_delay)
 
-        total_new_sources = 0
-
-        for section_name, filename, section_result in failed_sections:
+        # PERF-031: Run retries in parallel instead of sequential
+        async def retry_single_section(section_name: str, filename: str, section_result: SectionResearchResult) -> int:
+            """Retry a single section and return new sources gained."""
             logger.info(
                 f"Retrying {section_name}/{filename} "
                 f"(attempt {section_result.retry_count + 1}, "
                 f"current sources: {len(section_result.sources)})"
             )
 
-            # Get original queries for this section/file
             section_queries = COMPREHENSIVE_QUERIES.get(section_name, [])
             file_queries = [q for q in section_queries if q.file == filename]
 
             if not file_queries:
                 logger.warning(f"No queries found for {section_name}/{filename}, skipping")
-                continue
+                return 0
 
-            # Get AI query plan if available
             query_plan = self._query_plans.get(section_name)
             ai_queries = query_plan.suggested_queries if query_plan else []
-
-            # Retry the file research
             old_source_count = len(section_result.sources)
 
             try:
                 new_result = await self._research_file(
-                    company,
-                    section_name,
-                    filename,
-                    file_queries,
-                    ai_queries=ai_queries,
-                    query_plan=query_plan,
+                    company, section_name, filename, file_queries,
+                    ai_queries=ai_queries, query_plan=query_plan,
                 )
 
-                # Merge new sources with existing (avoiding duplicates)
                 existing_urls = {s.url for s in section_result.sources}
                 for source in new_result.sources:
                     if source.url not in existing_urls:
                         section_result.sources.append(source)
                         existing_urls.add(source.url)
 
-                # Update stats
                 section_result.retry_count += 1
                 new_sources = len(section_result.sources) - old_source_count
-                total_new_sources += new_sources
-
-                logger.info(
-                    f"  Retry result: {new_sources} new sources "
-                    f"(total now: {len(section_result.sources)})"
-                )
+                logger.info(f"  Retry result: {new_sources} new sources (total now: {len(section_result.sources)})")
+                return new_sources
 
             except Exception as e:
                 logger.error(f"Retry failed for {section_name}/{filename}: {e}")
                 section_result.retry_count += 1
+                return 0
+
+        # Run all retries in parallel with bounded concurrency
+        retry_semaphore = asyncio.Semaphore(4)
+
+        async def bounded_retry(sn: str, fn: str, sr: SectionResearchResult) -> int:
+            async with retry_semaphore:
+                return await retry_single_section(sn, fn, sr)
+
+        retry_results = await asyncio.gather(
+            *[bounded_retry(sn, fn, sr) for sn, fn, sr in failed_sections],
+            return_exceptions=True,
+        )
+
+        total_new_sources = sum(r for r in retry_results if isinstance(r, int))
 
         logger.info(
             f"=== RETRY PASS COMPLETE: {total_new_sources} new sources from "
-            f"{len(failed_sections)} retries ==="
+            f"{len(failed_sections)} retries (parallel) ==="
         )
 
         return total_new_sources
@@ -881,6 +899,114 @@ class ComprehensiveResearchService:
     # =========================================================================
     # SEC EDGAR Integration (for US-listed companies)
     # =========================================================================
+
+    # =========================================================================
+    # FEAT-AI-ENH: AI Enhancement Processing
+    # =========================================================================
+
+    async def _apply_ai_enhancements(
+        self,
+        company: CompanyProfile,
+        result: ComprehensiveResearchResult,
+    ) -> None:
+        """
+        Apply AI enhancement features to the research results.
+
+        This method runs after all sources are collected and applies:
+        1. Entity extraction - extracts people, companies, financials
+        2. Gap analysis - identifies missing data
+        3. (Future) Contradiction detection - finds conflicting information
+
+        Args:
+            company: Company profile being researched
+            result: Research result to enhance
+        """
+        logger.info("=== AI ENHANCEMENT PASS ===")
+
+        # Collect all sources from all sections
+        all_sources = []
+        for section_name, section_results in result.sections.items():
+            if section_name.startswith("_"):
+                continue  # Skip internal data like _unified_data
+            for filename, file_result in section_results.items():
+                for source in file_result.sources:
+                    all_sources.append({
+                        "url": source.url,
+                        "title": source.title,
+                        "content": source.content[:5000] if source.content else "",
+                        "section": section_name,
+                        "filename": filename,
+                    })
+
+        if not all_sources:
+            logger.info("No sources to enhance")
+            return
+
+        logger.info(f"Enhancing {len(all_sources)} sources across {len(result.sections)} sections")
+
+        # 1. Entity Extraction
+        try:
+            entities = await self._ai_orchestrator.extract_entities(all_sources[:50])  # Limit for cost
+            if entities and (entities.people or entities.companies or entities.financials):
+                result.extracted_entities = {
+                    "people": [
+                        {"name": p.name, "role": p.role, "source": p.source_url}
+                        for p in entities.people[:20]
+                    ],
+                    "companies": [
+                        {"name": c.name, "relationship": c.relationship, "source": c.source_url}
+                        for c in entities.companies[:20]
+                    ],
+                    "financials": [
+                        {"metric": f.metric, "value": f.value, "period": f.period, "source": f.source_url}
+                        for f in entities.financials[:30]
+                    ],
+                    "locations": [
+                        {"name": loc.name, "type": loc.location_type, "source": loc.source_url}
+                        for loc in entities.locations[:10]
+                    ],
+                }
+                logger.info(
+                    f"Entities extracted: {len(entities.people)} people, "
+                    f"{len(entities.companies)} companies, "
+                    f"{len(entities.financials)} financials"
+                )
+        except Exception as e:
+            logger.debug(f"Entity extraction skipped: {e}")
+
+        # 2. Gap Analysis
+        try:
+            # Build research data summary for gap analysis
+            research_summary = {
+                "sections": list(result.sections.keys()),
+                "total_sources": result.total_sources,
+                "source_count_by_section": {
+                    section: sum(len(fr.sources) for fr in files.values())
+                    for section, files in result.sections.items()
+                    if not section.startswith("_")
+                },
+            }
+            gaps = await self._ai_orchestrator.analyze_gaps(
+                research_data=research_summary,
+                existing_sources=result.total_sources,
+            )
+            if gaps and gaps.total_gaps > 0:
+                result.gap_analysis = {
+                    "total_gaps": gaps.total_gaps,
+                    "critical_gaps": len(gaps.critical_gaps),
+                    "important_gaps": len(gaps.important_gaps),
+                    "fillable_gaps": len(gaps.fillable_gaps),
+                    "gap_filling_queries": gaps.get_all_queries()[:20],
+                }
+                logger.info(
+                    f"Gap analysis: {gaps.total_gaps} gaps found, "
+                    f"{len(gaps.critical_gaps)} critical"
+                )
+        except Exception as e:
+            logger.debug(f"Gap analysis skipped: {e}")
+
+        result.ai_enhancements_applied = True
+        logger.info("=== AI ENHANCEMENT PASS COMPLETE ===")
 
     async def _detect_sec_filings_available(
         self,

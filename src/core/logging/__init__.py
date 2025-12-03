@@ -8,7 +8,7 @@ Provides:
 - TelemetryConfig: Application telemetry configuration
 """
 
-from .logger import setup_logger, get_logger, set_global_log_level
+from .logger import setup_logger, get_logger, set_global_log_level, get_request_id, set_request_id
 from .observability import ObservabilityContext
 from .telemetry import TelemetryConfig
 from .events import *
@@ -20,6 +20,8 @@ __all__ = [
     "setup_logger",
     "get_logger",
     "set_global_log_level",
+    "get_request_id",
+    "set_request_id",
     "ObservabilityContext",
     "TelemetryConfig",
     "EventManager",

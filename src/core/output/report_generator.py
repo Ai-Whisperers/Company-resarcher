@@ -1,7 +1,9 @@
 import logging
+import os
+import re
 import markdown
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Optional, Any
 
 try:
     from docx import Document
@@ -9,6 +11,14 @@ try:
     HAS_DOCX = True
 except ImportError:
     HAS_DOCX = False
+
+# Chart generation support
+try:
+    from ...tools.specialized.chart_generator import ChartGenerator, get_chart_generator
+    HAS_CHARTS = True
+except ImportError:
+    HAS_CHARTS = False
+    ChartGenerator = None
 
 try:
     from weasyprint import HTML, CSS
@@ -324,3 +334,185 @@ class ReportGenerator:
         pdf.output(path)
         logger.info(f"Saved PDF report to {path} (using fpdf2)")
         return path
+
+    # =========================================================================
+    # Chart Generation Methods
+    # =========================================================================
+
+    def generate_charts_from_data(
+        self,
+        financial_data: Optional[Dict[str, Any]] = None,
+        market_data: Optional[Dict[str, Any]] = None,
+        competitor_data: Optional[Dict[str, Any]] = None,
+        company_name: str = "Company",
+    ) -> List[str]:
+        """
+        Generate charts from research data.
+
+        Args:
+            financial_data: Financial metrics (revenue, profit, growth)
+            market_data: Market metrics (market share, TAM, etc.)
+            competitor_data: Competitor comparison data
+            company_name: Name of the company for chart titles
+
+        Returns:
+            List of paths to generated chart files
+        """
+        if not HAS_CHARTS:
+            logger.warning("Chart generation not available (matplotlib not installed)")
+            return []
+
+        chart_paths = []
+        chart_gen = get_chart_generator()
+
+        # Financial charts
+        if financial_data:
+            # Revenue trend chart
+            if "revenue" in financial_data and isinstance(financial_data["revenue"], dict):
+                path = chart_gen.line_chart(
+                    data=financial_data["revenue"],
+                    title=f"{company_name} Revenue Trend",
+                    xlabel="Period",
+                    ylabel="Revenue ($M)",
+                    output_path=str(self.output_dir / f"{company_name.lower()}_revenue.png"),
+                )
+                if path:
+                    chart_paths.append(path)
+
+            # Financial overview bar chart
+            if "metrics" in financial_data and isinstance(financial_data["metrics"], dict):
+                path = chart_gen.bar_chart(
+                    data=financial_data["metrics"],
+                    title=f"{company_name} Financial Overview",
+                    ylabel="Value",
+                    output_path=str(self.output_dir / f"{company_name.lower()}_financials.png"),
+                )
+                if path:
+                    chart_paths.append(path)
+
+        # Market share pie chart
+        if market_data and "market_share" in market_data:
+            if isinstance(market_data["market_share"], dict):
+                path = chart_gen.pie_chart(
+                    data=market_data["market_share"],
+                    title=f"Market Share Distribution",
+                    output_path=str(self.output_dir / f"{company_name.lower()}_market_share.png"),
+                )
+                if path:
+                    chart_paths.append(path)
+
+        # Competitor comparison chart
+        if competitor_data and isinstance(competitor_data, dict):
+            path = chart_gen.bar_chart(
+                data=competitor_data,
+                title=f"{company_name} vs Competitors",
+                ylabel="Score / Revenue",
+                horizontal=True,
+                output_path=str(self.output_dir / f"{company_name.lower()}_competitors.png"),
+            )
+            if path:
+                chart_paths.append(path)
+
+        logger.info(f"Generated {len(chart_paths)} charts for {company_name}")
+        return chart_paths
+
+    def save_report_with_charts(
+        self,
+        content: str,
+        filename: str,
+        formats: List[str] = ["md"],
+        financial_data: Optional[Dict[str, Any]] = None,
+        market_data: Optional[Dict[str, Any]] = None,
+        competitor_data: Optional[Dict[str, Any]] = None,
+        company_name: str = "Company",
+    ) -> Dict[str, Any]:
+        """
+        Save report with embedded charts.
+
+        Args:
+            content: Markdown content for the report
+            filename: Base filename
+            formats: List of output formats (md, html, pdf, docx)
+            financial_data: Financial data for chart generation
+            market_data: Market data for chart generation
+            competitor_data: Competitor data for chart generation
+            company_name: Company name for chart titles
+
+        Returns:
+            Dictionary with paths to report files and chart files
+        """
+        # Generate charts first
+        chart_paths = self.generate_charts_from_data(
+            financial_data=financial_data,
+            market_data=market_data,
+            competitor_data=competitor_data,
+            company_name=company_name,
+        )
+
+        # Embed chart references in content for HTML/PDF
+        enhanced_content = content
+        if chart_paths:
+            chart_section = "\n\n## Visual Analytics\n\n"
+            for chart_path in chart_paths:
+                chart_name = Path(chart_path).stem.replace("_", " ").title()
+                # Use relative path for portability
+                rel_path = Path(chart_path).name
+                chart_section += f"### {chart_name}\n\n![{chart_name}]({rel_path})\n\n"
+            enhanced_content += chart_section
+
+        # Save reports
+        saved_files = self.save_report(enhanced_content, filename, formats)
+        saved_files["charts"] = chart_paths
+
+        return saved_files
+
+    def extract_financial_data_from_content(
+        self,
+        content: str,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Extract financial data from markdown content for chart generation.
+
+        Looks for patterns like:
+        - Revenue: $X million/billion
+        - Growth: X%
+        - Market Share: X%
+
+        Args:
+            content: Markdown report content
+
+        Returns:
+            Dictionary of extracted financial data or None
+        """
+        financial_data = {"metrics": {}, "revenue": {}}
+
+        # Extract revenue figures (e.g., "$100 million", "$1.5 billion")
+        revenue_pattern = r'[Rr]evenue[:\s]+\$?([\d.]+)\s*(million|billion|M|B)'
+        revenue_matches = re.findall(revenue_pattern, content)
+        if revenue_matches:
+            for i, (value, unit) in enumerate(revenue_matches[:5]):
+                try:
+                    multiplier = 1000 if unit.lower() in ['billion', 'b'] else 1
+                    financial_data["metrics"][f"Revenue {i+1}"] = float(value) * multiplier
+                except ValueError:
+                    pass
+
+        # Extract growth percentages
+        growth_pattern = r'[Gg]rowth[:\s]+([\d.]+)%'
+        growth_matches = re.findall(growth_pattern, content)
+        if growth_matches:
+            try:
+                financial_data["metrics"]["Growth %"] = float(growth_matches[0])
+            except ValueError:
+                pass
+
+        # Extract market share
+        share_pattern = r'[Mm]arket [Ss]hare[:\s]+([\d.]+)%'
+        share_matches = re.findall(share_pattern, content)
+        if share_matches:
+            try:
+                financial_data["metrics"]["Market Share %"] = float(share_matches[0])
+            except ValueError:
+                pass
+
+        return financial_data if financial_data["metrics"] else None

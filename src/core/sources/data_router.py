@@ -262,6 +262,9 @@ class DataSourceRouter:
             DataSourceType.DOMAIN: f"Domain verification for {profile.website}",
             DataSourceType.SOCIAL_REDDIT: "Social sentiment from Reddit",
             DataSourceType.SOCIAL_TWITTER: "Social presence from Twitter/X",
+            DataSourceType.CRUNCHBASE: f"Funding and investor data for {profile.name}",
+            DataSourceType.LINKEDIN: f"Company profile and employee data for {profile.name}",
+            DataSourceType.GLASSDOOR: f"Employee reviews and sentiment for {profile.name}",
         }
         return reasons.get(source_type, "Additional data source")
 

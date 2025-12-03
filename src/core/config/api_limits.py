@@ -235,15 +235,16 @@ def get_tavily_limits() -> ProviderRateLimits:
 
     Free: 1,000 requests/month
     Pay-as-you-go: $0.008/request ($8/1K)
+    Max: 100 RPM (docs), 10 concurrent
 
     Source: https://docs.tavily.com/documentation/rate-limits
     """
     return ProviderRateLimits(
-        requests_per_minute=_get_env_int("TAVILY_RPM", 60),
-        requests_per_hour=_get_env_int("TAVILY_RPH", 500),
+        requests_per_minute=_get_env_int("TAVILY_RPM", 100),  # Increased from 60
+        requests_per_hour=_get_env_int("TAVILY_RPH", 1000),
         requests_per_day=_get_env_int("TAVILY_RPD", 1000),
-        concurrent_requests=_get_env_int("TAVILY_CONCURRENT", 5),
-        cooldown_seconds=_get_env_float("TAVILY_COOLDOWN", 60.0),
+        concurrent_requests=_get_env_int("TAVILY_CONCURRENT", 10),  # Increased from 5
+        cooldown_seconds=_get_env_float("TAVILY_COOLDOWN", 30.0),
         max_retries=_get_env_int("TAVILY_MAX_RETRIES", 3),
         tier=ProviderTier.FREE,
         priority=5,  # Lower priority due to cost
@@ -258,22 +259,23 @@ def get_serper_limits() -> ProviderRateLimits:
     Serper.dev API limits (Google Search API).
 
     Free: 2,500 queries on signup
-    Paid: Credit-based, up to 300 queries/second
+    Paid: Credit-based, up to 300 queries/SECOND (18,000 RPM!)
+    Max: Ultimate plan allows 300 QPS = 18,000 RPM
 
     Source: https://serper.dev/
     """
     return ProviderRateLimits(
-        requests_per_minute=_get_env_int("SERPER_RPM", 300),
-        requests_per_hour=_get_env_int("SERPER_RPH", 10000),
-        requests_per_day=_get_env_int("SERPER_RPD", 50000),
-        concurrent_requests=_get_env_int("SERPER_CONCURRENT", 10),
-        cooldown_seconds=_get_env_float("SERPER_COOLDOWN", 2.0),
+        requests_per_minute=_get_env_int("SERPER_RPM", 3000),  # 50 QPS conservative (max 18,000)
+        requests_per_hour=_get_env_int("SERPER_RPH", 50000),
+        requests_per_day=_get_env_int("SERPER_RPD", 100000),
+        concurrent_requests=_get_env_int("SERPER_CONCURRENT", 50),  # Increased from 10
+        cooldown_seconds=_get_env_float("SERPER_COOLDOWN", 1.0),
         max_retries=_get_env_int("SERPER_MAX_RETRIES", 3),
         tier=ProviderTier.TIER_1,
         priority=4,
         cost_per_request=0.001,  # ~$50/50K = $0.001
         free_quota_monthly=2500,  # One-time signup bonus
-        notes="2,500 free on signup. Very fast Google results."
+        notes="FASTEST: Up to 300 QPS. 2,500 free on signup."
     )
 
 
@@ -290,7 +292,7 @@ def get_brave_limits() -> ProviderRateLimits:
         requests_per_minute=_get_env_int("BRAVE_RPM", 60),  # 1 req/sec = 60 RPM
         requests_per_hour=_get_env_int("BRAVE_RPH", 500),
         requests_per_day=_get_env_int("BRAVE_RPD", 2000),
-        concurrent_requests=_get_env_int("BRAVE_CONCURRENT", 1),
+        concurrent_requests=_get_env_int("BRAVE_CONCURRENT", 5),  # Increased from 1
         cooldown_seconds=_get_env_float("BRAVE_COOLDOWN", 60.0),
         max_retries=_get_env_int("BRAVE_MAX_RETRIES", 3),
         tier=ProviderTier.FREE,
@@ -330,22 +332,23 @@ def get_jina_limits() -> ProviderRateLimits:
     Jina AI Reader/Search API limits.
 
     Free: 20 RPM (no API key), 200 RPM (with free key)
+    Premium: 2,000 RPM, 20 concurrent
     New keys: 10M free tokens
 
     Source: https://jina.ai/reader/
     """
     return ProviderRateLimits(
-        requests_per_minute=_get_env_int("JINA_RPM", 200),  # With API key
-        requests_per_hour=_get_env_int("JINA_RPH", 5000),
-        requests_per_day=_get_env_int("JINA_RPD", 50000),
-        concurrent_requests=_get_env_int("JINA_CONCURRENT", 5),
-        cooldown_seconds=_get_env_float("JINA_COOLDOWN", 60.0),
+        requests_per_minute=_get_env_int("JINA_RPM", 200),  # With API key (2000 premium)
+        requests_per_hour=_get_env_int("JINA_RPH", 10000),
+        requests_per_day=_get_env_int("JINA_RPD", 100000),
+        concurrent_requests=_get_env_int("JINA_CONCURRENT", 10),  # Increased from 5 (max 20)
+        cooldown_seconds=_get_env_float("JINA_COOLDOWN", 30.0),
         max_retries=_get_env_int("JINA_MAX_RETRIES", 3),
         tier=ProviderTier.FREE,
         priority=2,
         cost_per_request=0.0,
         free_quota_monthly=0,  # Token-based
-        notes="Free with API key (10M tokens). Uses Brave Search internally."
+        notes="200 RPM free (2K premium). 10M free tokens."
     )
 
 

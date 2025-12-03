@@ -1,11 +1,31 @@
 import re
+from enum import Enum
 from pydantic import BaseModel, Field, field_validator, HttpUrl
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 # Character patterns for input validation
 COMPANY_NAME_PATTERN = re.compile(r'^[\w\s\-\.\,\&\'\"\(\)\+\/\:]+$', re.UNICODE)
 INDUSTRY_PATTERN = re.compile(r'^[\w\s\-\/\&\,\.]+$', re.UNICODE)
 COUNTRY_PATTERN = re.compile(r'^[\w\s\-\.\']+$', re.UNICODE)
+
+
+class ResearchMode(str, Enum):
+    """Available research modes."""
+    STANDARD = "standard"           # Quick research with essential phases
+    COMPREHENSIVE = "comprehensive" # Full 200+ query deep research
+    DEEP = "deep"                   # Iterative research with learnings extraction
+    INCREMENTAL = "incremental"     # Update existing research with new data
+    SINGLE_PHASE = "single_phase"   # Run a single research phase
+    ITERATIVE = "iterative"         # Iterative research with automatic gap-filling
+
+
+class ResearchPhase(str, Enum):
+    """Available research phases."""
+    MARKET = "market"
+    FINANCIAL = "financial"
+    COMPETITOR = "competitor"
+    BRAND = "brand"
+    SALES = "sales"
 
 
 class ResearchRequest(BaseModel):
@@ -30,6 +50,26 @@ class ResearchRequest(BaseModel):
         "USA",
         max_length=100,
         description="Country where the company is headquartered",
+    )
+    research_mode: ResearchMode = Field(
+        ResearchMode.STANDARD,
+        description="Research mode: standard (quick), comprehensive (full), deep (iterative), incremental (update), single_phase",
+    )
+    phases: Optional[List[ResearchPhase]] = Field(
+        None,
+        description="Specific phases to research (defaults to all). Only used with standard/comprehensive modes.",
+    )
+    single_phase: Optional[ResearchPhase] = Field(
+        None,
+        description="Required when research_mode is 'single_phase'. The specific phase to run.",
+    )
+    include_github: bool = Field(
+        False,
+        description="Include GitHub tech stack analysis (requires GITHUB_TOKEN)",
+    )
+    include_corporate_registry: bool = Field(
+        False,
+        description="Include corporate registry and WHOIS lookup",
     )
 
     @field_validator("company_name")
@@ -90,6 +130,13 @@ class TaskStatusResponse(BaseModel):
     status: str
     result: Optional[Dict[str, Any]] = Field(default=None, description="Research result data")
     error: Optional[str] = Field(default=None, description="Error message if task failed")
+
+
+class MarketConsolidationRequest(BaseModel):
+    """Request to consolidate research from multiple companies into a market report."""
+    market_name: str = Field(..., description="Name for the consolidated market report")
+    company_folders: List[str] = Field(..., description="List of company folder names to consolidate")
+    market_config: Optional[Dict[str, Any]] = Field(None, description="Optional market configuration")
 
 
 # SQLAlchemy Models

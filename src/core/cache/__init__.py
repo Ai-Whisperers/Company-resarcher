@@ -24,7 +24,11 @@ from .memory_cache import MemoryCache
 from .redis_cache import RedisCache, RedisCacheConfig
 from .manager import CacheManager, get_cache, get_ai_cache, AICache
 from .url_cache import URLFetchCache
-from .cross_company_cache import CrossCompanyURLCache
+from .cross_company_cache import (
+    CrossCompanyURLCache,
+    get_cross_company_cache,
+    reset_cross_company_cache,
+)
 
 __all__ = [
     # Base
@@ -38,6 +42,8 @@ __all__ = [
     "RedisCacheConfig",
     "URLFetchCache",
     "CrossCompanyURLCache",
+    "get_cross_company_cache",
+    "reset_cross_company_cache",
     # Manager
     "CacheManager",
     "get_cache",

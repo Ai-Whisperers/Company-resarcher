@@ -3,9 +3,9 @@ from .base_agent import BaseAgent
 from ..core.logging import setup_logger
 from ..core.ai import BaseAIClient
 from ..core.types import CompanyProfile, ResearchPhaseResult
-from ..core.alpha_miner import AlphaFactorMiner
+from ..core.quant import AlphaFactorMiner
 from ..services.security import sanitize_company_name
-from ..core.config.settings import (
+from ..core.config import (
     AGENT_FINANCIAL,
     AGENT_MARKET,
     AGENT_COMPETITOR,
@@ -42,7 +42,7 @@ class FinancialAgent(BaseAgent):
     """Specialist for financial analysis."""
 
     def __init__(
-        self, client: BaseAIClient = None, sec_tool=None, financial_tool=None, **kwargs
+        self, client: BaseAIClient = None, sec_tool=None, financial_tool=None, crunchbase_tool=None, **kwargs
     ):
         super().__init__(
             client=client,
@@ -52,6 +52,7 @@ class FinancialAgent(BaseAgent):
         )
         self.sec_tool = sec_tool
         self.financial_tool = financial_tool
+        self.crunchbase_tool = crunchbase_tool
         self.alpha_miner = AlphaFactorMiner()
 
     def _fetch_sec_data(self, company_name: str) -> DataSourceResult:
@@ -70,6 +71,19 @@ class FinancialAgent(BaseAgent):
             )
         except Exception as e:
             return DataSourceResult.fail(f"SEC data fetch failed: {e}")
+
+    async def _fetch_funding_data(self, company_name: str) -> DataSourceResult:
+        """Fetch funding and investor data from Crunchbase."""
+        if not self.crunchbase_tool:
+            return DataSourceResult.warn({}, "Crunchbase tool not available")
+
+        try:
+            data = await self.crunchbase_tool.get_company_info(company_name)
+            if data:
+                return DataSourceResult.ok(data)
+            return DataSourceResult.warn({}, f"No Crunchbase data found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"Crunchbase fetch failed: {e}")
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
         safe_name = sanitize_company_name(company.name)
@@ -95,7 +109,18 @@ class FinancialAgent(BaseAgent):
             warnings.append(sec_result.warning)
             logger.warning(sec_result.warning)
 
-        # 2. Run Quantitative Analysis (Backtesting)
+        # 2. Fetch funding/investor data from Crunchbase
+        funding_result = await self._fetch_funding_data(safe_name)
+        funding_data = funding_result.data or {}
+
+        if funding_result.error:
+            errors.append(funding_result.error)
+            logger.error(funding_result.error)
+        if funding_result.warning:
+            warnings.append(funding_result.warning)
+            logger.debug(funding_result.warning)
+
+        # 3. Run Quantitative Analysis (Backtesting)
         quant_analysis = ""
         if self.financial_tool:
             try:
@@ -135,7 +160,7 @@ class FinancialAgent(BaseAgent):
             queries=queries,
             prompt_file=self.prompt_template,
             output_template="data_room/financials.md",
-            extra_context={"sec_data": sec_data, "quant_analysis": quant_analysis},
+            extra_context={"sec_data": sec_data, "quant_analysis": quant_analysis, "funding_data": funding_data},
         )
 
         # Add tracked errors/warnings to result
@@ -172,9 +197,17 @@ class MarketAnalyst(BaseAgent):
 
 
 class CompetitorScout(BaseAgent):
-    """Specialist for competitor analysis."""
+    """Specialist for competitor analysis with funding intelligence."""
 
-    def __init__(self, client: BaseAIClient = None, tech_stack_tool=None, **kwargs):
+    def __init__(
+        self,
+        client: BaseAIClient = None,
+        tech_stack_tool=None,
+        github_tool=None,
+        patent_tool=None,
+        crunchbase_tool=None,
+        **kwargs,
+    ):
         super().__init__(
             client=client,
             name=AGENT_COMPETITOR,
@@ -182,6 +215,48 @@ class CompetitorScout(BaseAgent):
             **kwargs,
         )
         self.tech_stack_tool = tech_stack_tool
+        self.github_tool = github_tool
+        self.patent_tool = patent_tool
+        self.crunchbase_tool = crunchbase_tool
+
+    async def _fetch_crunchbase_funding(self, company_name: str) -> DataSourceResult:
+        """Fetch Crunchbase funding data for competitive analysis."""
+        if not self.crunchbase_tool:
+            return DataSourceResult.warn({}, "Crunchbase tool not available")
+
+        try:
+            data = await self.crunchbase_tool.get_company_info(company_name)
+            if data:
+                return DataSourceResult.ok(data)
+            return DataSourceResult.warn({}, f"No Crunchbase data found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"Crunchbase search failed: {e}")
+
+    async def _fetch_github_presence(self, company_name: str) -> DataSourceResult:
+        """Fetch GitHub presence data with error tracking."""
+        if not self.github_tool:
+            return DataSourceResult.warn({}, "GitHub tool not available")
+
+        try:
+            github_data = await self.github_tool.analyze_company(company_name)
+            if github_data:
+                return DataSourceResult.ok(github_data)
+            return DataSourceResult.warn({}, f"No GitHub presence found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"GitHub analysis failed: {e}")
+
+    async def _fetch_patents(self, company_name: str) -> DataSourceResult:
+        """Fetch patent data with error tracking."""
+        if not self.patent_tool:
+            return DataSourceResult.warn([], "Patent tool not available")
+
+        try:
+            patents = await self.patent_tool.search_patents(company_name, max_results=10)
+            if patents:
+                return DataSourceResult.ok(patents)
+            return DataSourceResult.warn([], f"No patents found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"Patent search failed: {e}")
 
     def _fetch_tech_stack(self, website: str) -> DataSourceResult:
         """Fetch tech stack data with error tracking."""
@@ -231,6 +306,39 @@ class CompetitorScout(BaseAgent):
             warnings.append(tech_result.warning)
             logger.warning(tech_result.warning)
 
+        # Fetch GitHub presence (async)
+        github_result = await self._fetch_github_presence(safe_name)
+        github_data = github_result.data or {}
+
+        if github_result.error:
+            errors.append(github_result.error)
+            logger.error(github_result.error)
+        if github_result.warning:
+            warnings.append(github_result.warning)
+            logger.debug(github_result.warning)  # Debug level - GitHub is optional
+
+        # Fetch patent data (async)
+        patent_result = await self._fetch_patents(safe_name)
+        patent_data = patent_result.data or []
+
+        if patent_result.error:
+            errors.append(patent_result.error)
+            logger.error(patent_result.error)
+        if patent_result.warning:
+            warnings.append(patent_result.warning)
+            logger.debug(patent_result.warning)  # Debug level - patents are optional
+
+        # Fetch Crunchbase funding data (async)
+        crunchbase_result = await self._fetch_crunchbase_funding(safe_name)
+        crunchbase_data = crunchbase_result.data or {}
+
+        if crunchbase_result.error:
+            errors.append(crunchbase_result.error)
+            logger.error(crunchbase_result.error)
+        if crunchbase_result.warning:
+            warnings.append(crunchbase_result.warning)
+            logger.debug(crunchbase_result.warning)  # Debug level - Crunchbase is optional
+
         result = await self.execute_research_cycle(
             company=company,
             queries=queries,
@@ -238,6 +346,9 @@ class CompetitorScout(BaseAgent):
             output_template="competitive_landscape/competitor_list.md",
             extra_context={
                 "tech_stack": tech_stack_data,
+                "github_presence": github_data,
+                "patents": patent_data,
+                "crunchbase_funding": crunchbase_data,
                 "industry": industry,
                 "country": country,
             },
@@ -250,15 +361,79 @@ class CompetitorScout(BaseAgent):
 
 
 class BrandAuditor(BaseAgent):
-    """Specialist for brand analysis."""
+    """Specialist for brand analysis with social media intelligence."""
 
-    def __init__(self, client: BaseAIClient = None, **kwargs):
+    def __init__(
+        self,
+        client: BaseAIClient = None,
+        youtube_tool=None,
+        twitter_tool=None,
+        reddit_tool=None,
+        app_store_tool=None,
+        **kwargs,
+    ):
         super().__init__(
             client=client,
             name=AGENT_BRAND,
             prompt_template="brand_strategy.txt",
             **kwargs,
         )
+        self.youtube_tool = youtube_tool
+        self.twitter_tool = twitter_tool
+        self.reddit_tool = reddit_tool
+        self.app_store_tool = app_store_tool
+
+    async def _fetch_youtube_presence(self, company_name: str) -> DataSourceResult:
+        """Fetch YouTube presence and video data."""
+        if not self.youtube_tool:
+            return DataSourceResult.warn({}, "YouTube tool not available")
+
+        try:
+            data = await self.youtube_tool.search_company(company_name, max_results=5)
+            if data:
+                return DataSourceResult.ok(data)
+            return DataSourceResult.warn({}, f"No YouTube data found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"YouTube search failed: {e}")
+
+    async def _fetch_twitter_sentiment(self, company_name: str) -> DataSourceResult:
+        """Fetch Twitter/X mentions and sentiment."""
+        if not self.twitter_tool:
+            return DataSourceResult.warn({}, "Twitter tool not available")
+
+        try:
+            data = await self.twitter_tool.search_mentions(company_name, max_results=20)
+            if data:
+                return DataSourceResult.ok(data)
+            return DataSourceResult.warn({}, f"No Twitter data found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"Twitter search failed: {e}")
+
+    async def _fetch_reddit_discussions(self, company_name: str) -> DataSourceResult:
+        """Fetch Reddit discussions and sentiment."""
+        if not self.reddit_tool:
+            return DataSourceResult.warn([], "Reddit tool not available")
+
+        try:
+            data = await self.reddit_tool.search_company(company_name, max_results=10)
+            if data:
+                return DataSourceResult.ok(data)
+            return DataSourceResult.warn([], f"No Reddit discussions found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"Reddit search failed: {e}")
+
+    async def _fetch_app_reviews(self, company_name: str) -> DataSourceResult:
+        """Fetch app store reviews if company has apps."""
+        if not self.app_store_tool:
+            return DataSourceResult.warn({}, "App Store tool not available")
+
+        try:
+            data = await self.app_store_tool.search_app(company_name)
+            if data:
+                return DataSourceResult.ok(data)
+            return DataSourceResult.warn({}, f"No apps found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"App Store search failed: {e}")
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
         safe_name = sanitize_company_name(company.name)
@@ -268,24 +443,105 @@ class BrandAuditor(BaseAgent):
             f"{safe_name} brand values and mission",
             f"{safe_name} marketing campaigns",
         ]
-        return await self.execute_research_cycle(
+
+        # Track errors and warnings
+        errors = []
+        warnings = []
+
+        # Fetch social media data in parallel
+        youtube_result = await self._fetch_youtube_presence(safe_name)
+        twitter_result = await self._fetch_twitter_sentiment(safe_name)
+        reddit_result = await self._fetch_reddit_discussions(safe_name)
+        app_result = await self._fetch_app_reviews(safe_name)
+
+        # Collect data and errors
+        social_data = {
+            "youtube": youtube_result.data or {},
+            "twitter": twitter_result.data or {},
+            "reddit": reddit_result.data or [],
+            "app_store": app_result.data or {},
+        }
+
+        for result in [youtube_result, twitter_result, reddit_result, app_result]:
+            if result.error:
+                errors.append(result.error)
+                logger.error(result.error)
+            if result.warning:
+                warnings.append(result.warning)
+                logger.debug(result.warning)
+
+        result = await self.execute_research_cycle(
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
             output_template="brand_strategy/positioning.md",
+            extra_context={"social_media_data": social_data},
         )
+
+        result.errors.extend(errors)
+        result.warnings.extend(warnings)
+        return result
 
 
 class SalesAgent(BaseAgent):
-    """Specialist for sales strategy."""
+    """Specialist for sales strategy with company intelligence."""
 
-    def __init__(self, client: BaseAIClient = None, **kwargs):
+    def __init__(
+        self,
+        client: BaseAIClient = None,
+        linkedin_tool=None,
+        glassdoor_tool=None,
+        crunchbase_tool=None,
+        **kwargs,
+    ):
         super().__init__(
             client=client,
             name=AGENT_SALES,
             prompt_template="sales_strategy.txt",
             **kwargs,
         )
+        self.linkedin_tool = linkedin_tool
+        self.glassdoor_tool = glassdoor_tool
+        self.crunchbase_tool = crunchbase_tool
+
+    async def _fetch_linkedin_data(self, company_name: str) -> DataSourceResult:
+        """Fetch LinkedIn company data and key people."""
+        if not self.linkedin_tool:
+            return DataSourceResult.warn({}, "LinkedIn tool not available")
+
+        try:
+            data = await self.linkedin_tool.get_company_info(company_name)
+            if data:
+                return DataSourceResult.ok(data)
+            return DataSourceResult.warn({}, f"No LinkedIn data found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"LinkedIn search failed: {e}")
+
+    async def _fetch_glassdoor_data(self, company_name: str) -> DataSourceResult:
+        """Fetch Glassdoor reviews and ratings."""
+        if not self.glassdoor_tool:
+            return DataSourceResult.warn({}, "Glassdoor tool not available")
+
+        try:
+            data = await self.glassdoor_tool.get_company_reviews(company_name)
+            if data:
+                return DataSourceResult.ok(data)
+            return DataSourceResult.warn({}, f"No Glassdoor data found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"Glassdoor search failed: {e}")
+
+    async def _fetch_crunchbase_data(self, company_name: str) -> DataSourceResult:
+        """Fetch Crunchbase funding and company data."""
+        if not self.crunchbase_tool:
+            return DataSourceResult.warn({}, "Crunchbase tool not available")
+
+        try:
+            data = await self.crunchbase_tool.get_company_info(company_name)
+            if data:
+                return DataSourceResult.ok(data)
+            return DataSourceResult.warn({}, f"No Crunchbase data found for {company_name}")
+        except Exception as e:
+            return DataSourceResult.fail(f"Crunchbase search failed: {e}")
 
     async def research(self, company: CompanyProfile) -> ResearchPhaseResult:
         safe_name = sanitize_company_name(company.name)
@@ -295,12 +551,42 @@ class SalesAgent(BaseAgent):
             f"{safe_name} pricing strategy",
             f"{safe_name} B2B clients",
         ]
-        return await self.execute_research_cycle(
+
+        # Track errors and warnings
+        errors = []
+        warnings = []
+
+        # Fetch company intelligence data
+        linkedin_result = await self._fetch_linkedin_data(safe_name)
+        glassdoor_result = await self._fetch_glassdoor_data(safe_name)
+        crunchbase_result = await self._fetch_crunchbase_data(safe_name)
+
+        # Collect data and errors
+        company_intel = {
+            "linkedin": linkedin_result.data or {},
+            "glassdoor": glassdoor_result.data or {},
+            "crunchbase": crunchbase_result.data or {},
+        }
+
+        for result in [linkedin_result, glassdoor_result, crunchbase_result]:
+            if result.error:
+                errors.append(result.error)
+                logger.error(result.error)
+            if result.warning:
+                warnings.append(result.warning)
+                logger.debug(result.warning)
+
+        result = await self.execute_research_cycle(
             company=company,
             queries=queries,
             prompt_file=self.prompt_template,
             output_template="sales_intelligence/sales_strategy.md",
+            extra_context={"company_intelligence": company_intel},
         )
+
+        result.errors.extend(errors)
+        result.warnings.extend(warnings)
+        return result
 
 
 class InvestmentAgent(BaseAgent):

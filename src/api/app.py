@@ -24,7 +24,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
-from .models import ResearchRequest, ResearchResponse, TaskStatusResponse, Task
+from .models import ResearchRequest, ResearchResponse, TaskStatusResponse, Task, ResearchMode, ResearchPhase, MarketConsolidationRequest
 from .database import get_db
 from src.core.config import (
     get_settings,
@@ -333,6 +333,13 @@ async def run_research_task(
     Background task to run the research process.
     Has a configurable timeout (default 30 minutes) to prevent runaway tasks.
 
+    Supports multiple research modes:
+    - standard: Quick research with essential phases
+    - comprehensive: Full 200+ query deep research
+    - deep: Iterative research with learnings extraction
+    - incremental: Update existing research with new data
+    - single_phase: Run a single research phase
+
     Args:
         task_id: Unique task identifier
         request: Research request parameters
@@ -345,17 +352,162 @@ async def run_research_task(
 
     db = SessionLocal()
     try:
-        logger.info(f"Starting research task {task_id}")
+        logger.info(f"Starting research task {task_id} (mode: {request.research_mode.value})")
         save_task(db, task_id, status=STATUS_IN_PROGRESS)
 
-        # Use PipelineOrchestrator (replaces LangGraph-based ResearchOrchestrator)
-        orchestrator = PipelineOrchestrator(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
+        result = {}
+        url = str(request.url) if request.url else ""
 
-        # Execute research (timeout is handled internally by the pipeline)
-        result = await orchestrator.conduct_research(
-            company_name=request.company_name,
-            url=str(request.url) if request.url else "",
-        )
+        # Determine which phases to run
+        phases_to_run = None
+        if request.phases:
+            phases_to_run = [p.value for p in request.phases]
+
+        # Route to appropriate research mode
+        if request.research_mode == ResearchMode.COMPREHENSIVE:
+            # Full comprehensive research with 200+ queries
+            from src.pipeline.comprehensive_research import ComprehensiveResearchService
+            service = ComprehensiveResearchService(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
+            comprehensive_result = await service.research_company(
+                company_name=request.company_name,
+                website=url,
+                industry=request.industry,
+                country=request.country,
+            )
+            result = {
+                "status": "success" if comprehensive_result.success else "partial_success",
+                "company_name": request.company_name,
+                "website": url,
+                "mode": "comprehensive",
+                "sections": {
+                    section: {
+                        filename: {
+                            "content": file_result.content[:10000],  # Truncate for storage
+                            "sources_count": len(file_result.sources),
+                        }
+                        for filename, file_result in section_data.items()
+                    }
+                    for section, section_data in comprehensive_result.sections.items()
+                    if not section.startswith("_")
+                },
+                "total_sources": comprehensive_result.total_sources,
+                "ai_enhancements_applied": comprehensive_result.ai_enhancements_applied,
+                "duration_seconds": comprehensive_result.duration_seconds,
+            }
+
+        elif request.research_mode == ResearchMode.DEEP:
+            # Deep research with learnings extraction
+            from src.services.research import DeepResearchService
+            from src.core.types import CompanyProfile
+            service = DeepResearchService()
+            company = CompanyProfile(
+                name=request.company_name,
+                website=url,
+                industry=request.industry,
+            )
+            deep_result = await service.research(company, max_iterations=3)
+            result = {
+                "status": "success",
+                "company_name": request.company_name,
+                "website": url,
+                "mode": "deep",
+                "learnings": deep_result.get("learnings", []),
+                "sources": deep_result.get("sources", []),
+                "gaps_filled": deep_result.get("gaps_filled", 0),
+            }
+
+        elif request.research_mode == ResearchMode.INCREMENTAL:
+            # Incremental research - builds on existing data
+            from src.services.research.incremental import IncrementalResearchService
+            service = IncrementalResearchService(base_dir="outputs")
+            inc_result = await service.research_incremental(
+                company_name=request.company_name,
+                industry=request.industry or "general",
+                country=request.country or "USA",
+                max_queries=30,
+            )
+            result = {
+                "status": "success" if inc_result.success else "failed",
+                "company_name": request.company_name,
+                "website": url,
+                "mode": "incremental",
+                "stats": inc_result.stats.to_dict(),
+                "filled_gaps": inc_result.filled_gaps,
+                "remaining_gaps": inc_result.remaining_gaps[:10],  # Top 10 remaining
+                "new_sources_count": len(inc_result.new_sources),
+                "error": inc_result.error,
+            }
+
+        elif request.research_mode == ResearchMode.SINGLE_PHASE:
+            # Single phase research
+            if not request.single_phase:
+                raise ValueError("single_phase field is required when research_mode is 'single_phase'")
+            orchestrator = PipelineOrchestrator(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
+            result = await orchestrator.research_single_phase(
+                company_name=request.company_name,
+                url=url,
+                research_type=request.single_phase.value,
+                industry=request.industry,
+            )
+            result["mode"] = "single_phase"
+
+        elif request.research_mode == ResearchMode.ITERATIVE:
+            # Iterative research with automatic gap-filling
+            from src.services.research.iterative import IterativeResearchService
+            service = IterativeResearchService()
+            iter_result = await service.research_iterative(
+                company_name=request.company_name,
+                website=url,
+                industry=request.industry or "general",
+                max_iterations=3,
+            )
+            result = {
+                "status": "success" if iter_result.get("success") else "partial",
+                "company_name": request.company_name,
+                "website": url,
+                "mode": "iterative",
+                "iterations_completed": iter_result.get("iterations", 0),
+                "learnings": iter_result.get("learnings", []),
+                "gaps_remaining": iter_result.get("gaps_remaining", []),
+                "sources_count": len(iter_result.get("sources", [])),
+            }
+
+        else:
+            # Standard research (default)
+            orchestrator = PipelineOrchestrator(
+                research_types=phases_to_run,
+                timeout_seconds=RESEARCH_TIMEOUT_SECONDS,
+            )
+            result = await orchestrator.conduct_research(
+                company_name=request.company_name,
+                url=url,
+                industry=request.industry,
+            )
+            result["mode"] = "standard"
+
+        # Add optional GitHub analysis
+        if request.include_github:
+            try:
+                orchestrator = PipelineOrchestrator(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
+                github_result = await orchestrator.research_github_presence(request.company_name)
+                result["github"] = github_result
+            except Exception as gh_err:
+                logger.warning(f"GitHub analysis failed (non-fatal): {gh_err}")
+                result["github"] = {"status": "error", "message": str(gh_err)}
+
+        # Add optional corporate registry lookup
+        if request.include_corporate_registry:
+            try:
+                orchestrator = PipelineOrchestrator(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
+                registry_result = await orchestrator.research_corporate_registry(
+                    company_name=request.company_name,
+                    country=request.country,
+                    website=url,
+                )
+                result["corporate_registry"] = registry_result
+            except Exception as reg_err:
+                logger.warning(f"Corporate registry lookup failed (non-fatal): {reg_err}")
+                result["corporate_registry"] = {"status": "error", "message": str(reg_err)}
 
         save_task(db, task_id, status=STATUS_COMPLETED, result=result)
 
@@ -393,24 +545,40 @@ async def run_research_task(
     description="""
 Initiates a new company research task that runs asynchronously in the background.
 
+**Research Modes:**
+- `standard` (default): Quick research with 5 essential phases (~2-5 min)
+- `comprehensive`: Full 200+ query deep research with AI enhancements (~10-20 min)
+- `deep`: Iterative research with learnings extraction and gap filling (~5-15 min)
+- `incremental`: Smart research that builds on existing data, fills gaps only (~1-5 min)
+- `single_phase`: Run only one specific research phase (~1-3 min)
+
 **Research Phases:**
-- Market Analysis: Market size, growth trends, positioning
-- Financial Analysis: Revenue, funding, financial health
-- Competitor Analysis: Key competitors, market share, differentiation
-- Brand Analysis: Brand perception, reputation, social presence
-- Sales Intelligence: Decision makers, buying signals, engagement
+- `market`: Market size, growth trends, positioning
+- `financial`: Revenue, funding, financial health
+- `competitor`: Key competitors, market share, differentiation
+- `brand`: Brand perception, reputation, social presence
+- `sales`: Decision makers, buying signals, engagement
+
+**Optional Enhancements:**
+- `include_github`: GitHub tech stack analysis (requires GITHUB_TOKEN)
+- `include_corporate_registry`: Corporate registry + WHOIS lookup
 
 **Polling for Results:**
 Use `GET /api/v1/research/{task_id}` to poll for task completion.
-Results are included in the status response when completed.
 
-**Example Request:**
+**Example Requests:**
 ```json
-{
-    "company_name": "Acme Corporation",
-    "url": "https://acme.com",
-    "industry": "Technology"
-}
+// Standard research
+{"company_name": "Acme Corp", "url": "https://acme.com"}
+
+// Comprehensive research with GitHub
+{"company_name": "Acme Corp", "research_mode": "comprehensive", "include_github": true}
+
+// Single phase (financial only)
+{"company_name": "Acme Corp", "research_mode": "single_phase", "single_phase": "financial"}
+
+// Custom phases
+{"company_name": "Acme Corp", "phases": ["market", "competitor"]}
 ```
 """,
     responses={
@@ -932,3 +1100,574 @@ async def reload_config(_api_key: str = Depends(verify_api_key)):
     clear_settings()
     logger.info("Configuration reloaded via admin endpoint")
     return {"status": "ok", "message": "Configuration reloaded successfully"}
+
+
+# =============================================================================
+# Cross-Company Research Endpoints (ENH-005)
+# =============================================================================
+
+
+@app.get(
+    "/api/v1/cross-company/companies",
+    tags=["Cross-Company"],
+    summary="List Researched Companies",
+    description="""
+List all companies with existing research data in the outputs folder.
+
+Returns company names that have research data available for cross-company analysis.
+""",
+    responses={
+        200: {"description": "List of companies retrieved successfully"},
+        401: {"description": "Invalid or missing API key"},
+    },
+)
+async def list_researched_companies(_api_key: str = Depends(verify_api_key)):
+    """List all companies with research data in outputs folder."""
+    from src.services.data.cross_company_reader import get_cross_company_reader
+
+    reader = get_cross_company_reader("outputs")
+    companies = reader.get_company_folders()
+
+    return {
+        "companies": companies,
+        "count": len(companies),
+    }
+
+
+@app.get(
+    "/api/v1/cross-company/mentions/{company_name}",
+    tags=["Cross-Company"],
+    summary="Find Cross-Company Mentions",
+    description="""
+Find mentions of a company across all other researched companies' data.
+
+Useful for competitive intelligence - find what competitors are saying about a company.
+
+**Parameters:**
+- `company_name`: Name of the company to search for
+- `exclude_self`: Whether to exclude the company's own data (default: true)
+- `limit`: Maximum number of mentions to return (default: 20)
+""",
+    responses={
+        200: {"description": "Mentions found successfully"},
+        401: {"description": "Invalid or missing API key"},
+    },
+)
+async def find_cross_company_mentions(
+    company_name: str,
+    exclude_self: bool = True,
+    limit: int = 20,
+    _api_key: str = Depends(verify_api_key),
+):
+    """Find mentions of a company in other companies' research data."""
+    from src.services.data.cross_company_reader import get_cross_company_reader
+
+    reader = get_cross_company_reader("outputs")
+
+    # Load market cache (exclude self if requested)
+    exclude = company_name if exclude_self else None
+    caches = reader.load_market_cache(exclude_company=exclude)
+
+    if not caches:
+        return {
+            "company_name": company_name,
+            "mentions": [],
+            "count": 0,
+            "sources_searched": 0,
+        }
+
+    # Find mentions
+    mentions = reader.find_mentions(caches, company_name)
+
+    return {
+        "company_name": company_name,
+        "mentions": mentions[:limit],
+        "count": len(mentions),
+        "sources_searched": sum(c.file_count for c in caches),
+        "companies_searched": [c.company_name for c in caches],
+    }
+
+
+@app.get(
+    "/api/v1/cross-company/context/{target_company}",
+    tags=["Cross-Company"],
+    summary="Get Competitive Context",
+    description="""
+Get a comprehensive competitive context for a company by analyzing all related company data.
+
+Returns formatted context with:
+- Mentions of the target company in competitor data
+- Summary of each competitor's cached data
+- Key pages and data sizes
+
+Useful for providing context to AI analysis prompts.
+""",
+    responses={
+        200: {"description": "Context generated successfully"},
+        401: {"description": "Invalid or missing API key"},
+    },
+)
+async def get_competitive_context(
+    target_company: str,
+    _api_key: str = Depends(verify_api_key),
+):
+    """Get comprehensive competitive context for AI analysis."""
+    from src.services.data.cross_company_reader import get_cross_company_reader
+
+    reader = get_cross_company_reader("outputs")
+
+    # Load all other companies' cache
+    caches = reader.load_market_cache(exclude_company=target_company)
+
+    if not caches:
+        return {
+            "target_company": target_company,
+            "context": f"No competitor data found for {target_company}",
+            "competitors_analyzed": 0,
+        }
+
+    # Build context string
+    context = reader.get_competitor_context(caches, target_company)
+
+    return {
+        "target_company": target_company,
+        "context": context,
+        "competitors_analyzed": len(caches),
+        "total_sources": sum(c.file_count for c in caches),
+    }
+
+
+@app.get(
+    "/api/v1/research/{company_name}/status",
+    tags=["Research"],
+    summary="Get Research Status",
+    description="""
+Get the current research status for a company including:
+- Overall data completeness percentage
+- Number of data gaps remaining
+- Priority gaps to fill
+- Source registry statistics
+- Last research date
+
+Useful for planning incremental research runs.
+""",
+    responses={
+        200: {"description": "Status retrieved successfully"},
+        401: {"description": "Invalid or missing API key"},
+        404: {"description": "No research data found for company"},
+    },
+)
+async def get_research_status(
+    company_name: str,
+    _api_key: str = Depends(verify_api_key),
+):
+    """Get research status and gap analysis for a company."""
+    from src.services.research.incremental import IncrementalResearchService
+
+    try:
+        service = IncrementalResearchService(base_dir="outputs")
+        status = service.get_research_status(company_name)
+        return status
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No research data found for company: {company_name}",
+        )
+
+
+# =============================================================================
+# Market Consolidation Endpoints (ENH-006)
+# =============================================================================
+
+
+# =============================================================================
+# Research Metrics Endpoint (MON-001, MON-002)
+# =============================================================================
+
+
+@app.get(
+    "/api/v1/metrics/research",
+    tags=["Metrics"],
+    summary="Get Research Metrics",
+    description="""
+Get comprehensive research metrics including:
+- Total research duration
+- Source success rates by phase
+- Query counts
+- Operation statistics
+- Error tracking
+
+Useful for monitoring research performance and identifying bottlenecks.
+""",
+    responses={
+        200: {"description": "Metrics retrieved successfully"},
+        401: {"description": "Invalid or missing API key"},
+    },
+)
+async def get_research_metrics(_api_key: str = Depends(verify_api_key)):
+    """Get research metrics summary from MetricsService."""
+    from src.services.data.metrics_service import get_metrics_service
+
+    metrics_service = get_metrics_service()
+    summary = metrics_service.get_summary()
+
+    return {
+        "status": "success",
+        "metrics": summary,
+    }
+
+
+@app.post(
+    "/api/v1/metrics/research/reset",
+    tags=["Metrics"],
+    summary="Reset Research Metrics",
+    description="Reset the research metrics service for a new research session.",
+    responses={
+        200: {"description": "Metrics reset successfully"},
+        401: {"description": "Invalid or missing API key"},
+    },
+)
+async def reset_research_metrics(_api_key: str = Depends(verify_api_key)):
+    """Reset the metrics service for a new research session."""
+    from src.services.data.metrics_service import reset_metrics_service
+
+    reset_metrics_service()
+
+    return {
+        "status": "success",
+        "message": "Research metrics reset successfully",
+    }
+
+
+# =============================================================================
+# Data Analysis Endpoints (ExistingDataAnalyzer, FollowupGenerator, ReportScorer)
+# =============================================================================
+
+
+@app.get(
+    "/api/v1/research/{company_name}/gaps",
+    tags=["Research"],
+    summary="Get Research Gaps",
+    description="""
+Analyze existing research for a company and identify data gaps.
+
+Returns:
+- Overall completeness percentage
+- List of missing data points by category
+- Priority gaps to fill
+- Suggested queries for filling gaps
+
+Useful for planning incremental research.
+""",
+    responses={
+        200: {"description": "Gap analysis retrieved successfully"},
+        401: {"description": "Invalid or missing API key"},
+        404: {"description": "No research data found for company"},
+    },
+)
+async def get_research_gaps(
+    company_name: str,
+    _api_key: str = Depends(verify_api_key),
+):
+    """Analyze existing research and identify gaps."""
+    from src.services.research.existing_data_analyzer import get_data_analyzer
+
+    try:
+        analyzer = get_data_analyzer("outputs")
+        analysis = analyzer.analyze_company(company_name)
+
+        return {
+            "status": "success",
+            "company_name": company_name,
+            "overall_completeness": f"{analysis.overall_completeness:.0%}",
+            "total_data_points": len(analysis.all_data_points),
+            "usable_data_points": sum(1 for dp in analysis.all_data_points if dp.is_usable),
+            "total_gaps": len(analysis.all_gaps),
+            "priority_gaps": [
+                {
+                    "field": gap.field_name,
+                    "category": gap.category.value,
+                    "priority": gap.priority,
+                    "suggested_queries": gap.suggested_queries[:3],
+                }
+                for gap in analysis.priority_gaps[:15]
+            ],
+            "sections": {
+                name: {
+                    "completeness": f"{section.completeness_score:.0%}",
+                    "data_points": len(section.data_points),
+                    "gaps": len(section.gaps),
+                    "needs_research": section.needs_research,
+                }
+                for name, section in analysis.sections.items()
+            },
+        }
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No research data found for company: {company_name}",
+        )
+
+
+@app.get(
+    "/api/v1/research/{company_name}/gaps/queries",
+    tags=["Research"],
+    summary="Get Delta Queries",
+    description="""
+Generate search queries targeting only missing data for a company.
+
+Returns queries prioritized by importance to fill data gaps efficiently.
+""",
+    responses={
+        200: {"description": "Delta queries generated successfully"},
+        401: {"description": "Invalid or missing API key"},
+        404: {"description": "No research data found for company"},
+    },
+)
+async def get_delta_queries(
+    company_name: str,
+    max_queries: int = 30,
+    _api_key: str = Depends(verify_api_key),
+):
+    """Generate queries targeting missing data."""
+    from src.services.research.existing_data_analyzer import get_data_analyzer
+
+    try:
+        analyzer = get_data_analyzer("outputs")
+        analysis = analyzer.analyze_company(company_name)
+        queries = analyzer.get_delta_queries(analysis, max_queries=max_queries)
+
+        return {
+            "status": "success",
+            "company_name": company_name,
+            "total_queries": len(queries),
+            "queries": queries,
+        }
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No research data found for company: {company_name}",
+        )
+
+
+@app.get(
+    "/api/v1/research/{task_id}/followups",
+    tags=["Research"],
+    summary="Get Follow-up Questions",
+    description="""
+Generate follow-up questions based on completed research.
+
+Analyzes research results to identify:
+- Knowledge gaps needing more data
+- Areas requiring deeper analysis
+- Claims needing verification
+- Topics for expansion
+
+Returns prioritized questions with context.
+""",
+    responses={
+        200: {"description": "Follow-up questions generated successfully"},
+        400: {"description": "Task not completed or results unavailable"},
+        401: {"description": "Invalid or missing API key"},
+        404: {"description": "Task not found"},
+    },
+)
+async def get_followup_questions(
+    task_id: str,
+    max_questions: int = 10,
+    priority: str = None,
+    db: Session = Depends(get_db),
+    _api_key: str = Depends(verify_api_key),
+):
+    """Generate follow-up questions from completed research."""
+    from src.services.research.followup_generator import get_followup_generator
+
+    # Validate task_id format
+    if not validate_task_id(task_id):
+        raise HTTPException(status_code=400, detail=ERROR_INVALID_TASK_ID)
+
+    task = get_task(db, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail=ERROR_TASK_NOT_FOUND)
+
+    if task["status"] != STATUS_COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Task not completed. Current status: {task['status']}",
+        )
+
+    result = task.get("result")
+    if not result:
+        raise HTTPException(status_code=400, detail="No results available for this task")
+
+    try:
+        generator = get_followup_generator()
+        followups = await generator.generate_followups(result, max_questions=max_questions)
+
+        response_data = followups.to_dict()
+
+        # Filter by priority if specified
+        if priority:
+            response_data["questions"] = [
+                q for q in response_data["questions"]
+                if q["priority"] == priority
+            ]
+
+        return {
+            "status": "success",
+            "task_id": task_id,
+            **response_data,
+        }
+    except Exception as e:
+        logger.error(f"Failed to generate follow-ups: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate follow-ups: {str(e)}")
+
+
+@app.get(
+    "/api/v1/research/{task_id}/quality",
+    tags=["Research"],
+    summary="Get Report Quality Score",
+    description="""
+Score a completed research report on multiple quality dimensions:
+- Completeness: Expected sections present
+- Source Quality: Authoritative sources used
+- Depth: Specific data vs generic content
+- Actionability: Useful recommendations
+- Freshness: Recent sources used
+- Consistency: No placeholders or boilerplate
+
+Returns overall score and dimension breakdown with suggestions.
+""",
+    responses={
+        200: {"description": "Quality score retrieved successfully"},
+        400: {"description": "Task not completed or results unavailable"},
+        401: {"description": "Invalid or missing API key"},
+        404: {"description": "Task not found"},
+    },
+)
+async def get_report_quality(
+    task_id: str,
+    db: Session = Depends(get_db),
+    _api_key: str = Depends(verify_api_key),
+):
+    """Score a completed research report."""
+    from src.services.quality.report_scorer import ReportScorer
+
+    # Validate task_id format
+    if not validate_task_id(task_id):
+        raise HTTPException(status_code=400, detail=ERROR_INVALID_TASK_ID)
+
+    task = get_task(db, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail=ERROR_TASK_NOT_FOUND)
+
+    if task["status"] != STATUS_COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Task not completed. Current status: {task['status']}",
+        )
+
+    result = task.get("result")
+    if not result:
+        raise HTTPException(status_code=400, detail="No results available for this task")
+
+    try:
+        # Build drafts from phases
+        company_name = result.get("company_name", "Unknown")
+        drafts = {}
+        phases = result.get("phases", [])
+
+        for phase in phases:
+            phase_name = phase.get("phase_name", "unknown")
+            content = phase.get("markdown_content", "")
+            if content:
+                drafts[f"{phase_name}.md"] = content
+
+        if not drafts:
+            return {
+                "status": "warning",
+                "task_id": task_id,
+                "message": "No content available for scoring",
+                "overall_score": 0.0,
+            }
+
+        # Score the report
+        scorer = ReportScorer(threshold=0.60)
+        score = scorer.score_from_drafts(company_name, drafts)
+
+        return {
+            "status": "success",
+            "task_id": task_id,
+            "company_name": company_name,
+            **score.to_dict(),
+        }
+    except Exception as e:
+        logger.error(f"Failed to score report: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to score report: {str(e)}")
+
+
+@app.post(
+    "/api/v1/market/consolidate",
+    tags=["Market"],
+    summary="Consolidate Market Research",
+    description="""
+Create a consolidated market report from multiple company researches.
+
+This analyzes research from multiple companies in the same market and creates:
+- Market overview synthesizing all company data
+- Competitive analysis comparing all companies
+- Company comparison matrix
+- Individual company summaries
+- Combined sources list
+
+**Use Cases:**
+- Create industry reports from multiple competitor researches
+- Generate market landscape analysis
+- Build competitive intelligence dashboards
+
+**Example:**
+```json
+{
+    "market_name": "Paraguay Telecommunications",
+    "company_folders": ["Personal Paraguay", "Tigo Paraguay", "Claro Paraguay"],
+    "market_config": {
+        "industry": "Telecommunications",
+        "region": "Paraguay"
+    }
+}
+```
+""",
+    responses={
+        200: {"description": "Market consolidation completed successfully"},
+        400: {"description": "No valid company data found"},
+        401: {"description": "Invalid or missing API key"},
+    },
+)
+async def consolidate_market(
+    request: MarketConsolidationRequest,
+    _api_key: str = Depends(verify_api_key),
+):
+    """Consolidate research from multiple companies into a market report."""
+    from src.services.data.market_consolidation import MarketConsolidator
+
+    consolidator = MarketConsolidator(base_dir="outputs")
+
+    try:
+        output_path = await consolidator.consolidate_market(
+            market_name=request.market_name,
+            company_folders=request.company_folders,
+            market_config=request.market_config,
+        )
+
+        return {
+            "status": "success",
+            "market_name": request.market_name,
+            "companies_consolidated": len(request.company_folders),
+            "output_path": str(output_path),
+            "message": f"Market report created at {output_path}",
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Market consolidation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Consolidation failed: {str(e)}")

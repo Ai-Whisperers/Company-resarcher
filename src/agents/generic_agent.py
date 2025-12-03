@@ -4,7 +4,7 @@ from .base_agent import BaseAgent
 from ..core.types import CompanyProfile, ResearchPhaseResult
 from ..core.logging import setup_logger
 from ..services.security import sanitize_company_name
-from ..core.output_structure import get_template_path
+from ..core.output.output_structure import get_template_path
 
 logger = setup_logger("generic_agent")
 

@@ -243,7 +243,9 @@ class NewsAggregatorTool:
             )
             self.client = None
         else:
-            self.client = NewsApiClient(api_key=api_key)
+            # Handle SecretStr from Pydantic settings
+            key_value = api_key.get_secret_value() if hasattr(api_key, "get_secret_value") else api_key
+            self.client = NewsApiClient(api_key=key_value)
             logger.info("NewsAPI client initialized successfully")
 
     async def get_company_news(

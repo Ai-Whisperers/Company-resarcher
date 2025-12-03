@@ -1,7 +1,28 @@
 """
 Graph module for research workflow orchestration.
 
-This module provides:
+.. deprecated::
+    This module is DEPRECATED and will be removed in a future version.
+    The LangGraph-based orchestration has been replaced by the simpler
+    PipelineOrchestrator in `src.pipeline.orchestrator`.
+
+    Migration guide:
+    - Use `PipelineOrchestrator` for standard research workflows
+    - Use `ComprehensiveResearchService` for full comprehensive research
+    - Use `DeepResearchService` for iterative research with learnings
+
+    Example migration:
+        # Old (deprecated):
+        from src.graph import ResearchGraph, ResearchState
+        graph = ResearchGraph()
+        result = await graph.execute(state)
+
+        # New (recommended):
+        from src.pipeline.orchestrator import PipelineOrchestrator
+        orchestrator = PipelineOrchestrator()
+        result = await orchestrator.conduct_research("Company Name")
+
+Legacy features (still available for backward compatibility):
 - State management for research workflows (GR-001 to GR-005)
 - Graph execution with resilience patterns (GR-007, GR-008, GR-011, GR-012)
 - Configurable phase transitions (GR-009)
@@ -22,6 +43,16 @@ This module provides:
 - Event emission system (GR-033)
 - Plugin system for extensibility (GR-034)
 """
+
+import warnings
+
+# Emit deprecation warning on import
+warnings.warn(
+    "The src.graph module is deprecated and will be removed in a future version. "
+    "Use src.pipeline.orchestrator.PipelineOrchestrator instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from .state import (
     # Core state
