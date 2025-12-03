@@ -19,8 +19,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from ..ai import BaseAIClient, OpenAIClient
-from ...logger import setup_logger
+from .. import BaseAIClient, OpenAIClient
+from ...logging import setup_logger
 
 logger = setup_logger("smart_router")
 
