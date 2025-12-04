@@ -1,0 +1,105 @@
+# LAC Paraguay - Competitor Profile
+# High-complexity laboratory services with national coverage
+
+company:
+  name: "LAC Paraguay"
+  legal_name: "Laboratorio de Alta Complejidad S.A."
+  website: "https://lacparaguay.com"
+  industry: "Clinical Diagnostics & High-Complexity Laboratory Services"
+  country: "Paraguay"
+
+  # Company details
+  headquarters: "Avda. Brasilia 671 c/ Rep. de Siria, Asunción, Paraguay"
+
+  # Ownership structure
+  ownership:
+    type: "Private"
+    notes: "Privately held Paraguayan company"
+
+  # Market position
+  market_position:
+    segment: "High-Complexity Laboratory Services"
+    coverage: "National coverage throughout Paraguay"
+    positioning: "High-complexity diagnostic services provider"
+
+  # Services offered
+  services:
+    - "High-complexity clinical diagnostics"
+    - "Specialized laboratory testing"
+    - "National laboratory services network"
+
+  # Key differentiators
+  usp:
+    - "High-complexity specialty laboratory services"
+    - "National coverage across Paraguay"
+    - "Focus on complex diagnostic testing"
+
+# Competitors to cross-reference
+competitors:
+  direct:
+    - "Meyer Lab"               # Molecular biology and comprehensive services
+    - "Laboratorio San Roque"   # Molecular biology and comprehensive services
+    - "Laboratorio Curie"       # Specialized genomics
+
+  indirect:
+    - "IICS"                    # Academic/public research
+
+# Research configuration
+research:
+  focus_areas:
+    - market        # High-complexity diagnostics market
+    - competitor    # Competitive positioning
+    - brand         # Brand perception and market presence
+
+  # Specific queries to prioritize
+  priority_queries:
+    - "LAC Paraguay laboratory services"
+    - "Laboratorio de Alta Complejidad Paraguay"
+    - "High-complexity diagnostics Paraguay"
+    - "LAC Paraguay market share"
+    - "LAC laboratory locations Paraguay"
+    - "Alta Complejidad vs molecular biology laboratories"
+
+  # Sources to prioritize
+  priority_sources:
+    - "lacparaguay.com"      # Corporate website
+    - "mspbs.gov.py"         # Ministry of Health
+
+  # Known data gaps
+  data_gaps:
+    - "Revenue and financial performance"
+    - "Market share in Paraguay"
+    - "Number of locations/service points"
+    - "Year founded"
+    - "Number of employees"
+    - "Specific test menu and capabilities"
+    - "Definition of 'high-complexity' services offered"
+    - "Technology platform and equipment"
+    - "Quality certifications"
+    - "International partnerships (if any)"
+    - "Patient volume and test statistics"
+    - "Pricing and payer mix"
+
+notes: |
+  LAC Paraguay positions as a "high-complexity" laboratory service provider with
+  national coverage. Key research priorities:
+
+  - Define what "alta complejidad" (high-complexity) means in the Paraguay context:
+    Does it refer to esoteric testing, molecular diagnostics, specialized chemistry,
+    or a combination?
+
+  - How does LAC's service offering compare to Meyer Lab's molecular biology focus
+    and Laboratorio Curie's cancer genomics specialization?
+
+  - Does "national coverage" refer to sample collection network, physical locations,
+    or reference laboratory send-out capabilities?
+
+  - Is LAC primarily a reference laboratory for other healthcare providers, or do
+    they also serve direct-to-patient like Meyer Lab?
+
+  Limited information is available about LAC Paraguay. The research should focus on
+  understanding their service model, capabilities, and competitive differentiation
+  within the high-complexity diagnostics segment.
+
+  As a private company, financial data will be very limited. Focus on service
+  offerings, geographic coverage, and market positioning.

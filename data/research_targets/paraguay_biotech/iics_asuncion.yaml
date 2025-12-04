@@ -1,0 +1,131 @@
+# IICS Asunción - Academic/Public Institution Profile
+# Institute for Health Sciences Research, National University of Asunción
+
+company:
+  name: "Instituto de Investigaciones en Ciencias de la Salud"
+  legal_name: "IICS - Universidad Nacional de Asunción"
+  website: "http://www.iics.una.py"
+  industry: "Academic Research & Public Health Diagnostics"
+  country: "Paraguay"
+
+  type: "Academic/Public Institution"
+
+  # Institution details
+  parent_organization: "Universidad Nacional de Asunción (UNA)"
+  headquarters: "Asunción, Paraguay"
+
+  # Ownership structure
+  ownership:
+    type: "Public (Government-funded university)"
+    parent: "National University of Asunción"
+
+  # Market position
+  market_position:
+    segment: "Academic Research & Public Health Diagnostics"
+    role: "Research, education, and public health laboratory services"
+    positioning: "Academic institution with clinical diagnostic capabilities"
+
+  # Services offered
+  services:
+    research:
+      - "Health sciences research"
+      - "Academic research programs"
+      - "Graduate and postgraduate education"
+
+    diagnostics:
+      - "Scientific diagnostic services"
+      - "Academic clinical diagnostics"
+      - "Public health laboratory services"
+
+    public_health:
+      - "COVID-19 diagnostic testing (designated contingency lab)"
+      - "Infectious disease diagnostics"
+      - "Epidemiological surveillance support"
+
+  # Key differentiators
+  usp:
+    - "Academic research institution with diagnostic capabilities"
+    - "Government-designated contingency laboratory (COVID-19)"
+    - "Public health mission and community service"
+    - "Research and education combined with diagnostics"
+    - "Universidad Nacional de Asunción affiliation"
+
+  # COVID-19 role
+  covid_role:
+    designation: "Contingency technical laboratory for COVID-19 diagnosis"
+    services: "Scientific, academic, and clinical diagnostic services to Paraguayan community"
+
+# Competitors to cross-reference
+competitors:
+  private_labs:
+    - "Meyer Lab"               # Commercial molecular biology
+    - "Laboratorio San Roque"   # Commercial diagnostics
+    - "Laboratorio Curie"       # Commercial genomics
+
+  academic_public:
+    - "Instituto de Medicina Tropical"  # Public health focus
+    - "Laboratorio Central de Salud Pública (LCSP)"  # Ministry of Health reference lab
+
+# Research configuration
+research:
+  focus_areas:
+    - market        # Academic/public health diagnostics landscape
+    - competitor    # Comparison to commercial laboratories
+
+  # Specific queries to prioritize
+  priority_queries:
+    - "IICS Universidad Nacional Asuncion research"
+    - "IICS diagnostic services Paraguay"
+    - "Academic laboratories vs commercial labs Paraguay"
+    - "IICS COVID-19 testing Paraguay"
+    - "Public health diagnostics Paraguay"
+    - "Universidad Nacional Asuncion health sciences"
+    - "IICS research publications Paraguay"
+
+  # Sources to prioritize
+  priority_sources:
+    - "iics.una.py"              # Institution website
+    - "una.py"                   # University website
+    - "mspbs.gov.py"             # Ministry of Health
+    - "pubmed.ncbi.nlm.nih.gov"  # Research publications
+    - "scielo.org"               # Latin American research
+
+  # Known data gaps
+  data_gaps:
+    - "Operating budget (likely public but not easily accessible)"
+    - "Test volume statistics"
+    - "Revenue from diagnostic services (if any)"
+    - "Number of researchers and staff"
+    - "Research funding sources and amounts"
+    - "Diagnostic test menu"
+    - "Technology platforms and equipment"
+    - "Patient demographics served"
+    - "Pricing structure (subsidized, free, cost-recovery?)"
+    - "Quality certifications"
+
+notes: |
+  IICS operates under a fundamentally different business model than commercial
+  laboratories like Meyer Lab, San Roque, or Curie. Key differences:
+
+  - Mission: Academic research and public health vs. commercial diagnostics
+  - Funding: Government/university funding vs. fee-for-service revenue
+  - Pricing: Likely subsidized or cost-recovery vs. profit-oriented
+  - Services: Research-focused with diagnostic capabilities vs. diagnostic-focused
+  - Target population: Public health and academic community vs. private patients
+
+  During COVID-19, IICS served as a contingency technical laboratory, demonstrating
+  its role in public health emergency response alongside commercial laboratories.
+
+  Research should focus on:
+  - Understanding the academic-clinical interface
+  - Role in public health vs. commercial diagnostics
+  - Research output and publications
+  - Collaboration with Ministry of Health and commercial labs
+  - Technology capabilities compared to private sector
+
+  Financial data will be limited and not directly comparable to commercial labs.
+  Focus on institutional role, capabilities, and public health mission.
+
+  This profile is included to understand the full diagnostic ecosystem in Paraguay,
+  including both commercial and academic/public health components. IICS is not a
+  direct competitor to Meyer Lab but plays a complementary role in the healthcare system.

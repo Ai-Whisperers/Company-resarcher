@@ -1,0 +1,163 @@
+# Meyer Lab - Primary Research Target
+# First Molecular Biology Laboratory in Paraguay
+
+company:
+  name: "Meyer Lab"
+  legal_name: "Meyer Lab S.A."
+  website: "https://www.meyerlab.com.py"
+  industry: "Clinical Diagnostics & Molecular Biology"
+  country: "Paraguay"
+
+  # Company details
+  headquarters: "Asunción, Paraguay"
+  locations:
+    - "Casa Central, Asunción (24-hour service)"
+    - "San Lorenzo"
+    - "San Cristóbal"
+    - "Pinedo Shopping"
+    - "Plaza Madero"
+    - "Lambaré"
+
+  # Ownership structure
+  ownership:
+    type: "Private"
+    notes: "Privately held Paraguayan company"
+
+  # Market position
+  market_position:
+    rank: 1  # First molecular biology laboratory in Paraguay
+    segment: "Clinical Diagnostics & Molecular Biology"
+    certifications:
+      - "ISO 9001:2015 (First molecular biology lab in Paraguay with this certification)"
+    memberships:
+      - "Founding member of ALADIL (Association of Diagnostic Laboratories of Latin America)"
+      - "ALADIL representative for Paraguay"
+
+  # Services offered
+  services:
+    clinical_analysis:
+      - "Hematology"
+      - "Endocrinology"
+      - "Clinical chemistry"
+      - "Toxicology"
+      - "Microbiology"
+      - "Urinalysis"
+      - "Parasitology"
+
+    molecular_biology:
+      - "PCR testing (COVID-19 and other pathogens)"
+      - "Multiplex panels for simultaneous multi-pathogen detection"
+      - "Genetic testing"
+      - "Molecular diagnostics"
+
+    specialized_diagnostics:
+      - "Access to Mayo Clinic Laboratories' specialized tests (via partnership)"
+      - "Advanced diagnostics without leaving Paraguay"
+      - "Personalized medicine support"
+
+  # Patient segments
+  patient_segments:
+    - "Private patients"
+    - "Insured patients"
+    - "Outpatients"
+    - "Hospitalized patients"
+
+  # Key differentiators
+  usp:
+    - "First molecular biology laboratory with ISO 9001:2015 in Paraguay"
+    - "Exclusive partnership with Mayo Clinic Laboratories (USA)"
+    - "24-hour service availability, 365 days/year"
+    - "Multiple locations throughout Paraguay"
+    - "State-of-the-art multiplex diagnostic technology"
+    - "Founding member and Paraguay representative of ALADIL"
+
+  # Strategic partnerships
+  partnerships:
+    - name: "Mayo Clinic Laboratories"
+      country: "USA"
+      description: "Access to Mayo Clinic's standards of excellence for advanced diagnostics"
+      benefit: "Enables precise and advanced diagnoses without patients leaving Paraguay"
+      services: "Wide variety of specialized analyses and reference testing"
+
+  # Brand
+  tagline: "Ética, Ciencia y Tecnología" # Inferred from Laboratorio Curie pattern
+  brand_positioning: "Premium molecular diagnostics with international standards"
+
+# Competitors to cross-reference
+competitors:
+  direct:
+    - "Laboratorio San Roque"      # Molecular biology and comprehensive diagnostics
+    - "Laboratorio Curie"           # Cancer genomics and DNA testing (NGS)
+    - "LAC Paraguay"                # High-complexity laboratory services
+
+  indirect:
+    - "Instituto de Investigaciones en Ciencias de la Salud (IICS)"  # Academic/public
+    - "Instituto de Medicina Tropical"                                # Public health
+
+  international_reference_labs:
+    - "Mayo Clinic Laboratories (USA)"  # Partner, not competitor
+
+# Research configuration
+research:
+  focus_areas:
+    - market        # Clinical diagnostics market in Paraguay
+    - financial     # Revenue, profitability (if available)
+    - competitor    # Competitive landscape
+    - brand         # Brand positioning and market perception
+
+  # Specific queries to prioritize
+  priority_queries:
+    - "Meyer Lab Paraguay market share"
+    - "Meyer Lab Mayo Clinic partnership details"
+    - "Molecular biology laboratory market Paraguay"
+    - "Clinical diagnostics market size Paraguay"
+    - "ISO 9001:2015 laboratories Paraguay"
+    - "ALADIL Paraguay member laboratories"
+    - "Meyer Lab financial performance"
+    - "Personalized medicine adoption Paraguay"
+    - "NGS next generation sequencing Paraguay"
+    - "Cancer genomics services Paraguay"
+
+  # Sources to prioritize
+  priority_sources:
+    - "meyerlab.com.py"              # Corporate website
+    - "mayocliniclabs.com"           # Partner reference lab
+    - "aladil.org"                   # Industry association
+    - "mspbs.gov.py"                 # Ministry of Health (regulator)
+    - "citycancerchallenge.org"      # Cancer care initiatives
+    - "linkedin.com/company/meyer-lab"  # Corporate updates
+
+  # Known data gaps (from web research)
+  data_gaps:
+    - "Exact revenue figures (private company)"
+    - "EBITDA and profit margins"
+    - "Test volume statistics (annual tests performed)"
+    - "Market share percentage in Paraguay clinical diagnostics"
+    - "Number of employees"
+    - "Year founded / founding date"
+    - "Capital investment in molecular biology equipment"
+    - "Pricing for molecular diagnostics vs. routine tests"
+    - "Insurance reimbursement rates"
+    - "Mayo Clinic partnership revenue share or structure"
+    - "Growth rate (YoY test volumes or revenue)"
+    - "Patient demographics and payer mix"
+
+notes: |
+  Meyer Lab is the pioneer molecular biology laboratory in Paraguay with ISO 9001:2015
+  certification. Their exclusive partnership with Mayo Clinic Laboratories differentiates
+  them in the market by providing access to advanced diagnostics without requiring
+  international travel for patients.
+
+  As a founding member of ALADIL and Paraguay's representative, Meyer Lab has strong
+  regional credibility and international quality standards.
+
+  Financial data will be challenging to obtain as this is a privately held company.
+  Best approach is to analyze market context, service offerings, partnership value,
+  and competitive positioning rather than expecting detailed financials.
+
+  The company's tagline and brand archetype are inferred from industry patterns and
+  may need verification during research.
+
+  Key research priority: Understanding the Mayo Clinic partnership model and how it
+  positions Meyer Lab relative to competitors offering similar molecular diagnostics
+  but without international reference lab partnerships.

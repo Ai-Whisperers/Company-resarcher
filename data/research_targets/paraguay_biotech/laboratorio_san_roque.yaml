@@ -1,0 +1,104 @@
+# Laboratorio San Roque - Competitor Profile
+# Comprehensive clinical diagnostics with molecular biology capabilities
+
+company:
+  name: "Laboratorio San Roque"
+  legal_name: "Laboratorio San Roque S.A."
+  website: "https://www.labsanroque.com.py"
+  industry: "Clinical Diagnostics & Molecular Biology"
+  country: "Paraguay"
+
+  # Company details
+  headquarters: "Asunción, Paraguay"
+
+  # Ownership structure
+  ownership:
+    type: "Private"
+    notes: "Privately held Paraguayan company"
+
+  # Market position
+  market_position:
+    segment: "Comprehensive Clinical Diagnostics & Molecular Biology"
+    description: "Full-service clinical laboratory with molecular biology department"
+
+  # Services offered
+  services:
+    clinical_analysis:
+      - "Microbiology"
+      - "Hematology"
+      - "Clinical chemistry"
+      - "Hemostasis (coagulation studies)"
+      - "Immunology"
+
+    molecular_biology:
+      - "Molecular diagnostics using latest technology in Paraguay"
+      - "PCR testing"
+      - "Genetic testing"
+      - "Disease diagnosis via molecular techniques"
+
+  # Key differentiators
+  usp:
+    - "Comprehensive range of clinical analysis services"
+    - "Molecular Biology Department with state-of-the-art equipment"
+    - "Professionally competent staff in molecular techniques"
+    - "Latest technology available in Paraguay"
+
+  # Capabilities
+  technology:
+    - "State-of-the-art molecular biology equipment"
+    - "Advanced diagnostic platforms"
+
+# Competitors to cross-reference
+competitors:
+  direct:
+    - "Meyer Lab"           # Primary competitor in molecular biology
+    - "Laboratorio Curie"   # Cancer genomics specialist
+    - "LAC Paraguay"        # High-complexity services
+
+  indirect:
+    - "IICS"                # Academic/public research
+
+# Research configuration
+research:
+  focus_areas:
+    - market        # Position in clinical diagnostics market
+    - competitor    # Competitive positioning vs. Meyer Lab
+    - brand         # Brand differentiation
+
+  # Specific queries to prioritize
+  priority_queries:
+    - "Laboratorio San Roque Paraguay market position"
+    - "Laboratorio San Roque molecular biology services"
+    - "San Roque vs Meyer Lab comparison"
+    - "Clinical laboratories Paraguay comparison"
+    - "San Roque laboratory technology capabilities"
+
+  # Sources to prioritize
+  priority_sources:
+    - "labsanroque.com.py"   # Corporate website
+    - "mspbs.gov.py"         # Ministry of Health
+    - "aladil.org"           # Industry association
+
+  # Known data gaps
+  data_gaps:
+    - "Revenue and financial performance"
+    - "Market share in Paraguay"
+    - "Test volume statistics"
+    - "Number of locations"
+    - "Year founded"
+    - "Number of employees"
+    - "International partnerships (if any)"
+    - "Quality certifications (ISO, etc.)"
+    - "Pricing comparison to competitors"
+
+notes: |
+  Laboratorio San Roque is a direct competitor to Meyer Lab with similar molecular
+  biology capabilities. Key differentiation points to investigate:
+  - Technology platform differences
+  - International partnerships (vs. Meyer Lab's Mayo Clinic partnership)
+  - Quality certifications
+  - Service breadth and depth
+  - Pricing and market positioning
+
+  As a private company, financial data will be limited. Focus on service offerings,
+  capabilities, and competitive positioning.

@@ -1,0 +1,128 @@
+# Laboratorio Curie - Competitor Profile
+# Specialized in cancer genomics, NGS, and DNA testing
+
+company:
+  name: "Laboratorio Curie"
+  legal_name: "Laboratorio Curie S.A."
+  website: "https://www.laboratoriocurie.com.py"
+  industry: "Clinical Diagnostics & Cancer Genomics"
+  country: "Paraguay"
+
+  # Company details
+  headquarters: "Asunción, Paraguay"
+
+  # Ownership structure
+  ownership:
+    type: "Private"
+    notes: "Privately held Paraguayan company"
+
+  # Market position
+  market_position:
+    segment: "Specialized Molecular Diagnostics & Cancer Genomics"
+    specialization: "Precision medicine and next-generation sequencing (NGS)"
+
+  # Services offered
+  services:
+    specialized_genomics:
+      - "DNA testing for biological parentage (paternity testing)"
+      - "RT-PCR testing"
+      - "Cancer susceptibility allele identification"
+      - "Next-Generation Sequencing (NGS) methodology"
+      - "Genetic counseling"
+      - "Personalized medicine support"
+
+    focus_areas:
+      - "Cancer genomics"
+      - "Genetic disease screening"
+      - "Hereditary cancer risk assessment"
+
+  # Key differentiators
+  usp:
+    - "Specialized in cancer genomics and NGS"
+    - "Next-Generation Sequencing capabilities"
+    - "Focus on personalized medicine and precision oncology"
+    - "DNA testing expertise (paternity and genetic disorders)"
+
+  # Brand
+  tagline: "Ética, Ciencia y Tecnología"
+  brand_positioning: "Precision medicine and cancer genomics specialist"
+
+  # Technology platform
+  technology:
+    - "Next-Generation Sequencing (NGS) platforms"
+    - "RT-PCR systems"
+    - "Bioinformatics analysis capabilities"
+
+# Competitors to cross-reference
+competitors:
+  direct:
+    - "Meyer Lab"                # Mayo Clinic partnership for specialized testing
+    - "Laboratorio San Roque"    # Molecular biology capabilities
+
+  indirect:
+    - "LAC Paraguay"             # High-complexity diagnostics
+    - "IICS"                     # Academic cancer research
+
+  international:
+    - "Reference labs offering NGS (international send-outs)"
+
+# Research configuration
+research:
+  focus_areas:
+    - market        # Cancer genomics and NGS market in Paraguay
+    - competitor    # Competitive positioning in specialized diagnostics
+    - brand         # Premium positioning in precision medicine
+
+  # Specific queries to prioritize
+  priority_queries:
+    - "Laboratorio Curie Paraguay NGS services"
+    - "Cancer genomics Paraguay market"
+    - "Next-generation sequencing Paraguay adoption"
+    - "Personalized medicine Paraguay"
+    - "Curie laboratory cancer susceptibility testing"
+    - "NGS vs traditional diagnostics Paraguay"
+    - "Genetic counseling services Paraguay"
+    - "Hereditary cancer testing Paraguay"
+
+  # Sources to prioritize
+  priority_sources:
+    - "laboratoriocurie.com.py"   # Corporate website
+    - "mspbs.gov.py"              # Ministry of Health
+    - "citycancerchallenge.org"   # Cancer care initiatives
+    - "ncbi.nlm.nih.gov"          # NIH genetic testing registry
+
+  # Known data gaps
+  data_gaps:
+    - "Revenue and financial performance"
+    - "Market share in cancer genomics/NGS"
+    - "Number of NGS tests performed annually"
+    - "Year founded"
+    - "Number of employees"
+    - "NGS platform vendor (Illumina, Thermo Fisher, etc.)"
+    - "Pricing for NGS panels"
+    - "Insurance reimbursement for cancer genomics"
+    - "Partnerships with oncology centers"
+    - "Turnaround time for NGS results"
+    - "Test menu breadth (gene panels available)"
+    - "Quality certifications (CAP, ISO, etc.)"
+
+notes: |
+  Laboratorio Curie differentiates through specialization in cancer genomics and
+  next-generation sequencing (NGS), positioning as a precision medicine specialist
+  rather than a general clinical laboratory.
+
+  Key research questions:
+  - How does Curie's NGS specialization compare to Meyer Lab's Mayo Clinic
+    partnership for advanced testing?
+  - What is the addressable market for cancer genomics in Paraguay?
+  - Does Curie send samples internationally for ultra-specialized testing or
+    perform all NGS in-house?
+  - How does pricing compare for specialized genomic testing vs. routine molecular?
+
+  This profile represents the emerging segment of personalized medicine and precision
+  oncology in Paraguay. Understanding Curie's capabilities and market positioning
+  will illuminate the evolution from routine diagnostics to advanced genomics.
+
+  As a private specialized laboratory, financial data will be extremely limited.
+  Focus on service offerings, technology platform, market positioning, and
+  competitive differentiation.

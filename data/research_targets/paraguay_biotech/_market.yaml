@@ -1,0 +1,150 @@
+# Paraguay Biotech & Clinical Diagnostics Market
+# Personalized Medicine and Molecular Biology Market Overview
+
+market:
+  name: "Paraguay Clinical Diagnostics & Molecular Biology"
+  country: "Paraguay"
+  region: "Latin America"
+  industry: "Biotechnology & Clinical Diagnostics"
+
+  # Market overview
+  description: |
+    Paraguay's clinical diagnostics market is evolving with increasing adoption
+    of molecular biology techniques and personalized medicine. The market is
+    characterized by private clinical laboratories offering advanced diagnostic
+    services, with growing partnerships with international reference laboratories
+    like Mayo Clinic Laboratories.
+
+  # Market characteristics
+  market_characteristics:
+    maturity: "Developing"
+    concentration: "Moderate"
+    regulation_level: "Ministry of Public Health and Social Welfare (MSPBS)"
+    quality_standards:
+      - "ISO 9001:2015 (Quality Management)"
+      - "ISO 15189 (Medical Laboratories)"
+      - "ALADIL Standards (Latin American Diagnostic Laboratories)"
+
+    key_trends:
+      - "Adoption of molecular diagnostics and PCR testing (accelerated by COVID-19)"
+      - "Partnerships with international reference laboratories (Mayo Clinic, etc.)"
+      - "Cancer genomics and precision oncology services"
+      - "DNA testing for paternity and genetic counseling"
+      - "Network integration of pathology laboratories (SIGAP system)"
+      - "Increasing demand for specialized testing beyond routine clinical analysis"
+
+  # Regulatory environment
+  regulator:
+    name: "Ministerio de Salud Pública y Bienestar Social (MSPBS)"
+    oversight: "Laboratory Central de Salud Pública (LCSP)"
+    website: "https://www.mspbs.gov.py/lcsp"
+
+  # Market segments
+  segments:
+    - name: "Routine Clinical Analysis"
+      description: "Hematology, chemistry, urinalysis, parasitology"
+      maturity: "Mature"
+
+    - name: "Molecular Biology & PCR Testing"
+      description: "COVID-19, infectious diseases, genetic testing"
+      maturity: "Growth"
+      key_players:
+        - "Meyer Lab"
+        - "Laboratorio San Roque"
+
+    - name: "Cancer Genomics & Precision Medicine"
+      description: "NGS, cancer susceptibility testing, personalized oncology"
+      maturity: "Emerging"
+      key_players:
+        - "Laboratorio Curie"
+        - "Meyer Lab (via Mayo Clinic partnership)"
+
+    - name: "DNA Testing & Genetic Counseling"
+      description: "Paternity testing, genetic disorders screening"
+      maturity: "Growth"
+      key_players:
+        - "Laboratorio Curie"
+        - "Meyer Lab"
+
+  # Market dynamics
+  dynamics:
+    growth_drivers:
+      - "Rising demand for advanced diagnostics in oncology"
+      - "International partnerships providing access to specialized testing"
+      - "Government investment in pathology laboratory networks (SIGAP)"
+      - "Increasing health insurance coverage for molecular diagnostics"
+      - "Growing awareness of personalized medicine"
+
+    barriers_to_entry:
+      - "High capital investment in molecular equipment (NGS, PCR, etc.)"
+      - "Regulatory approval and quality certification requirements"
+      - "Need for specialized technical expertise"
+      - "Competition from established players with international partnerships"
+      - "Limited reimbursement for advanced genetic testing"
+
+    challenges:
+      - "Limited public data on market size and financial performance (private companies)"
+      - "Dependence on international reference labs for ultra-specialized testing"
+      - "Need for continuous technology upgrades and staff training"
+      - "Price competition in routine testing vs. specialized diagnostics"
+
+# Company references (file names, not full paths)
+companies:
+  primary:
+    - meyerlab.yaml                    # First molecular biology lab, Mayo Clinic partnership
+
+  competitors:
+    - laboratorio_san_roque.yaml       # Molecular biology and comprehensive diagnostics
+    - laboratorio_curie.yaml           # Cancer genomics and DNA testing (NGS)
+    - lac_paraguay.yaml                # High-complexity laboratory services
+
+  academic_public:
+    - iics_asuncion.yaml               # Institute for Health Sciences Research (UNA)
+    - instituto_medicina_tropical.yaml # Public health diagnostics and research
+
+# Market-level research priorities
+research_focus:
+  - "Molecular biology laboratory market size and growth in Paraguay"
+  - "Impact of Mayo Clinic partnership on diagnostic capabilities"
+  - "Adoption rate of NGS and cancer genomics services"
+  - "Regulatory pathway for molecular diagnostics approval"
+  - "Reimbursement landscape for personalized medicine"
+  - "Competitive positioning: private labs vs. academic institutions"
+  - "International reference laboratory partnerships in LATAM"
+  - "SIGAP pathology network integration and interoperability"
+
+# Data sources
+priority_sources:
+  - "mspbs.gov.py"                     # Ministry of Health
+  - "meyerlab.com.py"                  # Meyer Lab corporate site
+  - "mayocliniclabs.com"               # Mayo Clinic Laboratories
+  - "aladil.org"                       # Latin American Diagnostic Laboratories Assoc
+  - "citycancerchallenge.org"          # Cancer care improvement initiatives
+  - "labsanroque.com.py"               # Laboratorio San Roque
+  - "lacparaguay.com"                  # LAC Paraguay
+  - "laboratoriocurie.com.py"          # Laboratorio Curie
+
+# Known data gaps
+data_gaps:
+  - "Total market size (USD) for clinical diagnostics in Paraguay"
+  - "Market share breakdown by laboratory"
+  - "Financial performance of private laboratories (revenue, EBITDA)"
+  - "Test volume statistics (routine vs. molecular)"
+  - "Pricing benchmarks for molecular diagnostics"
+  - "Number of certified molecular biology laboratories"
+  - "Penetration rate of NGS and personalized medicine services"
+  - "Patient out-of-pocket costs vs. insurance reimbursement"
+
+notes: |
+  Paraguay's clinical diagnostics market is dominated by private laboratories with
+  limited public financial data. Meyer Lab's ISO 9001:2015 certification as the
+  first molecular biology lab and Mayo Clinic partnership position it as a market
+  leader in advanced diagnostics.
+
+  The market is transitioning from routine clinical testing to higher-value
+  molecular diagnostics and personalized medicine, driven by international
+  partnerships and government investment in laboratory networks.
+
+  Academic institutions (IICS, Instituto de Medicina Tropical) play important
+  roles in public health diagnostics and research but operate under different
+  business models than private commercial laboratories.
