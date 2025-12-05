@@ -1,7 +1,8 @@
-from typing import List, Dict, Any
-from ..core.logging import setup_logger
-from ..core.security import VaultManager
-from ..core.ai import get_ai_manager
+from typing import List, Dict, Any, Optional
+import warnings
+from src.core.logging import setup_logger
+from src.infrastructure.security import VaultManager
+from src.infrastructure.ai import get_ai_manager, AIClientManager
 
 logger = setup_logger("sector_analyst")
 
@@ -9,15 +10,83 @@ logger = setup_logger("sector_analyst")
 class SectorAnalyst:
     """
     Analyzes a sector by aggregating data from multiple companies stored in the Vault.
+
+    This class provides cross-company analysis capabilities by:
+    1. Querying the vector vault for companies in a given sector
+    2. Aggregating data across multiple company profiles
+    3. Using AI to synthesize sector-level insights and trends
+
+    Attributes:
+        vault: VaultManager for retrieving stored company data
+        ai: AIClientManager for generating AI-powered analysis
+
+    Example:
+        analyst = SectorAnalyst()
+        report = await analyst.analyze_sector("Technology")
+        print(report)  # Markdown sector analysis
     """
 
-    def __init__(self):
-        self.vault = VaultManager()
-        self.ai = get_ai_manager()
+    def __init__(
+        self,
+        vault: Optional[VaultManager] = None,
+        ai_manager: Optional[AIClientManager] = None,
+    ) -> None:
+        """
+        Initialize the SectorAnalyst.
+
+        Args:
+            vault: Optional VaultManager instance (creates default if None)
+            ai_manager: Optional AIClientManager (uses global manager if None)
+        """
+        # CQ-076: Add error handling for direct instantiation and DI warnings
+        if vault is None:
+            warnings.warn(
+                "Creating SectorAnalyst without vault is deprecated. "
+                "Provide a VaultManager instance for proper dependency injection.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            try:
+                vault = VaultManager()
+            except Exception as e:
+                logger.error(f"Failed to initialize VaultManager: {e}")
+                raise RuntimeError(
+                    f"VaultManager initialization failed: {e}. "
+                    "Provide a pre-initialized vault instance."
+                ) from e
+
+        if ai_manager is None:
+            warnings.warn(
+                "Creating SectorAnalyst without ai_manager is deprecated. "
+                "Provide an AIClientManager instance for proper dependency injection.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            ai_manager = get_ai_manager()
+
+        self.vault = vault
+        self.ai = ai_manager
 
     async def analyze_sector(self, sector_name: str) -> str:
         """
-        Generates a sector report by analyzing all companies in the given sector.
+        Generate a comprehensive sector analysis report.
+
+        Fetches all companies in the specified sector from the vault,
+        aggregates their data, and uses AI to identify trends, leaders,
+        and opportunities.
+
+        Args:
+            sector_name: Name of the sector to analyze (e.g., "Technology", "Healthcare")
+
+        Returns:
+            Markdown-formatted sector report including:
+            - Market trends and dynamics
+            - Key players and market leaders
+            - Investment opportunities
+            - Risk factors and challenges
+
+        Raises:
+            Returns error message in markdown format if vault search or AI generation fails.
         """
         logger.info(f"Starting analysis for sector: {sector_name}")
 
@@ -50,7 +119,17 @@ class SectorAnalyst:
 
     def _aggregate_data(self, companies: List[Dict[str, Any]]) -> str:
         """
-        Compiles a summary string of all found companies.
+        Compile company data into a structured summary for AI analysis.
+
+        Extracts company names and content snippets from vault results
+        and formats them as markdown sections.
+
+        Args:
+            companies: List of company dicts from vault search, each containing
+                       'company' (name) and 'content_snippet' keys
+
+        Returns:
+            Markdown-formatted string with each company as a subsection
         """
         summary = ""
         for company in companies:
@@ -61,7 +140,14 @@ class SectorAnalyst:
 
     async def _generate_sector_report(self, sector_name: str, data: str) -> str:
         """
-        Uses LLM to synthesize a sector report.
+        Use AI to synthesize aggregated company data into a sector report.
+
+        Args:
+            sector_name: Name of the sector being analyzed
+            data: Aggregated company data in markdown format
+
+        Returns:
+            AI-generated markdown report with sector analysis
         """
         prompt = f"""
         You are a Sector Analyst.

@@ -17,8 +17,8 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
 
-from ...core.logging import setup_logger
-from ...core.ai import get_ai_manager
+from src.core.logging import setup_logger
+from src.infrastructure.ai import get_ai_manager
 from .gap_analyzer import GapAnalyzer, DataGap
 
 logger = setup_logger("iterative_research")
@@ -27,6 +27,7 @@ logger = setup_logger("iterative_research")
 @dataclass
 class FillResult:
     """Result of attempting to fill a data gap."""
+
     gap: DataGap
     filled: bool
     value: Optional[str]
@@ -37,6 +38,7 @@ class FillResult:
 @dataclass
 class IterationResult:
     """Result of a single research iteration."""
+
     iteration: int
     gaps_before: int
     gaps_after: int
@@ -48,6 +50,7 @@ class IterationResult:
 @dataclass
 class IterativeResearchResult:
     """Final result of iterative research."""
+
     company: str
     initial_gaps: int
     final_gaps: int
@@ -91,14 +94,16 @@ class IterativeResearchService:
     async def _get_search_tool(self):
         """Lazy load search tool."""
         if self._search_tool is None:
-            from ...tools import get_shared_search_tool
+            from src.tools import get_shared_search_tool
+
             self._search_tool = get_shared_search_tool()
         return self._search_tool
 
     async def _get_browser_tool(self):
         """Lazy load browser tool."""
         if self._browser_tool is None:
-            from ...tools import get_shared_browser_tool
+            from src.tools import get_shared_browser_tool
+
             self._browser_tool = get_shared_browser_tool()
         return self._browser_tool
 
@@ -225,24 +230,30 @@ class IterativeResearchService:
                     other_companies=related_companies,
                 )
                 if value:
-                    fill_results.append(FillResult(
-                        gap=gap,
-                        filled=True,
-                        value=value,
-                        source_url="cross-reference",
-                        confidence=0.7,
-                    ))
+                    fill_results.append(
+                        FillResult(
+                            gap=gap,
+                            filled=True,
+                            value=value,
+                            source_url="cross-reference",
+                            confidence=0.7,
+                        )
+                    )
 
         # Then, run targeted searches for remaining gaps
         unfilled_gaps = [
-            g for g in gap_result.gaps
-            if not any(fr.gap.field_name == g.field_name and fr.filled for fr in fill_results)
+            g
+            for g in gap_result.gaps
+            if not any(
+                fr.gap.field_name == g.field_name and fr.filled for fr in fill_results
+            )
         ]
 
         # Limit queries per iteration to avoid rate limits
         max_queries_per_iter = 10
         queries_to_run = [
-            q for q in queries
+            q
+            for q in queries
             if any(g.field_name == q["target_field"] for g in unfilled_gaps)
         ][:max_queries_per_iter]
 
@@ -258,21 +269,26 @@ class IterativeResearchService:
                 if value:
                     # Find the gap this query was for
                     target_field = next(
-                        (q["target_field"] for q in queries_to_run if q["query"] == query),
-                        "Unknown"
+                        (
+                            q["target_field"]
+                            for q in queries_to_run
+                            if q["query"] == query
+                        ),
+                        "Unknown",
                     )
                     matching_gap = next(
-                        (g for g in unfilled_gaps if g.field_name == target_field),
-                        None
+                        (g for g in unfilled_gaps if g.field_name == target_field), None
                     )
                     if matching_gap:
-                        fill_results.append(FillResult(
-                            gap=matching_gap,
-                            filled=True,
-                            value=value,
-                            source_url=query,
-                            confidence=0.8,
-                        ))
+                        fill_results.append(
+                            FillResult(
+                                gap=matching_gap,
+                                filled=True,
+                                value=value,
+                                source_url=query,
+                                confidence=0.8,
+                            )
+                        )
 
         # Update the research documents with filled values
         filled_count = sum(1 for fr in fill_results if fr.filled)
@@ -306,7 +322,9 @@ class IterativeResearchService:
             try:
                 search_results = await search_tool.search(query, max_results=3)
                 results[query] = search_results
-                logger.debug(f"Search '{query[:50]}...' returned {len(search_results)} results")
+                logger.debug(
+                    f"Search '{query[:50]}...' returned {len(search_results)} results"
+                )
             except Exception as e:
                 logger.warning(f"Search failed for '{query}': {e}")
                 results[query] = []
@@ -336,10 +354,12 @@ class IterativeResearchService:
                 continue
 
             # Build context from search results
-            context = "\n\n".join([
-                f"Source: {r.get('title', 'Unknown')}\n{r.get('snippet', '')}"
-                for r in results[:3]
-            ])
+            context = "\n\n".join(
+                [
+                    f"Source: {r.get('title', 'Unknown')}\n{r.get('snippet', '')}"
+                    for r in results[:3]
+                ]
+            )
 
             prompt = f"""Extract the {target_field} for {company_name} from the following search results.
 
@@ -382,8 +402,8 @@ INSTRUCTIONS:
     ) -> None:
         """Update research documents with filled values."""
         # Sanitize to match output_manager.py naming
-        safe_name = re.sub(r'[<>:"/\\|?*]', '_', company_name)
-        safe_name = re.sub(r'[\s_]+', '_', safe_name).strip('_.')
+        safe_name = re.sub(r'[<>:"/\\|?*]', "_", company_name)
+        safe_name = re.sub(r"[\s_]+", "_", safe_name).strip("_.")
         company_dir = self.base_dir / safe_name
 
         # Group fills by file
@@ -407,18 +427,28 @@ INSTRUCTIONS:
                     # Replace N/A with actual value
                     # Pattern: field_name | N/A or **field_name:** N/A
                     patterns = [
-                        (rf'(\|\s*\*\*{re.escape(fr.gap.field_name)}\*\*\s*\|)\s*N/A\s*\|',
-                         rf'\1 {fr.value} |'),
-                        (rf'(\*\*{re.escape(fr.gap.field_name)}:\*\*)\s*N/A',
-                         rf'\1 {fr.value}'),
-                        (rf'({re.escape(fr.gap.field_name)}[^|]*\|)[^|]*N/A[^|]*\|',
-                         rf'\1 {fr.value} |'),
+                        (
+                            rf"(\|\s*\*\*{re.escape(fr.gap.field_name)}\*\*\s*\|)\s*N/A\s*\|",
+                            rf"\1 {fr.value} |",
+                        ),
+                        (
+                            rf"(\*\*{re.escape(fr.gap.field_name)}:\*\*)\s*N/A",
+                            rf"\1 {fr.value}",
+                        ),
+                        (
+                            rf"({re.escape(fr.gap.field_name)}[^|]*\|)[^|]*N/A[^|]*\|",
+                            rf"\1 {fr.value} |",
+                        ),
                     ]
 
                     for pattern, replacement in patterns:
-                        content, count = re.subn(pattern, replacement, content, flags=re.IGNORECASE)
+                        content, count = re.subn(
+                            pattern, replacement, content, flags=re.IGNORECASE
+                        )
                         if count > 0:
-                            logger.debug(f"Replaced {fr.gap.field_name} with {fr.value}")
+                            logger.debug(
+                                f"Replaced {fr.gap.field_name} with {fr.value}"
+                            )
                             break
 
                 path.write_text(content, encoding="utf-8")
@@ -482,7 +512,9 @@ async def fill_market_gaps(
         results[company] = result
 
         # Print summary
-        print(f"\n{company}: {result.initial_gaps} -> {result.final_gaps} gaps "
-              f"({result.total_filled} filled in {result.iterations_run} iterations)")
+        print(
+            f"\n{company}: {result.initial_gaps} -> {result.final_gaps} gaps "
+            f"({result.total_filled} filled in {result.iterations_run} iterations)"
+        )
 
     return results

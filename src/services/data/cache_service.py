@@ -37,8 +37,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional, TypeVar, Generic
 
-from ...core.config import get_settings
-from ...core.logging import setup_logger
+from src.core.config import get_settings
+from src.core.logging import setup_logger
 
 logger = setup_logger(__name__)
 

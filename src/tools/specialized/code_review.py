@@ -12,9 +12,9 @@ from typing import List, Dict, Any
 project_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(project_root))
 
-from src.core.ai.ai_client import get_ai_manager
+from src.infrastructure.ai.ai_client import get_ai_manager
 from src.core.logging import setup_logger
-from src.core.security.sandbox import DockerSandbox
+from src.infrastructure.security.sandbox import DockerSandbox
 
 logger = setup_logger("code_reviewer")
 

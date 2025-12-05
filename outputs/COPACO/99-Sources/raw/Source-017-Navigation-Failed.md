@@ -4,9 +4,9 @@
 
 | Field | Value |
 |-------|-------|
-| **URL** | https://www.dnb.com/business-directory/company-profiles.COMPAÑIA_PARAGUAYA_DE_COMUNICACIONES_SA.23cb6e20a4adbeee0e88792ca89ccac9.html |
+| **URL** | https://www.dnb.com/business-directory/company-profiles.copaco_nv.431986f5b744e88e808badb7c82b894f.html |
 | **Type** | Web |
-| **Date Accessed** | 2025-12-02 |
+| **Date Accessed** | 2025-12-04 |
 | **Reliability** | Medium |
 | **Language** | Auto-detected |
 
@@ -16,16 +16,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Sections Used** | creative_inspiration, strategic_context |
+| **Sections Used** | 06-Data-Room |
 
 ---
 
 ## Extracted Content
 
-Error: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://www.dnb.com/business-directory/company-profiles.COMPA%C3%91IA_PARAGUAYA_DE_COMUNICACIONES_SA.23cb6e20a4adbeee0e88792ca89ccac9.html
-Call log:
-  - navigating to "https://www.dnb.com/business-directory/company-profiles.COMPA%C3%91IA_PARAGUAYA_DE_COMUNICACIONES_SA.23cb6e20a4adbeee0e88792ca89ccac9.html", waiting until "domcontentloaded"
-
+No content extracted.
 
 ---
 
@@ -34,4 +31,4 @@ Call log:
 | Aspect | Assessment |
 |--------|------------|
 | **Reliability** | Medium |
-| **Content Length** | 393 characters |
+| **Content Length** | 0 characters |

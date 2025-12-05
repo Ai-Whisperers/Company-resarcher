@@ -1,7 +1,7 @@
 import yfinance as yf
 from typing import Dict, Any, Optional
 import asyncio
-from ....core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("financial_tool")
 

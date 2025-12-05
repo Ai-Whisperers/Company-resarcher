@@ -370,6 +370,135 @@ class TestThreadSafety:
 
         assert len(errors) == 0
 
+    @pytest.mark.unit
+    def test_aicache_singleton_thread_safety(self):
+        """Verify AICache singleton is thread-safe (CQ-001 fix verification)."""
+        from src.core.cache.manager import AICache
+
+        # Reset singleton
+        AICache._instance = None
+
+        instances = []
+        errors = []
+
+        def get_instance():
+            try:
+                instances.append(AICache())
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=get_instance) for _ in range(20)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(errors) == 0, f"Errors during concurrent access: {errors}"
+        # All instances should be the same object
+        instance_ids = [id(i) for i in instances]
+        assert len(set(instance_ids)) == 1, f"Multiple instances created: {set(instance_ids)}"
+
+        # Cleanup
+        AICache._instance = None
+
+    @pytest.mark.unit
+    def test_cachemanager_singleton_thread_safety(self):
+        """Verify CacheManager singleton is thread-safe (CQ-001 fix verification)."""
+        from src.core.cache.manager import CacheManager
+
+        # Reset singleton
+        CacheManager._instance = None
+
+        instances = []
+        errors = []
+
+        def get_instance():
+            try:
+                instances.append(CacheManager())
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=get_instance) for _ in range(20)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(errors) == 0, f"Errors during concurrent access: {errors}"
+        # All instances should be the same object
+        instance_ids = [id(i) for i in instances]
+        assert len(set(instance_ids)) == 1, f"Multiple instances created: {set(instance_ids)}"
+
+        # Cleanup
+        CacheManager._instance = None
+
+    @pytest.mark.unit
+    def test_get_cache_manager_thread_safety(self):
+        """Verify get_cache_manager() is thread-safe."""
+        from src.core.cache.manager import get_cache_manager, CacheManager
+        import src.core.cache.manager as manager_module
+
+        # Reset singleton
+        CacheManager._instance = None
+        manager_module._cache_manager = None
+
+        instances = []
+        errors = []
+
+        def get_instance():
+            try:
+                instances.append(get_cache_manager())
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=get_instance) for _ in range(20)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(errors) == 0, f"Errors during concurrent access: {errors}"
+        # All instances should be the same object
+        instance_ids = [id(i) for i in instances]
+        assert len(set(instance_ids)) == 1, f"Multiple global managers: {set(instance_ids)}"
+
+        # Cleanup
+        CacheManager._instance = None
+        manager_module._cache_manager = None
+
+    @pytest.mark.unit
+    def test_get_cache_concurrent_access(self):
+        """Verify concurrent get_cache() calls are thread-safe."""
+        from src.core.cache.manager import CacheManager
+
+        # Reset and create fresh manager
+        CacheManager._instance = None
+        manager = CacheManager()
+
+        caches = []
+        errors = []
+
+        def get_cache():
+            try:
+                cache = manager.get_cache("test_cache")
+                caches.append(cache)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=get_cache) for _ in range(20)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(errors) == 0, f"Errors during concurrent access: {errors}"
+        # All caches should be the same object (same name = same cache)
+        cache_ids = [id(c) for c in caches]
+        assert len(set(cache_ids)) == 1, f"Multiple caches created for same name: {set(cache_ids)}"
+
+        # Cleanup
+        CacheManager._instance = None
+
 
 # =============================================================================
 # Error Handling Tests

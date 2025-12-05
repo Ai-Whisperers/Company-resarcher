@@ -1,0 +1,34 @@
+# Source-027: Personal Paraguay | Domestika
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **URL** | https://www.domestika.org/es/projects/1715285-personal-paraguay |
+| **Type** | Social |
+| **Date Accessed** | 2025-12-04 |
+| **Reliability** | Medium |
+| **Language** | Auto-detected |
+
+---
+
+## Content Classification
+
+| Field | Value |
+|-------|-------|
+| **Sections Used** | 04-Brand-Strategy, 06-Data-Room |
+
+---
+
+## Extracted Content
+
+No content extracted.
+
+---
+
+## Quality Notes
+
+| Aspect | Assessment |
+|--------|------------|
+| **Reliability** | Medium |
+| **Content Length** | 0 characters |

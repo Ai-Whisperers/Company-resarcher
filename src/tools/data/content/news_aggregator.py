@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 import asyncio
 import re
-from ....core.config import get_settings
-from ....core.logging import setup_logger
-from ....core.types import ResearchSource
+from src.core.config import get_settings
+from src.core.logging import setup_logger
+from src.core.types import ResearchSource
 
 logger = setup_logger("news_tool")
 settings = get_settings()

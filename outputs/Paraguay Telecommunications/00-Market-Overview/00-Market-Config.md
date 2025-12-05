@@ -1,0 +1,47 @@
+# Paraguay Telecommunications - Market Configuration
+
+*From _market.yaml*
+
+- **market:**
+  - **name:** Paraguay Telecommunications
+  - **country:** Paraguay
+  - **region:** Latin America
+  - **industry:** Telecommunications
+  - **market_size:**
+    - **value_2025:** USD 699 million
+    - **value_2030:** USD 784.32 million
+    - **cagr:** 2.33%
+    - **source:** Mordor Intelligence
+  - **segments:**
+    - **name:** Mobile Data Services
+    - **share:** 45.80%
+    - **growth:** 2.88% CAGR
+    - **name:** Consumer Segment
+    - **share:** 84.19%
+    - **name:** Fixed Broadband
+    - **revenue_2024:** USD 251.1 million
+    - **revenue_2029:** USD 324.1 million
+  - **regulator:** CONATEL
+  - **dynamics:**
+    - **concentration:** High
+    - **price_competition:** Medium
+    - **barriers_to_entry:**
+      - High upfront costs
+      - Regulatory hurdles
+      - Spectrum licensing
+- **companies:**
+  - **primary:**
+    - personal_paraguay.yaml
+  - **competitors:**
+    - tigo_paraguay.yaml
+    - claro_paraguay.yaml
+  - **parent_companies:**
+    - telecom_argentina.yaml
+  - **mvnos:**
+    - vox_paraguay.yaml
+- **research_focus:**
+  - Market share distribution
+  - 5G rollout timeline
+  - Infrastructure investment
+  - Price competition trends
+  - Rural coverage expansion

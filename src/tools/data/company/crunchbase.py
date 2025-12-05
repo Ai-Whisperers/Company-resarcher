@@ -1,18 +1,19 @@
 """
 Crunchbase integration tool for Company Researcher.
 
-INT-001: Provides startup data, funding rounds, investors, and company profiles.
+INT-001: Provides startup data, funding rounds, investors, and
+company profiles.
 
 Uses Crunchbase Basic API or Pro API depending on access level.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any, Optional
 from dataclasses import dataclass, field
 from urllib.parse import quote_plus
 
 from src.core.config import get_settings
-from src.core.network.http_client import get_http_client
+from src.infrastructure.network.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +21,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FundingRound:
     """Individual funding round data."""
+
     round_type: str  # seed, series_a, series_b, etc.
     amount_usd: Optional[float] = None
     announced_date: Optional[str] = None
-    lead_investors: List[str] = field(default_factory=list)
+    lead_investors: list[str] = field(default_factory=list)
     num_investors: int = 0
     pre_money_valuation: Optional[float] = None
     post_money_valuation: Optional[float] = None
@@ -32,15 +34,17 @@ class FundingRound:
 @dataclass
 class Investor:
     """Investor profile data."""
+
     name: str
     investor_type: Optional[str] = None  # VC, Angel, PE, Corporate
     num_investments: int = 0
-    portfolio_companies: List[str] = field(default_factory=list)
+    portfolio_companies: list[str] = field(default_factory=list)
 
 
 @dataclass
 class Acquisition:
     """Acquisition data."""
+
     acquiree_name: str
     announced_date: Optional[str] = None
     price_usd: Optional[float] = None
@@ -50,6 +54,7 @@ class Acquisition:
 @dataclass
 class CrunchbaseCompanyData:
     """Crunchbase company profile data."""
+
     company_name: str
     short_description: Optional[str] = None
     description: Optional[str] = None
@@ -65,18 +70,18 @@ class CrunchbaseCompanyData:
     status: Optional[str] = None  # operating, closed, acquired, ipo
 
     # Categories
-    categories: List[str] = field(default_factory=list)
-    industry_groups: List[str] = field(default_factory=list)
+    categories: list[str] = field(default_factory=list)
+    industry_groups: list[str] = field(default_factory=list)
 
     # Funding
     total_funding_usd: Optional[float] = None
     last_funding_type: Optional[str] = None
     last_funding_date: Optional[str] = None
     num_funding_rounds: int = 0
-    funding_rounds: List[FundingRound] = field(default_factory=list)
+    funding_rounds: list[FundingRound] = field(default_factory=list)
 
     # Investors
-    investors: List[Investor] = field(default_factory=list)
+    investors: list[Investor] = field(default_factory=list)
     num_investors: int = 0
 
     # Exits
@@ -86,10 +91,10 @@ class CrunchbaseCompanyData:
 
     # Acquisitions
     num_acquisitions: int = 0
-    acquisitions: List[Acquisition] = field(default_factory=list)
+    acquisitions: list[Acquisition] = field(default_factory=list)
 
     # Competitors
-    similar_companies: List[str] = field(default_factory=list)
+    similar_companies: list[str] = field(default_factory=list)
 
     # Rankings
     crunchbase_rank: Optional[int] = None
@@ -140,10 +145,16 @@ class CrunchbaseTool:
             return self._create_placeholder(company_identifier)
 
         try:
-            url = f"{self.API_BASE}/entities/organizations/{quote_plus(company_identifier)}"
+            url = (
+                f"{self.API_BASE}/entities/organizations/"
+                f"{quote_plus(company_identifier)}"
+            )
             params = {
                 "user_key": self.api_key,
-                "card_ids": "fields,funding_rounds,investors,acquiree_acquisitions,categories",
+                "card_ids": (
+                    "fields,funding_rounds,investors,"
+                    "acquiree_acquisitions,categories"
+                ),
             }
 
             response = await self._http_client.get(
@@ -157,7 +168,9 @@ class CrunchbaseTool:
                     data = await response.json()
                     return self._parse_company_response(data)
                 elif response.status == 404:
-                    logger.warning(f"Crunchbase company not found: {company_identifier}")
+                    logger.warning(
+                        f"Crunchbase company not found: {company_identifier}"
+                    )
                     # Try search fallback
                     return await self._search_company(company_identifier)
                 else:
@@ -177,7 +190,12 @@ class CrunchbaseTool:
                 rate_limit_key="crunchbase",
                 params={"user_key": self.api_key},
                 json={
-                    "field_ids": ["identifier", "short_description", "founded_on", "num_employees_enum"],
+                    "field_ids": [
+                        "identifier",
+                        "short_description",
+                        "founded_on",
+                        "num_employees_enum",
+                    ],
                     "query": [
                         {
                             "type": "predicate",
@@ -196,7 +214,12 @@ class CrunchbaseTool:
                     entities = data.get("entities", [])
                     if entities:
                         # Get full profile for first result
-                        permalink = entities[0].get("properties", {}).get("identifier", {}).get("permalink")
+                        permalink = (
+                            entities[0]
+                            .get("properties", {})
+                            .get("identifier", {})
+                            .get("permalink")
+                        )
                         if permalink:
                             return await self.get_company_profile(permalink)
             return None
@@ -208,7 +231,7 @@ class CrunchbaseTool:
     async def get_funding_rounds(
         self,
         company_identifier: str,
-    ) -> List[FundingRound]:
+    ) -> list[FundingRound]:
         """
         Get detailed funding round history.
 
@@ -222,7 +245,10 @@ class CrunchbaseTool:
             return []
 
         try:
-            url = f"{self.API_BASE}/entities/organizations/{quote_plus(company_identifier)}/cards/funding_rounds"
+            url = (
+                f"{self.API_BASE}/entities/organizations/"
+                f"{quote_plus(company_identifier)}/cards/funding_rounds"
+            )
             response = await self._http_client.get(
                 url,
                 rate_limit_key="crunchbase",
@@ -232,7 +258,9 @@ class CrunchbaseTool:
             async with response:
                 if response.status == 200:
                     data = await response.json()
-                    return self._parse_funding_rounds(data.get("cards", {}).get("funding_rounds", []))
+                    return self._parse_funding_rounds(
+                        data.get("cards", {}).get("funding_rounds", [])
+                    )
             return []
 
         except Exception as e:
@@ -242,7 +270,7 @@ class CrunchbaseTool:
     async def get_investors(
         self,
         company_identifier: str,
-    ) -> List[Investor]:
+    ) -> list[Investor]:
         """
         Get list of investors in the company.
 
@@ -256,7 +284,10 @@ class CrunchbaseTool:
             return []
 
         try:
-            url = f"{self.API_BASE}/entities/organizations/{quote_plus(company_identifier)}/cards/investors"
+            url = (
+                f"{self.API_BASE}/entities/organizations/"
+                f"{quote_plus(company_identifier)}/cards/investors"
+            )
             response = await self._http_client.get(
                 url,
                 rate_limit_key="crunchbase",
@@ -266,7 +297,9 @@ class CrunchbaseTool:
             async with response:
                 if response.status == 200:
                     data = await response.json()
-                    return self._parse_investors(data.get("cards", {}).get("investors", []))
+                    return self._parse_investors(
+                        data.get("cards", {}).get("investors", [])
+                    )
             return []
 
         except Exception as e:
@@ -277,7 +310,7 @@ class CrunchbaseTool:
         self,
         company_identifier: str,
         limit: int = 10,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get similar/competitor companies.
 
@@ -304,7 +337,12 @@ class CrunchbaseTool:
                 rate_limit_key="crunchbase",
                 params={"user_key": self.api_key},
                 json={
-                    "field_ids": ["identifier", "short_description", "funding_total", "num_employees_enum"],
+                    "field_ids": [
+                        "identifier",
+                        "short_description",
+                        "funding_total",
+                        "num_employees_enum",
+                    ],
                     "query": [
                         {
                             "type": "predicate",
@@ -327,7 +365,7 @@ class CrunchbaseTool:
             logger.error(f"Error fetching similar companies: {e}")
             return []
 
-    def _parse_company_response(self, data: Dict) -> CrunchbaseCompanyData:
+    def _parse_company_response(self, data: dict) -> CrunchbaseCompanyData:
         """Parse API response into CrunchbaseCompanyData."""
         props = data.get("properties", {})
         cards = data.get("cards", {})
@@ -351,21 +389,37 @@ class CrunchbaseTool:
             company_name=props.get("identifier", {}).get("value", "Unknown"),
             short_description=props.get("short_description"),
             description=props.get("description"),
-            website=props.get("website", {}).get("value") if isinstance(props.get("website"), dict) else props.get("website"),
-            linkedin_url=props.get("linkedin", {}).get("value") if isinstance(props.get("linkedin"), dict) else None,
+            website=(
+                props.get("website", {}).get("value")
+                if isinstance(props.get("website"), dict)
+                else props.get("website")
+            ),
+            linkedin_url=(
+                props.get("linkedin", {}).get("value")
+                if isinstance(props.get("linkedin"), dict)
+                else None
+            ),
             founded_date=props.get("founded_on"),
             headquarters=self._format_location(props),
             num_employees=props.get("num_employees_enum"),
             status=props.get("operating_status"),
             categories=categories,
-            total_funding_usd=props.get("funding_total", {}).get("value_usd") if isinstance(props.get("funding_total"), dict) else None,
+            total_funding_usd=(
+                props.get("funding_total", {}).get("value_usd")
+                if isinstance(props.get("funding_total"), dict)
+                else None
+            ),
             last_funding_type=props.get("last_funding_type"),
             last_funding_date=props.get("last_funding_at"),
             num_funding_rounds=props.get("num_funding_rounds", 0),
             funding_rounds=funding_rounds,
             investors=investors,
             num_investors=props.get("num_investors", 0),
-            ipo_date=props.get("ipo_status", {}).get("went_public_on") if isinstance(props.get("ipo_status"), dict) else None,
+            ipo_date=(
+                props.get("ipo_status", {}).get("went_public_on")
+                if isinstance(props.get("ipo_status"), dict)
+                else None
+            ),
             stock_symbol=props.get("stock_symbol"),
             stock_exchange=props.get("stock_exchange_symbol"),
             num_acquisitions=props.get("num_acquisitions", 0),
@@ -373,52 +427,78 @@ class CrunchbaseTool:
             crunchbase_rank=props.get("rank_org"),
         )
 
-    def _parse_funding_rounds(self, rounds: List[Dict]) -> List[FundingRound]:
+    def _parse_funding_rounds(self, rounds: list[dict]) -> list[FundingRound]:
         """Parse funding rounds data."""
         result = []
         for r in rounds:
             props = r.get("properties", {})
             lead_investors = []
             if props.get("lead_investor_identifiers"):
-                lead_investors = [inv.get("value", "") for inv in props["lead_investor_identifiers"]]
+                lead_investors = [
+                    inv.get("value", "") for inv in props["lead_investor_identifiers"]
+                ]
 
-            result.append(FundingRound(
-                round_type=props.get("investment_type", "unknown"),
-                amount_usd=props.get("money_raised", {}).get("value_usd") if isinstance(props.get("money_raised"), dict) else None,
-                announced_date=props.get("announced_on"),
-                lead_investors=lead_investors,
-                num_investors=props.get("num_investors", 0),
-                pre_money_valuation=props.get("pre_money_valuation", {}).get("value_usd") if isinstance(props.get("pre_money_valuation"), dict) else None,
-                post_money_valuation=props.get("post_money_valuation", {}).get("value_usd") if isinstance(props.get("post_money_valuation"), dict) else None,
-            ))
+            result.append(
+                FundingRound(
+                    round_type=props.get("investment_type", "unknown"),
+                    amount_usd=(
+                        props.get("money_raised", {}).get("value_usd")
+                        if isinstance(props.get("money_raised"), dict)
+                        else None
+                    ),
+                    announced_date=props.get("announced_on"),
+                    lead_investors=lead_investors,
+                    num_investors=props.get("num_investors", 0),
+                    pre_money_valuation=(
+                        props.get("pre_money_valuation", {}).get("value_usd")
+                        if isinstance(props.get("pre_money_valuation"), dict)
+                        else None
+                    ),
+                    post_money_valuation=(
+                        props.get("post_money_valuation", {}).get("value_usd")
+                        if isinstance(props.get("post_money_valuation"), dict)
+                        else None
+                    ),
+                )
+            )
         return result
 
-    def _parse_investors(self, investors: List[Dict]) -> List[Investor]:
+    def _parse_investors(self, investors: list[dict]) -> list[Investor]:
         """Parse investors data."""
         result = []
         for inv in investors:
             props = inv.get("properties", {})
-            result.append(Investor(
-                name=props.get("identifier", {}).get("value", "Unknown"),
-                investor_type=props.get("investor_type"),
-                num_investments=props.get("num_investments", 0),
-            ))
+            result.append(
+                Investor(
+                    name=props.get("identifier", {}).get("value", "Unknown"),
+                    investor_type=props.get("investor_type"),
+                    num_investments=props.get("num_investments", 0),
+                )
+            )
         return result
 
-    def _parse_acquisitions(self, acquisitions: List[Dict]) -> List[Acquisition]:
+    def _parse_acquisitions(self, acquisitions: list[dict]) -> list[Acquisition]:
         """Parse acquisitions data."""
         result = []
         for acq in acquisitions:
             props = acq.get("properties", {})
-            result.append(Acquisition(
-                acquiree_name=props.get("acquiree_identifier", {}).get("value", "Unknown"),
-                announced_date=props.get("announced_on"),
-                price_usd=props.get("price", {}).get("value_usd") if isinstance(props.get("price"), dict) else None,
-                acquisition_type=props.get("acquisition_type"),
-            ))
+            result.append(
+                Acquisition(
+                    acquiree_name=props.get("acquiree_identifier", {}).get(
+                        "value", "Unknown"
+                    ),
+                    announced_date=props.get("announced_on"),
+                    price_usd=(
+                        props.get("price", {}).get("value_usd")
+                        if isinstance(props.get("price"), dict)
+                        else None
+                    ),
+                    acquisition_type=props.get("acquisition_type"),
+                )
+            )
         return result
 
-    def _format_location(self, props: Dict) -> Optional[str]:
+    def _format_location(self, props: dict) -> Optional[str]:
         """Format location from properties."""
         parts = []
         if props.get("city"):
@@ -471,7 +551,9 @@ class CrunchbaseTool:
             lines.append("\n**Funding History:**")
             for fr in data.funding_rounds[:5]:
                 amount = f"${fr.amount_usd:,.0f}" if fr.amount_usd else "Undisclosed"
-                lines.append(f"- {fr.round_type.replace('_', ' ').title()}: {amount} ({fr.announced_date or 'N/A'})")
+                lines.append(
+                    f"- {fr.round_type.replace('_', ' ').title()}: {amount} ({fr.announced_date or 'N/A'})"
+                )
                 if fr.lead_investors:
                     lines.append(f"  Lead: {', '.join(fr.lead_investors[:3])}")
 
@@ -483,7 +565,9 @@ class CrunchbaseTool:
 
         # IPO info
         if data.stock_symbol:
-            lines.append(f"\n**Public Company:** {data.stock_symbol} ({data.stock_exchange})")
+            lines.append(
+                f"\n**Public Company:** {data.stock_symbol} ({data.stock_exchange})"
+            )
             if data.ipo_date:
                 lines.append(f"**IPO Date:** {data.ipo_date}")
 
@@ -492,7 +576,9 @@ class CrunchbaseTool:
             lines.append(f"\n**Acquisitions ({data.num_acquisitions}):**")
             for acq in data.acquisitions[:3]:
                 price = f" - ${acq.price_usd:,.0f}" if acq.price_usd else ""
-                lines.append(f"- {acq.acquiree_name}{price} ({acq.announced_date or 'N/A'})")
+                lines.append(
+                    f"- {acq.acquiree_name}{price} ({acq.announced_date or 'N/A'})"
+                )
 
         if data.website:
             lines.append(f"\n**Website:** {data.website}")

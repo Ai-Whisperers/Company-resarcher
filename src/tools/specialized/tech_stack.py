@@ -1,8 +1,8 @@
 from typing import Dict, Any, Optional
 import webtech
-from ...core.logging import setup_logger
-from ...core.validation import URLValidator, URLValidationError
-from ...core.models import TechStack
+from src.core.logging import setup_logger
+from src.core.validation import URLValidator, URLValidationError
+from src.domain.models.base import TechStack
 
 logger = setup_logger("tech_stack_tool")
 

@@ -9,7 +9,7 @@ import socket
 from typing import Set, Optional
 from urllib.parse import urlparse, parse_qs, unquote
 
-from ..logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("url_validator")
 

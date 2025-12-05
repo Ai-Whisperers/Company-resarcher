@@ -33,10 +33,10 @@ from .providers.serper import SerperProvider
 from .providers.tavily_provider import TavilyProvider
 from .providers.brave import BraveSearchProvider
 from .providers.bing import BingSearchProvider
-from ...core.logging import setup_logger
-from ...core.config import get_settings
+from src.core.logging import setup_logger
+from src.core.config import get_settings
 
-from ...core.resilience.rate_limiting import rate_limiter_manager, RateLimitConfig
+from src.lib.resilience.rate_limiting import rate_limiter_manager, RateLimitConfig
 
 logger = setup_logger("search.manager")
 
@@ -703,8 +703,10 @@ class SearchManager:
             f"{len(available)} providers: {[p.name for p in available]}"
         )
 
-        # Create the central query queue
-        query_queue: asyncio.Queue = asyncio.Queue()
+        # Create the central query queue (CQ-107: bounded to prevent memory exhaustion)
+        # maxsize = queries + buffer for retries (2x queries)
+        queue_maxsize = max(len(queries) * 2, 100)
+        query_queue: asyncio.Queue = asyncio.Queue(maxsize=queue_maxsize)
         for query in queries:
             await query_queue.put((query, 0))  # (query, retry_count)
 
@@ -715,8 +717,20 @@ class SearchManager:
         # Track which providers processed which queries (for stats)
         provider_stats: Dict[str, int] = {p.name: 0 for p in available}
 
-        # Retry queue for failed queries
-        retry_queue: asyncio.Queue = asyncio.Queue()
+        # Retry queue for failed queries (CQ-107: bounded)
+        retry_queue: asyncio.Queue = asyncio.Queue(maxsize=queue_maxsize)
+
+        async def safe_retry_put(query: str, retry_count: int) -> bool:
+            """Safely put query in retry queue with timeout (CQ-107)."""
+            try:
+                await asyncio.wait_for(
+                    retry_queue.put((query, retry_count)),
+                    timeout=1.0
+                )
+                return True
+            except asyncio.TimeoutError:
+                logger.warning(f"Retry queue full, dropping query: {query[:30]}...")
+                return False
 
         async def provider_worker(provider: SearchProvider) -> None:
             """Worker that pulls queries from queue and processes them."""
@@ -742,7 +756,7 @@ class SearchManager:
                     # Apply rate limiting for this provider
                     if not await rate_limiter_manager.acquire(provider.name, timeout=2.0):
                         # Rate limited - put query back for another provider
-                        await retry_queue.put((query, retry_count))
+                        await safe_retry_put(query, retry_count)
                         query_queue.task_done()
                         await asyncio.sleep(0.1)  # Brief pause before next attempt
                         continue
@@ -762,7 +776,7 @@ class SearchManager:
                         else:
                             # Empty results - try another provider if retries left
                             if retry_count < 2:
-                                await retry_queue.put((query, retry_count + 1))
+                                await safe_retry_put(query, retry_count + 1)
                             else:
                                 async with results_lock:
                                     results[query] = []
@@ -773,7 +787,7 @@ class SearchManager:
                         self._record_stat(provider.name, "rate_limit")
                         # Requeue for different provider
                         if retry_count < 2:
-                            await retry_queue.put((query, retry_count + 1))
+                            await safe_retry_put(query, retry_count + 1)
                         else:
                             async with results_lock:
                                 results[query] = []
@@ -785,7 +799,7 @@ class SearchManager:
                         logger.debug(f"{provider.name} failed for '{query[:30]}...': {e}")
                         # Requeue for different provider
                         if retry_count < 2:
-                            await retry_queue.put((query, retry_count + 1))
+                            await safe_retry_put(query, retry_count + 1)
                         else:
                             async with results_lock:
                                 results[query] = []
@@ -803,7 +817,7 @@ class SearchManager:
         worker_tasks = []
         for provider in available:
             # Get concurrent limit from rate limiter config
-            from ...core.config.api_limits import get_provider_limits
+            from src.core.config.api_limits import get_provider_limits
             limits = get_provider_limits(provider.name)
             num_workers = min(limits.concurrent_requests if limits else 3, 10)  # Cap at 10 workers
 

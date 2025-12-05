@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from urllib.parse import quote_plus
 
 from src.core.config import get_settings
-from src.core.network.http_client import get_http_client
+from src.infrastructure.network.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class GlassdoorReview:
     """Individual Glassdoor review data."""
+
     rating: float
     title: str
     pros: str
@@ -35,6 +36,7 @@ class GlassdoorReview:
 @dataclass
 class GlassdoorCompanyData:
     """Glassdoor company overview data."""
+
     company_name: str
     overall_rating: Optional[float] = None
     recommend_to_friend: Optional[float] = None
@@ -93,7 +95,9 @@ class GlassdoorTool:
         self.rapidapi_host = settings.integrations.glassdoor_rapidapi_host
         self._http_client = get_http_client()
 
-    async def get_company_data(self, company_name: str) -> Optional[GlassdoorCompanyData]:
+    async def get_company_data(
+        self, company_name: str
+    ) -> Optional[GlassdoorCompanyData]:
         """
         Get company overview data from Glassdoor.
 
@@ -104,7 +108,9 @@ class GlassdoorTool:
             GlassdoorCompanyData object or None if not found
         """
         if not self.api_key:
-            logger.warning("Glassdoor API key not configured. Using search-based fallback.")
+            logger.warning(
+                "Glassdoor API key not configured. Using search-based fallback."
+            )
             return await self._fallback_company_search(company_name)
 
         try:
@@ -223,7 +229,9 @@ class GlassdoorTool:
         except Exception as e:
             return {"error": str(e), "salaries": []}
 
-    async def _fallback_company_search(self, company_name: str) -> Optional[GlassdoorCompanyData]:
+    async def _fallback_company_search(
+        self, company_name: str
+    ) -> Optional[GlassdoorCompanyData]:
         """
         Fallback method using search queries to gather Glassdoor data.
 
@@ -263,17 +271,19 @@ class GlassdoorTool:
         """Parse API response into list of GlassdoorReview objects."""
         reviews = []
         for item in data.get("reviews", []):
-            reviews.append(GlassdoorReview(
-                rating=self._safe_float(item.get("rating", 0)),
-                title=item.get("title", ""),
-                pros=item.get("pros", ""),
-                cons=item.get("cons", ""),
-                advice_to_management=item.get("adviceToManagement"),
-                date=item.get("date"),
-                job_title=item.get("jobTitle"),
-                location=item.get("location"),
-                is_current_employee=item.get("isCurrentEmployee", False),
-            ))
+            reviews.append(
+                GlassdoorReview(
+                    rating=self._safe_float(item.get("rating", 0)),
+                    title=item.get("title", ""),
+                    pros=item.get("pros", ""),
+                    cons=item.get("cons", ""),
+                    advice_to_management=item.get("adviceToManagement"),
+                    date=item.get("date"),
+                    job_title=item.get("jobTitle"),
+                    location=item.get("location"),
+                    is_current_employee=item.get("isCurrentEmployee", False),
+                )
+            )
         return reviews
 
     @staticmethod

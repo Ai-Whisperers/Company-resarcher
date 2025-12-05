@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional, List
 import os
-from ....core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("sec_tool")
 

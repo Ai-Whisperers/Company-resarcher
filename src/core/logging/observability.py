@@ -28,7 +28,7 @@ from contextlib import asynccontextmanager
 from functools import wraps
 
 from .logger import setup_logger
-from ..config import get_settings
+from src.core.config import get_settings
 
 logger = setup_logger("observability")
 

@@ -11,8 +11,8 @@ Provides access to financial data including:
 import os
 import asyncio
 from typing import Dict, Any, Optional
-from ....core.logging import setup_logger
-from ....core.config import get_settings
+from src.core.logging import setup_logger
+from src.core.config import get_settings
 
 logger = setup_logger("alpha_vantage_tool")
 

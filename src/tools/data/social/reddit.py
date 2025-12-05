@@ -10,8 +10,8 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass
 from datetime import datetime
 
-from ....core.logging import setup_logger
-from ....core.config import get_settings
+from src.core.logging import setup_logger
+from src.core.config import get_settings
 
 logger = setup_logger("tools.reddit")
 

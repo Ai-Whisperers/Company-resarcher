@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 
-from ...core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("cross_company_reader")
 

@@ -1,8 +1,8 @@
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
-from ....core.ai import get_ai_manager
-from ....core.logging import setup_logger
-from ....services.content import robust_json_parse
+from src.infrastructure.ai import get_ai_manager
+from src.core.logging import setup_logger
+from src.infrastructure.content import robust_json_parse
 
 logger = setup_logger("structured_extractor")
 

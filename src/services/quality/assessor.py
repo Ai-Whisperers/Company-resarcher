@@ -8,14 +8,14 @@ before they reach analysis and reports.
 import re
 from typing import Optional
 
-from ...core.logging import setup_logger
-from ...core.sources.source_quality import (
+from src.core.logging import setup_logger
+from src.infrastructure.sources.source_quality import (
     FetchStatus,
     ContentQuality,
     SourceQuality,
     CompanyContext,
 )
-from ...core.types import ResearchSource
+from src.core.types import ResearchSource
 
 
 logger = setup_logger("quality_assessor")

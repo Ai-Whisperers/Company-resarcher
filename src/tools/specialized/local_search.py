@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
-from ...core.logging import setup_logger
-from ...core.indexing.indexer import DocumentIndexer
+from src.core.logging import setup_logger
+from src.lib.indexing.indexer import DocumentIndexer
 
 logger = setup_logger("local_search")
 

@@ -1,5 +1,5 @@
 import os
-from ....core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("pdf_parser")
 

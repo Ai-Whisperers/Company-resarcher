@@ -24,7 +24,7 @@ from typing import (
     TypeVar,
 )
 
-from ..core.result import Result, Err
+from src.core.result import Result, Err
 
 from .context import RequestContext, create_context
 from .stage import Stage, StageResult, StageError

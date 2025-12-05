@@ -16,8 +16,8 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from playwright.async_api import Page
 
-from ...core.logging import setup_logger
-from ...core.sources.source_classifier import classify_source
+from src.core.logging import setup_logger
+from src.infrastructure.sources.source_classifier import classify_source
 
 logger = setup_logger("browser_extractor")
 
@@ -264,10 +264,12 @@ class ContentExtractor:
             if not href.startswith(("http://", "https://")):
                 continue
 
-            links.append({
-                "href": href,
-                "text": a.get_text(strip=True)[:100],  # Limit text length
-            })
+            links.append(
+                {
+                    "href": href,
+                    "text": a.get_text(strip=True)[:100],  # Limit text length
+                }
+            )
 
         return links
 

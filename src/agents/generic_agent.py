@@ -1,10 +1,10 @@
 from typing import Dict, Any
 from datetime import datetime
 from .base_agent import BaseAgent
-from ..core.types import CompanyProfile, ResearchPhaseResult
-from ..core.logging import setup_logger
-from ..services.security import sanitize_company_name
-from ..core.output.output_structure import get_template_path
+from src.core.types import CompanyProfile, ResearchPhaseResult
+from src.core.logging import setup_logger
+from src.infrastructure.security import sanitize_company_name
+from src.lib.output.output_structure import get_template_path
 
 logger = setup_logger("generic_agent")
 
@@ -17,7 +17,7 @@ class GenericResearchAgent(BaseAgent):
     # Required keys in phase_config
     REQUIRED_CONFIG_KEYS = {"name", "description"}
 
-    def __init__(self, phase_id: str, phase_config: Dict[str, Any]):
+    def __init__(self, phase_id: str, phase_config: Dict[str, Any]) -> None:
         super().__init__()
 
         # Validate phase_config
@@ -47,7 +47,7 @@ class GenericResearchAgent(BaseAgent):
                     company_name=safe_name,
                     industry=company.industry or "general",
                     country=company.country or "Global",
-                    year="2024",  # Dynamic year ideally
+                    year=str(datetime.now().year),
                 )
                 queries.append(query)
             except KeyError as e:
@@ -110,7 +110,7 @@ class GenericResearchAgent(BaseAgent):
         elif "Marketing-Execution" in self.phase_id:
             prompt += '\nEnsure you extract "channels" (list), "content_pillars", and "funnel_architecture".'
 
-        from ..services.content import robust_json_parse
+        from src.infrastructure.content import robust_json_parse
 
         # Initialize before try block to avoid NameError in exception handler
         content_json_str = ""

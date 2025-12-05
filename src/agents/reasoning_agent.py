@@ -1,9 +1,9 @@
 import logging
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from .base_agent import BaseAgent
-from ..core.types import ResearchSource
-from ..core.ai import AIClientManager
+from src.core.types import ResearchSource
+from src.infrastructure.ai import AIClientManager
 
 logger = logging.getLogger(__name__)
 
@@ -11,15 +11,65 @@ logger = logging.getLogger(__name__)
 class ReasoningAgent(BaseAgent):
     """
     Agent capable of multi-hop reasoning to answer complex research questions.
-    Uses Chain-of-Thought (CoT) to connect facts across multiple sources.
+
+    Uses Chain-of-Thought (CoT) prompting to connect facts across multiple
+    sources, identify gaps in knowledge, and generate follow-up questions
+    for deeper investigation.
+
+    The reasoning process:
+    1. Analyzes provided research sources to extract key facts
+    2. Connects information across multiple sources to draw inferences
+    3. Identifies gaps and missing information
+    4. Suggests follow-up questions for recursive research
+
+    Attributes:
+        max_depth: Maximum recursion depth for follow-up question research
+        ai: AI client for generating reasoning responses
+        search_tool: Optional search tool for finding additional sources
+        browser_tool: Optional browser tool for fetching web content
+
+    Example:
+        agent = ReasoningAgent(ai_client)
+        result = await agent.research_with_reasoning(
+            question="What is the company's competitive advantage?",
+            context=sources,
+        )
+        print(result["answer"])
+        print(result["confidence"])  # 0.0-1.0 confidence score
     """
 
-    def __init__(self, ai_client: AIClientManager, tools: List[Any] = None):
-        super().__init__(ai_client, tools or [])
+    def __init__(
+        self,
+        ai_client: AIClientManager,
+        search_tool: Optional[Any] = None,
+        browser_tool: Optional[Any] = None,
+    ) -> None:
+        """
+        Initialize the ReasoningAgent.
+
+        Args:
+            ai_client: AIClientManager for generating AI reasoning responses
+            search_tool: Optional search tool for finding additional sources
+            browser_tool: Optional browser tool for fetching web content
+        """
+        # CQ-074: Fix super().__init__() to use correct keyword arguments
+        super().__init__(
+            client=ai_client,
+            search_tool=search_tool,
+            browser_tool=browser_tool,
+        )
         self.max_depth = 2
 
     def _format_context(self, sources: List[ResearchSource]) -> str:
-        """Format context for the reasoning prompt."""
+        """
+        Format research sources into a prompt-friendly context string.
+
+        Args:
+            sources: List of ResearchSource objects with url and content
+
+        Returns:
+            Formatted string with numbered sources and truncated content
+        """
         formatted = []
         for i, source in enumerate(sources):
             content_preview = (
@@ -73,12 +123,13 @@ Format as JSON:
 }}
 """
         try:
-            response = await self.client.generate(
+            # CQ-074: Use self.ai (set by BaseAgent), not self.client
+            response = await self.ai.generate(
                 prompt, response_format="json", temperature=0.3
             )
 
             try:
-                from ..services.content import robust_json_parse
+                from src.infrastructure.content import robust_json_parse
 
                 result = robust_json_parse(response)
             except ImportError:

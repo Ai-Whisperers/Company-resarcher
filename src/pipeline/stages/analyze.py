@@ -8,11 +8,11 @@ structured insights.
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from ...core.result import Result, Ok, Err
-from ...services.content import robust_json_parse
+from src.core.result import Result, Ok, Err
+from src.infrastructure.content import robust_json_parse
 
-from ..context import RequestContext
-from ..stage import Stage, StageError
+from src.pipeline.context import RequestContext
+from src.pipeline.stage import Stage, StageError
 
 from .fetch import FetchOutput
 

@@ -10,8 +10,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Awaitable
 
-from ..ai import BaseAIClient, get_ai_manager
-from ..logging import setup_logger
+from src.infrastructure.ai import BaseAIClient, get_ai_manager
+from src.core.logging import setup_logger
 
 logger = setup_logger("evaluation")
 
@@ -176,7 +176,9 @@ class EvaluationReport:
             "pass_rate": self.pass_rate,
             "average_score": self.average_score,
             "average_latency_ms": self.average_latency,
-            "scores_by_metric": {k.value: v for k, v in self.scores_by_metric().items()},
+            "scores_by_metric": {
+                k.value: v for k, v in self.scores_by_metric().items()
+            },
             "scores_by_category": self.scores_by_category(),
             "results": [r.to_dict() for r in self.results],
             "config": self.config,
@@ -420,6 +422,7 @@ class Evaluator:
             Evaluation result.
         """
         import time
+
         start_time = time.time()
 
         result = EvaluationResult(
@@ -475,9 +478,7 @@ class Evaluator:
                 test_case.question, agent_answer, test_case.context
             )
         elif metric == MetricType.RELEVANCE:
-            return await self.judge.evaluate_relevance(
-                test_case.question, agent_answer
-            )
+            return await self.judge.evaluate_relevance(test_case.question, agent_answer)
         elif metric == MetricType.COHERENCE:
             return await self.judge.evaluate_coherence(agent_answer)
         else:

@@ -7,11 +7,11 @@ Converts search results into full page content.
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from ...core.result import Result, Ok, Err
-from ...core.validation import URLValidator, URLValidationError
+from src.core.result import Result, Ok, Err
+from src.core.validation import URLValidator, URLValidationError
 
-from ..context import RequestContext
-from ..stage import Stage, StageError
+from src.pipeline.context import RequestContext
+from src.pipeline.stage import Stage, StageError
 
 from .search import SearchOutput
 

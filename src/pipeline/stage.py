@@ -25,7 +25,7 @@ from typing import (
     TypeVar,
 )
 
-from ..core.result import Result, Ok, Err
+from src.core.result import Result, Ok, Err
 
 from .context import RequestContext
 

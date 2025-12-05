@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 from google_play_scraper import app, reviews, Sort
-from ....core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("app_store_tool")
 

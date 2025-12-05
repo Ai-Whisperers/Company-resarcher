@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 from dataclasses import dataclass
 from enum import Enum
 
-from ..exceptions import InputValidationError
+from src.core.exceptions import InputValidationError
 
 
 # =============================================================================

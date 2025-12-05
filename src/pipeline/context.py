@@ -28,8 +28,8 @@ from typing import (
     runtime_checkable,
 )
 
-from ..core.config import Settings, get_settings
-from ..core.logging import setup_logger
+from src.core.config import Settings, get_settings
+from src.core.logging import setup_logger
 
 T = TypeVar("T")
 
@@ -154,7 +154,9 @@ class TimeoutBudget:
         )
 
     def __repr__(self) -> str:
-        return f"TimeoutBudget(remaining={self.remaining():.1f}s of {self.total_seconds}s)"
+        return (
+            f"TimeoutBudget(remaining={self.remaining():.1f}s of {self.total_seconds}s)"
+        )
 
 
 # =============================================================================
@@ -205,6 +207,7 @@ class CancellationToken:
                 except Exception as e:
                     # Log but don't let callback errors prevent cancellation
                     import logging
+
                     logging.getLogger("pipeline.context").warning(
                         f"Cancellation callback failed: {e}"
                     )
@@ -427,11 +430,11 @@ def create_context(
 
     # Resolve services from container if not provided
     # Import here to avoid circular imports
-    from ..core.di import get_container
-    from ..core.ai import AIClientManager
-    from ..core.cache import AICache
-    from ..tools.search import SearchTool
-    from ..tools.browser import BrowserTool
+    from src.core.di import get_container
+    from src.infrastructure.ai import AIClientManager
+    from src.infrastructure.cache import AICache
+    from src.tools.search import SearchTool
+    from src.tools.browser import BrowserTool
 
     container = get_container()
 

@@ -28,7 +28,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from ..core.logging import setup_logger
+from src.core.logging import setup_logger
 from .state import (
     ProjectState,
     ResearchPhase,

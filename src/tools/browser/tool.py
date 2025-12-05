@@ -15,12 +15,12 @@ from .manager import BrowserManager, BrowserConfig
 from .navigator import Navigator, NavigationResult
 from .extractor import ContentExtractor, ExtractedContent, ExtractionConfig
 
-from ...core.logging import setup_logger
-from ...core.types import ResearchSource
-from ...services.content import get_html_cache
-from ...core.cache.url_cache import get_url_cache
-from ...core.domain.domain_filter import is_domain_allowed
-from ...core.domain.domain_timeout import get_timeout_for_url, get_timeout_manager, is_domain_circuit_open
+from src.core.logging import setup_logger
+from src.core.types.base import ResearchSource
+from src.infrastructure.content import get_html_cache
+from src.infrastructure.cache.url_cache import get_url_cache
+from src.lib.url_utils.domain_filter import is_domain_allowed
+from src.lib.url_utils.domain_timeout import get_timeout_for_url, get_timeout_manager, is_domain_circuit_open
 
 logger = setup_logger("modular_browser_tool")
 
@@ -282,22 +282,94 @@ class ModularBrowserTool:
         self,
         urls: List[str],
         timeout_seconds: Optional[int] = None,
+        overall_timeout: Optional[float] = None,
     ) -> List[ResearchSource]:
         """
-        Fetch multiple URLs concurrently.
+        Fetch multiple URLs concurrently with proper task cleanup.
 
         Uses semaphore-based rate limiting from BrowserManager.
+        Ensures all tasks are cancelled on timeout or error (CQ-100).
 
         Args:
             urls: List of URLs to fetch
             timeout_seconds: Timeout per URL
+            overall_timeout: Maximum time for all fetches (default: 2x FETCH_OVERALL_TIMEOUT)
 
         Returns:
             List of ResearchSource objects
         """
-        tasks = [self.fetch_page(url, timeout_seconds=timeout_seconds) for url in urls]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        if not urls:
+            return []
 
+        # Create tasks explicitly for cancellation control
+        tasks = [
+            asyncio.create_task(
+                self.fetch_page(url, timeout_seconds=timeout_seconds),
+                name=f"fetch-{i}-{url[:50]}"
+            )
+            for i, url in enumerate(urls)
+        ]
+
+        # Default overall timeout based on number of URLs
+        if overall_timeout is None:
+            overall_timeout = float(FETCH_OVERALL_TIMEOUT * 2)
+
+        try:
+            # Wait with timeout
+            results = await asyncio.wait_for(
+                asyncio.gather(*tasks, return_exceptions=True),
+                timeout=overall_timeout
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"fetch_multiple timed out after {overall_timeout}s for {len(urls)} URLs")
+            # Cancel all pending tasks
+            await self._cancel_tasks(tasks)
+            # Collect partial results
+            results = self._collect_partial_results(tasks, urls)
+        except asyncio.CancelledError:
+            # Propagate cancellation but cleanup first
+            await self._cancel_tasks(tasks)
+            raise
+        except Exception:
+            # Unexpected error - cleanup and re-raise
+            await self._cancel_tasks(tasks)
+            raise
+
+        return self._process_fetch_results(results, urls)
+
+    async def _cancel_tasks(self, tasks: List["asyncio.Task[ResearchSource]"]) -> None:
+        """Cancel all pending tasks and wait for completion (CQ-100)."""
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+
+        # Wait for all cancellations to complete
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    def _collect_partial_results(
+        self,
+        tasks: List["asyncio.Task[ResearchSource]"],
+        urls: List[str],
+    ) -> List[ResearchSource]:
+        """Collect results from completed tasks after timeout."""
+        results = []
+        for i, task in enumerate(tasks):
+            if task.done() and not task.cancelled():
+                try:
+                    results.append(task.result())
+                except Exception as e:
+                    results.append(e)
+            else:
+                results.append(TimeoutError(f"Fetch timed out: {urls[i]}"))
+        return results
+
+    def _process_fetch_results(
+        self,
+        results: List,
+        urls: List[str],
+    ) -> List[ResearchSource]:
+        """Convert raw results to ResearchSource objects."""
         sources = []
         for url, result in zip(urls, results):
             if isinstance(result, Exception):

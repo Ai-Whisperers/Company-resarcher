@@ -12,14 +12,14 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any, Dict, List
 
-from ...core.result import Result, Ok
-from ...core.types import ResearchPhaseResult
-from ...evaluation.research_evaluator import ResearchEvaluator
-from ...services.quality.contradiction_detector import ContradictionDetector
-from ...services.quality.fact_verifier import FactVerifier
+from src.core.result import Result, Ok
+from src.core.types import ResearchPhaseResult
+from src.application.quality.evaluation.research_evaluator import ResearchEvaluator
+from src.services.quality.contradiction_detector import ContradictionDetector
+from src.services.quality.fact_verifier import FactVerifier
 
-from ..context import RequestContext
-from ..stage import Stage, StageError
+from src.pipeline.context import RequestContext
+from src.pipeline.stage import Stage, StageError
 
 
 class EvaluationStage(Stage[ResearchPhaseResult, ResearchPhaseResult]):

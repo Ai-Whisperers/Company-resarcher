@@ -15,7 +15,7 @@ from enum import Enum
 import asyncio
 import os
 
-from ....core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("financial_analysis")
 

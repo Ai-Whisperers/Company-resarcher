@@ -1,0 +1,34 @@
+# Source-029: Business messaging, Hola (now VOX) | Paraguay
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **URL** | https://messaggio.com/messaging/carriers/paraguay/hola/ |
+| **Type** | Social |
+| **Date Accessed** | 2025-12-04 |
+| **Reliability** | Medium |
+| **Language** | Auto-detected |
+
+---
+
+## Content Classification
+
+| Field | Value |
+|-------|-------|
+| **Sections Used** | 03-Competitive-Landscape, 04-Brand-Strategy |
+
+---
+
+## Extracted Content
+
+No content extracted.
+
+---
+
+## Quality Notes
+
+| Aspect | Assessment |
+|--------|------------|
+| **Reliability** | Medium |
+| **Content Length** | 0 characters |

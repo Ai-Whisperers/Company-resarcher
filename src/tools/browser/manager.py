@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page, Playwright
 
-from ...core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("browser_manager")
 
@@ -35,13 +35,33 @@ class BrowserConfig:
     @classmethod
     def from_env(cls) -> "BrowserConfig":
         """Create config from environment variables."""
+        # Parse timeout with validation (CQ-036)
+        timeout_ms = int(os.getenv("BROWSER_PAGE_TIMEOUT_MS", "30000"))
+        if timeout_ms <= 0:
+            logger.warning(f"Invalid BROWSER_PAGE_TIMEOUT_MS={timeout_ms}, using default 30000ms")
+            timeout_ms = 30000
+
+        # Parse max concurrent pages with validation
+        max_concurrent = int(os.getenv("BROWSER_MAX_CONCURRENT", "5"))
+        if max_concurrent <= 0:
+            logger.warning(f"Invalid BROWSER_MAX_CONCURRENT={max_concurrent}, using default 5")
+            max_concurrent = 5
+
+        # Parse viewport dimensions with validation
+        viewport_width = int(os.getenv("BROWSER_VIEWPORT_WIDTH", "1920"))
+        viewport_height = int(os.getenv("BROWSER_VIEWPORT_HEIGHT", "1080"))
+        if viewport_width <= 0:
+            viewport_width = 1920
+        if viewport_height <= 0:
+            viewport_height = 1080
+
         return cls(
             headless=os.getenv("BROWSER_HEADLESS", "true").lower() == "true",
-            timeout_ms=int(os.getenv("BROWSER_PAGE_TIMEOUT_MS", "30000")),
-            max_concurrent_pages=int(os.getenv("BROWSER_MAX_CONCURRENT", "5")),
+            timeout_ms=timeout_ms,
+            max_concurrent_pages=max_concurrent,
             user_agent=os.getenv("BROWSER_USER_AGENT"),
-            viewport_width=int(os.getenv("BROWSER_VIEWPORT_WIDTH", "1920")),
-            viewport_height=int(os.getenv("BROWSER_VIEWPORT_HEIGHT", "1080")),
+            viewport_width=viewport_width,
+            viewport_height=viewport_height,
             ignore_https_errors=os.getenv("BROWSER_IGNORE_HTTPS_ERRORS", "false").lower() == "true",
         )
 

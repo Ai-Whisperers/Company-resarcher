@@ -1,0 +1,34 @@
+# Source-091: SIM Cards in South America: The Best Prepaid Plans | 2025 Guide - Phone Travel Wiz
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **URL** | https://www.phonetravelwiz.com/buying-a-sim-card-in-south-america-guide/ |
+| **Type** | Web |
+| **Date Accessed** | 2025-12-04 |
+| **Reliability** | Medium |
+| **Language** | Auto-detected |
+
+---
+
+## Content Classification
+
+| Field | Value |
+|-------|-------|
+| **Sections Used** | 08-Sales-Intelligence |
+
+---
+
+## Extracted Content
+
+No content extracted.
+
+---
+
+## Quality Notes
+
+| Aspect | Assessment |
+|--------|------------|
+| **Reliability** | Medium |
+| **Content Length** | 0 characters |

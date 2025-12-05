@@ -22,14 +22,14 @@ from .ai import (
     extract_key_terms,
 )
 
-# Content Services
-from .content import (
-    ContextCompressor,
-    HTMLCache,
-    robust_json_parse,
-    get_html_cache,
-    reset_html_cache,
-)
+# Content Services - TEMPORARILY DISABLED (module missing)
+# from .content import (
+#     ContextCompressor,
+#     HTMLCache,
+#     robust_json_parse,
+#     get_html_cache,
+#     reset_html_cache,
+# )
 
 # Data Services
 from .data import (
@@ -100,15 +100,15 @@ from .research import (
     get_data_analyzer,
 )
 
-# Security Services
-from .security import (
-    EncryptionService,
-    get_encryption_service,
-    sanitize_company_name,
-    sanitize_for_prompt,
-    sanitize_url,
-    escape_for_prompt,
-)
+# Security Services - TEMPORARILY DISABLED (module missing)
+# from .security import (
+#     EncryptionService,
+#     get_encryption_service,
+#     sanitize_company_name,
+#     sanitize_for_prompt,
+#     sanitize_url,
+#     escape_for_prompt,
+# )
 
 __all__ = [
     # AI - Classes
@@ -121,13 +121,13 @@ __all__ = [
     "generate_fallback_queries",
     "simplify_query",
     "extract_key_terms",
-    # Content - Classes
-    "ContextCompressor",
-    "HTMLCache",
-    # Content - Functions
-    "robust_json_parse",
-    "get_html_cache",
-    "reset_html_cache",
+    # Content - Classes (DISABLED - module missing)
+    # "ContextCompressor",
+    # "HTMLCache",
+    # Content - Functions (DISABLED - module missing)
+    # "robust_json_parse",
+    # "get_html_cache",
+    # "reset_html_cache",
     # Data - Classes
     "PersistentSourceRegistry",
     "SourceTracker",
@@ -191,12 +191,12 @@ __all__ = [
     "generate_gap_report",
     "get_followup_generator",
     "get_data_analyzer",
-    # Security - Classes
-    "EncryptionService",
-    # Security - Functions
-    "get_encryption_service",
-    "sanitize_company_name",
-    "sanitize_for_prompt",
-    "sanitize_url",
-    "escape_for_prompt",
+    # Security - Classes (DISABLED - module missing)
+    # "EncryptionService",
+    # Security - Functions (DISABLED - module missing)
+    # "get_encryption_service",
+    # "sanitize_company_name",
+    # "sanitize_for_prompt",
+    # "sanitize_url",
+    # "escape_for_prompt",
 ]

@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import urlparse
 
-from ...core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("persistent_source_registry")
 

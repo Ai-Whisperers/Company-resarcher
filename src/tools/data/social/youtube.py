@@ -1,7 +1,7 @@
 from typing import Optional
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import TextFormatter
-from ....core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("youtube_tool")
 

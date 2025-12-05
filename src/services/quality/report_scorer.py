@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
-from src.templates.schemas.report_schema import (
+from src.prompts.templates.schemas.report_schema import (
     ResearchReport,
     ContentQuality,
     ReportSection,

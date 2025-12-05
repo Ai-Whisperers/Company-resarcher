@@ -11,8 +11,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ...core.logging import setup_logger
-from ...core.types import CompanyProfile
+from src.core.logging import setup_logger
+from src.core.types import CompanyProfile
 from src.tools.data.financial.alpha_vantage import AlphaVantageTool
 
 logger = setup_logger("financial_data_service")

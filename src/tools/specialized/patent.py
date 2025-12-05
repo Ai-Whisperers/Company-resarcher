@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 import aiohttp
 
-from ...core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("patent_tool")
 

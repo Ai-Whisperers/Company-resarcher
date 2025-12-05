@@ -3,32 +3,78 @@ Research Stages - Domain-specific stages for company research.
 
 These stages replace the existing agent pattern with typed,
 composable units of work that use the Pipeline architecture.
+
+Enhanced with 50 quality improvements:
+- Source filtering before AI synthesis (#1-10)
+- Entity validation (#11-20)
+- Enhanced query generation (#21-28)
+- Content quality checks (#29-35)
+- Data recency validation (#36-42)
+- Report quality enforcement (#43-50)
 """
 
 from __future__ import annotations
 
 import asyncio
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import jinja2
 
-from ...core.result import Result, Ok, Err
-from ...core.types import CompanyProfile, ResearchSource, ResearchPhaseResult
-from ...services.content import robust_json_parse
-from ...services.security import sanitize_company_name
-from ...services.ai.query_optimizer import (
+from src.core.result import Result, Ok, Err
+from src.core.types import (
+    CompanyProfile,
+    ResearchSource,
+    ResearchPhaseResult,
+    ResearchIntelligenceBrief,
+    create_empty_brief,
+)
+from src.infrastructure.content import robust_json_parse
+from src.infrastructure.security import sanitize_company_name
+from src.services.ai.query_optimizer import (
     generate_fallback_queries,
     should_retry_query,
 )
-from ...services.quality.source_quality_scorer import (
+from src.services.quality.source_quality_scorer import (
     rank_search_results,
     get_domain_authority_score,
 )
 
-from ..context import RequestContext
-from ..stage import Stage, StageError
+from src.pipeline.context import RequestContext
+from src.pipeline.stage import Stage, StageError
+
+# Progress tracking for dashboard updates
+from src.core.logging.progress import get_progress_tracker
+
+# =============================================================================
+# Quality Improvement Imports (#1-50)
+# =============================================================================
+
+# Try to import comprehensive filter (graceful fallback)
+try:
+    from src.infrastructure.sources.comprehensive_filter import (
+        ComprehensiveSourceFilter,
+        quick_filter_sources,
+        filter_sources_for_synthesis,
+        filter_sources_for_report,
+    )
+
+    COMPREHENSIVE_FILTER_AVAILABLE = True
+except ImportError:
+    COMPREHENSIVE_FILTER_AVAILABLE = False
+
+# Try to import enhanced query generator
+try:
+    from src.domain.research.enhanced_queries import (
+        generate_enhanced_queries,
+        QueryType,
+    )
+
+    ENHANCED_QUERIES_AVAILABLE = True
+except ImportError:
+    ENHANCED_QUERIES_AVAILABLE = False
 
 
 # =============================================================================
@@ -46,6 +92,7 @@ class ResearchInput:
         research_types: Which types of research to perform
         max_sources_per_query: Maximum sources per search query
         extra_context: Additional context for prompts
+        research_brief: AI-generated research intelligence brief (optional)
     """
 
     company: CompanyProfile
@@ -60,6 +107,11 @@ class ResearchInput:
     )
     max_sources_per_query: int = 3
     extra_context: Dict[str, Any] = field(default_factory=dict)
+    research_brief: Optional[ResearchIntelligenceBrief] = None
+
+    def get_brief(self) -> ResearchIntelligenceBrief:
+        """Get the research brief, creating an empty one if not available."""
+        return self.research_brief or create_empty_brief()
 
 
 @dataclass
@@ -216,6 +268,62 @@ class QueryGenerationStage(Stage[ResearchInput, SearchPhaseOutput]):
         industry = input.company.industry or "industry"
         country = input.company.country if input.company.country != "Global" else ""
 
+        # =================================================================
+        # AI-FIRST: Use Research Intelligence Brief queries if available
+        # These are AI-generated, company-specific queries
+        # =================================================================
+        brief = input.get_brief()
+        if brief.confidence_score > 0:
+            brief_queries = brief.get_query_strings_for_type(self._research_type)
+            if brief_queries:
+                ctx.logger.info(
+                    f"Using AI-generated queries from research brief: "
+                    f"{len(brief_queries)} queries for {self._research_type} "
+                    f"(confidence={brief.confidence_score:.2f})"
+                )
+                return Ok(
+                    SearchPhaseOutput(
+                        company=input.company,
+                        queries=brief_queries,
+                    )
+                )
+            else:
+                ctx.logger.debug(
+                    f"Research brief has no queries for {self._research_type}, "
+                    f"falling back to other methods"
+                )
+
+        # =================================================================
+        # QUALITY IMPROVEMENT: Use enhanced query generation (#21-28)
+        # Generate country-specific, localized, and regulator queries
+        # =================================================================
+        if ENHANCED_QUERIES_AVAILABLE and country:
+            try:
+                enhanced_queries = generate_enhanced_queries(
+                    company_name=safe_name,
+                    country=country,
+                    industry=industry,
+                    query_type=self._research_type,
+                    competitors=input.extra_context.get("competitors", []),
+                    website=input.company.website,
+                )
+                if enhanced_queries:
+                    ctx.logger.info(
+                        f"Enhanced query generator: {len(enhanced_queries)} queries "
+                        f"for {self._research_type} (country={country})"
+                    )
+                    return Ok(
+                        SearchPhaseOutput(
+                            company=input.company,
+                            queries=enhanced_queries,
+                        )
+                    )
+            except Exception as e:
+                ctx.logger.warning(
+                    f"Enhanced query generation failed: {e}, using fallback"
+                )
+
+        # Fallback: Original template-based generation
         templates = self._query_templates.get(self._research_type, [])
         if not templates:
             return Err(
@@ -264,8 +372,9 @@ class SearchExecutionStage(Stage[SearchPhaseOutput, SearchPhaseOutput]):
     - Source quality ranking to prioritize high-authority sources
     """
 
-    MAX_CONCURRENT_QUERIES = 5
-    MAX_FALLBACK_ATTEMPTS = 2  # Max fallback queries per empty result
+    # Configurable via environment variables
+    MAX_CONCURRENT_QUERIES = int(os.getenv("RESEARCH_MAX_CONCURRENT_QUERIES", "5"))
+    MAX_FALLBACK_ATTEMPTS = int(os.getenv("RESEARCH_MAX_FALLBACK_ATTEMPTS", "2"))
 
     def __init__(self, max_results_per_query: int = 3):
         self._max_results = max_results_per_query
@@ -311,6 +420,8 @@ class SearchExecutionStage(Stage[SearchPhaseOutput, SearchPhaseOutput]):
                     sources = await ctx.browser_tool.fetch_multiple(urls)
                     return QueryResult(query=query, sources=sources)
 
+                except asyncio.CancelledError:
+                    raise  # Always re-raise cancellation
                 except Exception as e:
                     ctx.logger.warning(f"Query failed: {query}", error=str(e))
                     return QueryResult(query=query, error=str(e))
@@ -412,16 +523,44 @@ class SearchExecutionStage(Stage[SearchPhaseOutput, SearchPhaseOutput]):
         # Sort all_sources by domain authority (highest first)
         all_sources.sort(key=lambda s: get_domain_authority_score(s.url), reverse=True)
 
+        # =================================================================
+        # QUALITY IMPROVEMENT: Apply source filtering (#1-20)
+        # Filter out failed sources BEFORE passing to AI synthesis
+        # =================================================================
+        filtered_count = 0
+        if COMPREHENSIVE_FILTER_AVAILABLE and all_sources:
+            original_count = len(all_sources)
+            all_sources, filtered_count = quick_filter_sources(all_sources)
+            if filtered_count > 0:
+                ctx.logger.info(
+                    f"Quick filter removed {filtered_count} failed sources "
+                    f"(kept {len(all_sources)}/{original_count})"
+                )
+
         # Accurate logging with empty count (TECH-033)
         ctx.logger.info(
-            f"Search completed",
+            "Search completed",
             total_sources=len(all_sources),
             successful_queries=len(input.queries) - failed_count - empty_count,
             empty_queries=empty_count,
             failed_queries=failed_count,
             duplicates_removed=duplicate_count,
             fallback_successes=fallback_success_count,
+            quality_filtered=filtered_count,
         )
+
+        # Update progress tracker for dashboard visibility
+        try:
+            progress_tracker = get_progress_tracker()
+            successful_queries = len(input.queries) - failed_count - empty_count
+            progress_tracker.update(
+                completed_queries=successful_queries,
+                total_queries=len(input.queries),
+                total_sources=len(all_sources),
+                processed_sources=len(all_sources),
+            )
+        except Exception:
+            pass  # Non-fatal if progress tracking fails
 
         return Ok(
             SearchPhaseOutput(
@@ -446,6 +585,7 @@ class AnalysisStage(Stage[SearchPhaseOutput, AnalysisOutput]):
     - Learnings extraction from sources
     - Source curation and ranking
     - Enriched context with extracted facts/metrics
+    - Gap-aware analysis using AI research brief (NEW)
     """
 
     PROMPT_FILES = {
@@ -456,9 +596,15 @@ class AnalysisStage(Stage[SearchPhaseOutput, AnalysisOutput]):
         "sales": "sales_strategy.txt",
     }
 
-    def __init__(self, research_type: str, enable_deep_research: bool = True):
+    def __init__(
+        self,
+        research_type: str,
+        enable_deep_research: bool = True,
+        research_brief: Optional[ResearchIntelligenceBrief] = None,
+    ):
         self._research_type = research_type
         self._enable_deep_research = enable_deep_research
+        self._research_brief = research_brief
 
     @property
     def name(self) -> str:
@@ -492,11 +638,40 @@ class AnalysisStage(Stage[SearchPhaseOutput, AnalysisOutput]):
                 )
             )
 
+        # =================================================================
+        # QUALITY IMPROVEMENT: Apply comprehensive filtering (#1-42)
+        # Filter sources for entity validation and quality before synthesis
+        # Now enhanced with AI research brief for smarter filtering
+        # =================================================================
+        filtered_sources = input.all_sources
+        if COMPREHENSIVE_FILTER_AVAILABLE and input.all_sources:
+            filtered_sources = filter_sources_for_synthesis(
+                sources=input.all_sources,
+                company_name=input.company.name,
+                country=input.company.country,
+                industry=input.company.industry,
+                section_name=self._research_type,
+                research_brief=self._research_brief,  # NEW: Pass brief for enhanced filtering
+            )
+            if len(filtered_sources) < len(input.all_sources):
+                ctx.logger.info(
+                    f"Comprehensive filter: {len(filtered_sources)}/{len(input.all_sources)} "
+                    f"sources passed for {self._research_type}"
+                )
+
+        # Create a filtered input for context generation
+        filtered_input = SearchPhaseOutput(
+            company=input.company,
+            queries=input.queries,
+            results=input.results,
+            all_sources=filtered_sources,
+        )
+
         # Get context - enhanced with deep research if enabled
-        if self._enable_deep_research and input.all_sources:
-            context_text = await self._get_enriched_context(input, ctx)
+        if self._enable_deep_research and filtered_input.all_sources:
+            context_text = await self._get_enriched_context(filtered_input, ctx)
         else:
-            context_text = input.get_context_text()
+            context_text = filtered_input.get_context_text()
 
         if not context_text:
             ctx.logger.warning("No source content available for analysis")
@@ -509,11 +684,38 @@ class AnalysisStage(Stage[SearchPhaseOutput, AnalysisOutput]):
                 )
             )
 
-        # Render prompt
+        # =================================================================
+        # AI-FIRST: Include gap awareness from research brief
+        # =================================================================
+        gap_context = ""
+        key_questions = []
+        if self._research_brief and self._research_brief.confidence_score > 0:
+            # Get predicted gaps for this research type
+            predicted_gaps = [
+                g
+                for g in self._research_brief.predicted_gaps
+                if g.importance in ("high", "medium")
+            ]
+            if predicted_gaps:
+                gap_lines = [
+                    f"- {g.topic} (importance: {g.importance})"
+                    for g in predicted_gaps[:5]
+                ]
+                gap_context = (
+                    "\n\nNOTE: The following information may be difficult to find. "
+                    "If unavailable, acknowledge the gap rather than speculating:\n"
+                    + "\n".join(gap_lines)
+                )
+
+            # Get key questions to answer
+            key_questions = self._research_brief.key_questions[:5]
+
+        # Render prompt with gap awareness
         template = jinja2.Template(prompt_template_str)
         prompt = template.render(
             company=input.company,
-            context=context_text,
+            context=context_text + gap_context,
+            key_questions=key_questions,  # Available for prompts that use it
         )
 
         # Generate analysis
@@ -538,8 +740,10 @@ class AnalysisStage(Stage[SearchPhaseOutput, AnalysisOutput]):
                 )
             )
 
+        except asyncio.CancelledError:
+            raise  # Always re-raise cancellation
         except Exception as e:
-            ctx.logger.error(f"Analysis failed: {e}")
+            ctx.logger.exception("Analysis failed")
             return Err(
                 StageError.ai_error(
                     self.name,
@@ -560,7 +764,7 @@ class AnalysisStage(Stage[SearchPhaseOutput, AnalysisOutput]):
         a richer context than raw source content.
         """
         try:
-            from ...services.research import DeepResearchService
+            from src.services.research import DeepResearchService
 
             deep_research = DeepResearchService(
                 ai_client=ctx.ai_client,
@@ -590,8 +794,10 @@ class AnalysisStage(Stage[SearchPhaseOutput, AnalysisOutput]):
                 ctx.logger.warning("Deep research returned empty, using raw context")
                 return input.get_context_text()
 
-        except Exception as e:
-            ctx.logger.warning(f"Deep research failed, using raw context: {e}")
+        except asyncio.CancelledError:
+            raise  # Always re-raise cancellation
+        except Exception:
+            ctx.logger.exception("Deep research failed, using raw context")
             return input.get_context_text()
 
 
@@ -632,24 +838,35 @@ class ReportGenerationStage(Stage[AnalysisOutput, ResearchPhaseResult]):
             template_name = f"{self._research_type}.md"
 
         # Import template renderer
-        from ...core.output.template_renderer import get_template_renderer
+        from src.lib.output.template_renderer import get_template_renderer
 
         renderer = get_template_renderer()
 
         try:
-            # Filter out error/dictionary/irrelevant/foreign sources (BUG-039, BUG-045)
-            target_industry = input.company.industry
-            target_country_tld = input.company.get_country_tld()
-            usable_sources = [
-                s
-                for s in input.sources
-                if s.is_usable(target_industry, target_country_tld)
-            ]
+            # =================================================================
+            # QUALITY IMPROVEMENT: Filter sources for report citations (#45)
+            # Remove failed sources and wrong-entity sources from final citations
+            # =================================================================
+            if COMPREHENSIVE_FILTER_AVAILABLE:
+                usable_sources = filter_sources_for_report(
+                    sources=input.sources,
+                    company_name=input.company.name,
+                    country=input.company.country,
+                )
+            else:
+                # Fallback to original filtering (BUG-039, BUG-045)
+                target_industry = input.company.industry
+                target_country_tld = input.company.get_country_tld()
+                usable_sources = [
+                    s
+                    for s in input.sources
+                    if s.is_usable(target_industry, target_country_tld)
+                ]
 
             filtered_count = len(input.sources) - len(usable_sources)
             if filtered_count > 0:
                 ctx.logger.info(
-                    f"Filtered {filtered_count} unusable sources from report"
+                    f"Report filter: removed {filtered_count} unusable sources from citations"
                 )
 
             # Prepare template context with all required variables (BUG-040, BUG-054)
@@ -712,8 +929,10 @@ class ReportGenerationStage(Stage[AnalysisOutput, ResearchPhaseResult]):
 
             markdown_content = renderer.render(template_name, **template_context)
 
-        except Exception as e:
-            ctx.logger.warning(f"Template rendering failed: {e}")
+        except asyncio.CancelledError:
+            raise  # Always re-raise cancellation
+        except Exception:
+            ctx.logger.exception("Template rendering failed")
             # Fallback to basic format
             markdown_content = self._fallback_render(input)
 
@@ -762,6 +981,7 @@ class ResearchPhaseStage(Stage[ResearchInput, ResearchPhaseResult]):
     - Iterative query refinement based on gaps
     - Deep research for learnings extraction
     - Dynamic followup queries for missing data
+    - AI-first research brief integration (NEW)
     """
 
     def __init__(
@@ -770,16 +990,22 @@ class ResearchPhaseStage(Stage[ResearchInput, ResearchPhaseResult]):
         max_results_per_query: int = 3,
         enable_iterative_search: bool = True,
         max_iterations: int = 2,
+        research_brief: Optional[ResearchIntelligenceBrief] = None,
     ):
         self._research_type = research_type
         self._max_results = max_results_per_query
         self._enable_iterative = enable_iterative_search
         self._max_iterations = max_iterations
+        self._research_brief = research_brief
 
-        # Create sub-stages
+        # Create sub-stages (analysis stage gets the brief for gap-aware synthesis)
         self._query_stage = QueryGenerationStage(research_type)
         self._search_stage = SearchExecutionStage(max_results_per_query)
-        self._analysis_stage = AnalysisStage(research_type, enable_deep_research=True)
+        self._analysis_stage = AnalysisStage(
+            research_type,
+            enable_deep_research=True,
+            research_brief=research_brief,
+        )
         self._report_stage = ReportGenerationStage(research_type)
         self._evaluation_stage = EvaluationStage(research_type)
 
@@ -845,7 +1071,7 @@ class ResearchPhaseStage(Stage[ResearchInput, ResearchPhaseResult]):
         and generates targeted followup queries.
         """
         try:
-            from ...services.research import DeepResearchService
+            from src.services.research import DeepResearchService
 
             deep_research = DeepResearchService(
                 ai_client=ctx.ai_client,
@@ -868,7 +1094,7 @@ class ResearchPhaseStage(Stage[ResearchInput, ResearchPhaseResult]):
             ctx.logger.info(f"Identified {len(gaps)} gaps, generating followup queries")
 
             # Create a temporary state for followup query generation
-            from ...services.research.deep_research import ResearchState, Learning
+            from src.services.research.deep_research import ResearchState, Learning
 
             state = ResearchState(
                 company=input.company,
@@ -912,8 +1138,10 @@ class ResearchPhaseStage(Stage[ResearchInput, ResearchPhaseResult]):
                     if followup_result.is_ok:
                         followup_output = followup_result.unwrap().output
                         additional_sources.extend(followup_output.all_sources)
-                except Exception as e:
-                    ctx.logger.warning(f"Followup search failed: {e}")
+                except asyncio.CancelledError:
+                    raise  # Always re-raise cancellation
+                except Exception:
+                    ctx.logger.exception("Followup search failed")
 
             # Merge additional sources with original
             if additional_sources:
@@ -932,8 +1160,10 @@ class ResearchPhaseStage(Stage[ResearchInput, ResearchPhaseResult]):
 
             return initial_output
 
-        except Exception as e:
-            ctx.logger.warning(f"Iterative refinement failed: {e}")
+        except asyncio.CancelledError:
+            raise  # Always re-raise cancellation
+        except Exception:
+            ctx.logger.exception("Iterative refinement failed")
             return initial_output
 
 

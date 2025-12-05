@@ -16,10 +16,10 @@ from typing import List, Optional
 
 import aiohttp
 
-from ..base import SearchProvider, SearchResult, SearchError, RateLimitError
+from src.tools.search.base import SearchProvider, SearchResult, SearchError, RateLimitError
 from src.core.logging import setup_logger
 from src.core.config import get_settings
-from src.core.network.http_client import get_http_client
+from src.infrastructure.network.http_client import get_http_client
 
 logger = setup_logger("search.langsearch")
 
@@ -133,7 +133,9 @@ class LangSearchProvider(SearchProvider):
                     raise SearchError("Invalid API key", self.name, query)
 
                 if response.status == 403:
-                    raise SearchError("Access forbidden - check API key permissions", self.name, query)
+                    raise SearchError(
+                        "Access forbidden - check API key permissions", self.name, query
+                    )
 
                 if response.status != 200:
                     text = await response.text()
@@ -262,7 +264,9 @@ class LangSearchProvider(SearchProvider):
                     raise RateLimitError(self.name, query)
                 if response.status != 200:
                     text = await response.text()
-                    raise SearchError(f"HTTP {response.status}: {text[:200]}", self.name, query)
+                    raise SearchError(
+                        f"HTTP {response.status}: {text[:200]}", self.name, query
+                    )
 
                 data = await response.json()
                 return self._parse_response(data, max_results)

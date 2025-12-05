@@ -1,17 +1,30 @@
 """
 Agent Factory with dependency injection and performance optimizations.
+
+Supports both LangChain models (recommended) and legacy AIClientManager.
 """
 
 import os
-from typing import Dict, Optional
+from typing import Dict, Optional, TypeVar, Literal, Union
 
-from ..core.ai import BaseAIClient, get_ai_manager
-from ..plugins import BaseTool, get_plugin_loader
-from ..core.ai.wrappers import CachedAIClient, RateLimitedAIClient, CostTrackedAIClient
-from ..core.ai.routing import SmartAIRouter
-from ..core.tracking import CostTracker
-from ..core.tracking.cost_tracker import get_cost_tracker
-from ..core.logging import setup_logger
+from langchain_core.runnables import Runnable
+
+from src.infrastructure.ai import BaseAIClient, get_ai_manager
+from src.infrastructure.ai.langchain_models import (
+    get_model_factory,
+    get_chat_model,
+    ModelFactory,
+)
+from src.infrastructure.plugins import BaseTool, get_plugin_loader
+from src.infrastructure.ai.wrappers import (
+    CachedAIClient,
+    RateLimitedAIClient,
+    CostTrackedAIClient,
+)
+from src.infrastructure.ai.routing import SmartAIRouter
+from src.lib.tracking import CostTracker
+from src.lib.tracking.cost_tracker import get_cost_tracker
+from src.core.logging import setup_logger
 from .specialists import (
     FinancialAgent,
     MarketAnalyst,
@@ -26,6 +39,8 @@ from .base_agent import BaseAgent
 
 logger = setup_logger("agent_factory")
 
+T = TypeVar("T")
+
 # Rate limiting configuration (configurable via environment variables)
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "10"))
 RATE_LIMIT_PER_HOUR = int(os.getenv("RATE_LIMIT_PER_HOUR", "500"))
@@ -35,7 +50,11 @@ class AgentFactory:
     """
     Factory for creating agents with optimized AI clients.
 
-    Optimizations applied:
+    Supports two modes:
+    1. LangChain mode (recommended): Uses LangChain models with built-in resilience
+    2. Legacy mode: Uses AIClientManager with wrapped optimizations
+
+    Optimizations applied in legacy mode:
     1. Caching - Reduces duplicate API calls
     2. Rate Limiting - Prevents 429 errors
     3. Smart Routing - Uses cheap models when possible
@@ -44,6 +63,9 @@ class AgentFactory:
     def __init__(
         self,
         ai_client: Optional[BaseAIClient] = None,
+        model: Optional[Runnable] = None,
+        model_factory: Optional[ModelFactory] = None,
+        use_langchain: bool = True,
         enable_cache: bool = True,
         enable_rate_limiting: bool = True,
         enable_smart_routing: bool = True,
@@ -53,18 +75,47 @@ class AgentFactory:
     ):
         """
         Args:
-            ai_client: Base AI client (or None for default)
-            enable_cache: Enable response caching
-            enable_rate_limiting: Enable rate limiting
-            enable_smart_routing: Enable smart model routing
+            ai_client: Base AI client for legacy mode (deprecated)
+            model: LangChain Runnable model (recommended)
+            model_factory: LangChain ModelFactory instance
+            use_langchain: Use LangChain models (default True)
+            enable_cache: Enable response caching (legacy mode only)
+            enable_rate_limiting: Enable rate limiting (legacy mode only)
+            enable_smart_routing: Enable smart model routing (legacy mode only)
             enable_cost_tracking: Enable cost tracking for API calls
-            budget_limit: Optional budget limit in USD (uses AI_BUDGET_LIMIT env var if not set)
+            budget_limit: Optional budget limit in USD
             use_local_tools: Use free local tools (DuckDuckGo) instead of paid APIs
         """
         self.use_local_tools = use_local_tools
         self.cost_tracker: Optional[CostTracker] = None
+        self.use_langchain = use_langchain
+        self._model: Optional[Runnable] = None
+        self._model_factory: Optional[ModelFactory] = None
 
-        # Get base client
+        # Initialize cost tracking if enabled
+        if enable_cost_tracking:
+            self.cost_tracker = get_cost_tracker(budget_limit)
+            logger.info(
+                f"✓ Enabling cost tracking (budget: ${self.cost_tracker.budget_limit:.2f})"
+            )
+
+        # Try LangChain mode first (recommended)
+        if use_langchain and ai_client is None:
+            try:
+                self._model_factory = model_factory or get_model_factory()
+                self._model = model or self._model_factory.get_model_with_fallbacks()
+                self.ai_client = None  # Not using legacy client
+                logger.info("✓ AgentFactory initialized with LangChain models")
+                if self.use_local_tools:
+                    logger.info("✓ Using Local Tools (DuckDuckGo)")
+                return
+            except Exception as e:
+                logger.warning(
+                    f"LangChain initialization failed, falling back to legacy: {e}"
+                )
+
+        # Legacy mode - use AIClientManager with optimizations
+        logger.info("Using legacy AIClientManager mode")
         base_client = ai_client if ai_client else get_ai_manager()
 
         # Apply optimizations (order matters!)
@@ -77,14 +128,10 @@ class AgentFactory:
 
             if self.use_local_tools:
                 # Local Mode: Use Ollama for cheap tasks, Base Client (Manager) for expensive
-                from ..core.ai import OllamaClient
-
-                # We assume llama3 is available as per requirements
-                cheap_client = OllamaClient(model="llama3")
+                cheap_client = self._init_ollama_client(base_client)
                 optimized_client = SmartAIRouter(
                     cheap_client=cheap_client, expensive_client=base_client
                 )
-                logger.info("  - Cheap: Ollama (llama3)")
                 logger.info(f"  - Expensive: {base_client.get_provider_name()}")
             else:
                 # Use base client for both cheap and expensive to avoid API key exposure
@@ -95,7 +142,9 @@ class AgentFactory:
 
         # 2. Rate limiting (middle - controls API call rate)
         if enable_rate_limiting:
-            logger.info(f"✓ Enabling rate limiting ({RATE_LIMIT_PER_MINUTE}/min, {RATE_LIMIT_PER_HOUR}/hour)")
+            logger.info(
+                f"✓ Enabling rate limiting ({RATE_LIMIT_PER_MINUTE}/min, {RATE_LIMIT_PER_HOUR}/hour)"
+            )
             optimized_client = RateLimitedAIClient(
                 optimized_client,
                 requests_per_minute=RATE_LIMIT_PER_MINUTE,
@@ -108,9 +157,7 @@ class AgentFactory:
             optimized_client = CachedAIClient(optimized_client)
 
         # 4. Cost tracking (wraps everything to track all calls)
-        if enable_cost_tracking:
-            self.cost_tracker = get_cost_tracker(budget_limit)
-            logger.info(f"✓ Enabling cost tracking (budget: ${self.cost_tracker.budget_limit:.2f})")
+        if enable_cost_tracking and self.cost_tracker:
             optimized_client = CostTrackedAIClient(
                 optimized_client, cost_tracker=self.cost_tracker
             )
@@ -122,14 +169,122 @@ class AgentFactory:
         if self.use_local_tools:
             logger.info("✓ Using Local Tools (DuckDuckGo)")
 
+    @property
+    def is_langchain_mode(self) -> bool:
+        """Check if factory is using LangChain models."""
+        return self._model is not None
+
+    def get_model(
+        self,
+        task_type: Optional[Literal["fast", "smart", "creative", "cheap"]] = None,
+        **kwargs,
+    ) -> Runnable:
+        """
+        Get a LangChain model for agent use.
+
+        Args:
+            task_type: Optional task type for model selection
+            **kwargs: Additional model parameters
+
+        Returns:
+            LangChain Runnable model
+
+        Raises:
+            ValueError: If not in LangChain mode and no factory available
+        """
+        if self._model_factory is not None:
+            if task_type:
+                return self._model_factory.get_model_for_task(task_type, **kwargs)
+            return self._model_factory.get_model_with_fallbacks(**kwargs)
+
+        if self._model is not None:
+            return self._model
+
+        # Try to create a model factory on demand
+        try:
+            self._model_factory = get_model_factory()
+            if task_type:
+                return self._model_factory.get_model_for_task(task_type, **kwargs)
+            return self._model_factory.get_model_with_fallbacks(**kwargs)
+        except Exception as e:
+            raise ValueError(f"Cannot get LangChain model: {e}")
+
+    def _init_ollama_client(self, base_client: "BaseAIClient") -> "BaseAIClient":
+        """
+        Initialize Ollama client for local model routing.
+
+        CQ-089: Validates Ollama model exists before using it.
+
+        Args:
+            base_client: Fallback client if Ollama initialization fails
+
+        Returns:
+            OllamaClient if successful, base_client otherwise
+        """
+        from src.infrastructure.ai import OllamaClient
+
+        ollama_model = os.getenv("OLLAMA_MODEL", "llama3")
+        try:
+            cheap_client = OllamaClient(model=ollama_model)
+            # Verify model is accessible (will raise if not available)
+            if (
+                hasattr(cheap_client, "is_available")
+                and not cheap_client.is_available()
+            ):
+                raise RuntimeError(f"Ollama model '{ollama_model}' is not available")
+            logger.info(f"  - Cheap: Ollama ({ollama_model})")
+            return cheap_client
+        except Exception as e:
+            logger.warning(
+                f"Failed to initialize Ollama ({ollama_model}): {e}. "
+                "Falling back to base client for all tasks."
+            )
+            return base_client
+
+    def _init_tool(
+        self,
+        module_path: str,
+        class_name: str,
+        display_name: Optional[str] = None,
+    ) -> Optional[T]:
+        """
+        Initialize a tool with standard error handling.
+
+        Args:
+            module_path: Full module path (e.g., '..tools.data.financial.sec')
+            class_name: Name of the tool class to import
+            display_name: Optional human-readable name for logging (defaults to class_name)
+
+        Returns:
+            Initialized tool instance, or None if initialization fails
+        """
+        name = display_name or class_name
+        try:
+            # Dynamic import using importlib
+            import importlib
+
+            module = importlib.import_module(module_path, package=__package__)
+            tool_class = getattr(module, class_name)
+            tool = tool_class()
+            logger.info(f"✓ {name} initialized")
+            return tool
+        except ImportError as e:
+            logger.warning(f"{name} unavailable: {e}")
+            return None
+        except Exception as e:
+            logger.warning(f"{name} initialization failed: {e}")
+            return None
+
     def create_specialists(self) -> "Dict[str, BaseAgent]":
         """
         Create all specialist agents.
 
+        Uses LangChain models if available, otherwise falls back to legacy client.
+
         Returns:
             Dictionary mapping agent names to agent instances.
         """
-        from ..tools import get_shared_search_tool, get_shared_local_search_tool
+        from src.tools import get_shared_search_tool, get_shared_local_search_tool
 
         search_tool = (
             get_shared_local_search_tool()
@@ -137,119 +292,53 @@ class AgentFactory:
             else get_shared_search_tool()
         )
 
-        # Initialize tools with graceful degradation
-        sec_tool = None
-        tech_stack_tool = None
-        financial_tool = None
-        github_tool = None
-        patent_tool = None
-        crunchbase_tool = None
-        linkedin_tool = None
-        glassdoor_tool = None
-        youtube_tool = None
-        twitter_tool = None
-        reddit_tool = None
-        app_store_tool = None
-
+        # Initialize tools with graceful degradation using _init_tool helper
         # Financial tools
-        try:
-            from ..tools.data.financial.sec import SECTool
-            sec_tool = SECTool()
-            logger.info("✓ SECTool initialized")
-        except ImportError as e:
-            logger.warning(f"SECTool unavailable: {e}")
-
-        try:
-            from ..tools.data.market.stock_data import FinancialDataTool
-            financial_tool = FinancialDataTool()
-            logger.info("✓ FinancialDataTool initialized (yfinance)")
-        except ImportError as e:
-            logger.warning(f"FinancialDataTool unavailable: {e}")
+        sec_tool = self._init_tool("..tools.data.financial.sec", "SECTool")
+        financial_tool = self._init_tool(
+            "..tools.data.market.stock_data",
+            "FinancialDataTool",
+            "FinancialDataTool (yfinance)",
+        )
 
         # Tech tools
-        try:
-            from ..tools.specialized.tech_stack import TechStackTool
-            tech_stack_tool = TechStackTool()
-            logger.info("✓ TechStackTool initialized")
-        except ImportError as e:
-            logger.warning(f"TechStackTool unavailable: {e}")
-
-        try:
-            from ..tools.data.company.github import GitHubTool
-            github_tool = GitHubTool()
-            logger.info("✓ GitHubTool initialized")
-        except ImportError as e:
-            logger.warning(f"GitHubTool unavailable: {e}")
-
-        try:
-            from ..tools.specialized.patent import PatentTool
-            patent_tool = PatentTool()
-            logger.info("✓ PatentTool initialized")
-        except ImportError as e:
-            logger.warning(f"PatentTool unavailable: {e}")
+        tech_stack_tool = self._init_tool(
+            "..tools.specialized.tech_stack", "TechStackTool"
+        )
+        github_tool = self._init_tool("..tools.data.company.github", "GitHubTool")
+        patent_tool = self._init_tool("..tools.specialized.patent", "PatentTool")
 
         # Company intelligence tools
-        try:
-            from ..tools.data.company.crunchbase import CrunchbaseTool
-            crunchbase_tool = CrunchbaseTool()
-            logger.info("✓ CrunchbaseTool initialized")
-        except ImportError as e:
-            logger.warning(f"CrunchbaseTool unavailable: {e}")
-
-        try:
-            from ..tools.data.company.linkedin import LinkedInTool
-            linkedin_tool = LinkedInTool()
-            logger.info("✓ LinkedInTool initialized")
-        except ImportError as e:
-            logger.warning(f"LinkedInTool unavailable: {e}")
-
-        try:
-            from ..tools.data.company.glassdoor import GlassdoorTool
-            glassdoor_tool = GlassdoorTool()
-            logger.info("✓ GlassdoorTool initialized")
-        except ImportError as e:
-            logger.warning(f"GlassdoorTool unavailable: {e}")
+        crunchbase_tool = self._init_tool(
+            "..tools.data.company.crunchbase", "CrunchbaseTool"
+        )
+        linkedin_tool = self._init_tool("..tools.data.company.linkedin", "LinkedInTool")
+        glassdoor_tool = self._init_tool(
+            "..tools.data.company.glassdoor", "GlassdoorTool"
+        )
 
         # Social media tools
-        try:
-            from ..tools.data.social.youtube import YouTubeTool
-            youtube_tool = YouTubeTool()
-            logger.info("✓ YouTubeTool initialized")
-        except ImportError as e:
-            logger.warning(f"YouTubeTool unavailable: {e}")
+        youtube_tool = self._init_tool("..tools.data.social.youtube", "YouTubeTool")
+        twitter_tool = self._init_tool("..tools.data.social.twitter", "TwitterTool")
+        reddit_tool = self._init_tool("..tools.data.social.reddit", "RedditTool")
+        app_store_tool = self._init_tool(
+            "..tools.data.social.app_store", "AppStoreTool"
+        )
 
-        try:
-            from ..tools.data.social.twitter import TwitterTool
-            twitter_tool = TwitterTool()
-            logger.info("✓ TwitterTool initialized")
-        except ImportError as e:
-            logger.warning(f"TwitterTool unavailable: {e}")
-
-        try:
-            from ..tools.data.social.reddit import RedditTool
-            reddit_tool = RedditTool()
-            logger.info("✓ RedditTool initialized")
-        except ImportError as e:
-            logger.warning(f"RedditTool unavailable: {e}")
-
-        try:
-            from ..tools.data.social.app_store import AppStoreTool
-            app_store_tool = AppStoreTool()
-            logger.info("✓ AppStoreTool initialized")
-        except ImportError as e:
-            logger.warning(f"AppStoreTool unavailable: {e}")
+        # Determine AI configuration: use LangChain model or legacy client
+        ai_kwargs = self._get_agent_ai_kwargs()
 
         return {
             "financial": FinancialAgent(
-                self.ai_client,
+                **ai_kwargs,
                 search_tool=search_tool,
                 sec_tool=sec_tool,
                 financial_tool=financial_tool,
                 crunchbase_tool=crunchbase_tool,
             ),
-            "market": MarketAnalyst(self.ai_client, search_tool=search_tool),
+            "market": MarketAnalyst(**ai_kwargs, search_tool=search_tool),
             "competitor": CompetitorScout(
-                self.ai_client,
+                **ai_kwargs,
                 search_tool=search_tool,
                 tech_stack_tool=tech_stack_tool,
                 github_tool=github_tool,
@@ -257,7 +346,7 @@ class AgentFactory:
                 crunchbase_tool=crunchbase_tool,
             ),
             "brand": BrandAuditor(
-                self.ai_client,
+                **ai_kwargs,
                 search_tool=search_tool,
                 youtube_tool=youtube_tool,
                 twitter_tool=twitter_tool,
@@ -265,7 +354,7 @@ class AgentFactory:
                 app_store_tool=app_store_tool,
             ),
             "sales": SalesAgent(
-                self.ai_client,
+                **ai_kwargs,
                 search_tool=search_tool,
                 linkedin_tool=linkedin_tool,
                 glassdoor_tool=glassdoor_tool,
@@ -273,17 +362,52 @@ class AgentFactory:
             ),
         }
 
+    def _get_agent_ai_kwargs(self) -> Dict[str, any]:
+        """
+        Get AI configuration kwargs for agent initialization.
+
+        Returns model or client depending on mode.
+        """
+        if self.is_langchain_mode:
+            return {"model": self._model}
+        else:
+            return {"client": self.ai_client}
+
     def create_insight_generator(self) -> InsightGenerator:
-        """Create an InsightGenerator instance."""
-        return InsightGenerator(self.ai_client)
+        """
+        Create an InsightGenerator instance.
+
+        Uses a more creative model configuration for insight generation.
+        """
+        if self.is_langchain_mode and self._model_factory:
+            # Use creative model for insights
+            model = self._model_factory.get_model_for_task("creative")
+            return InsightGenerator(model=model)
+        return InsightGenerator(**self._get_agent_ai_kwargs())
 
     def create_report_writer(self) -> ReportWriter:
-        """Create a ReportWriter instance."""
-        return ReportWriter(self.ai_client)
+        """
+        Create a ReportWriter instance.
+
+        Uses a precise model configuration for report writing.
+        """
+        if self.is_langchain_mode and self._model_factory:
+            # Use smart model for precise writing
+            model = self._model_factory.get_model_for_task("smart", temperature=0.3)
+            return ReportWriter(model=model)
+        return ReportWriter(**self._get_agent_ai_kwargs())
 
     def create_critic(self) -> LogicCritic:
-        """Create a LogicCritic instance."""
-        return LogicCritic(self.ai_client)
+        """
+        Create a LogicCritic instance.
+
+        Uses a smart model configuration for critical analysis.
+        """
+        if self.is_langchain_mode and self._model_factory:
+            # Use smart model for critical analysis
+            model = self._model_factory.get_model_for_task("smart", temperature=0.2)
+            return LogicCritic(model=model)
+        return LogicCritic(**self._get_agent_ai_kwargs())
 
     def load_plugins(self, plugins_dir: Optional[str] = None) -> Dict[str, BaseTool]:
         """

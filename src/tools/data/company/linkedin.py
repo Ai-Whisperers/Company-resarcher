@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from urllib.parse import quote_plus
 
 from src.core.config import get_settings
-from src.core.network.http_client import get_http_client
+from src.infrastructure.network.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LinkedInEmployee:
     """LinkedIn employee profile data."""
+
     name: str
     title: str
     profile_url: Optional[str] = None
@@ -32,6 +33,7 @@ class LinkedInEmployee:
 @dataclass
 class LinkedInCompanyData:
     """LinkedIn company profile data."""
+
     company_name: str
     linkedin_url: Optional[str] = None
     description: Optional[str] = None
@@ -86,7 +88,11 @@ class LinkedInTool:
         """
         # Use centralized settings (ARCH-004)
         settings = get_settings()
-        self.api_key = api_key or settings.integrations.proxycurl_api_key or settings.integrations.linkedin_api_key
+        self.api_key = (
+            api_key
+            or settings.integrations.proxycurl_api_key
+            or settings.integrations.linkedin_api_key
+        )
         self._http_client = get_http_client()
 
     async def get_company_profile(
@@ -314,26 +320,40 @@ class LinkedInTool:
             company_type=data.get("company_type"),
             specialties=data.get("specialities", []),
             follower_count=data.get("follower_count"),
-            locations=[self._format_location(loc) for loc in data.get("locations", []) if loc],
+            locations=[
+                self._format_location(loc) for loc in data.get("locations", []) if loc
+            ],
         )
 
     def _parse_employees(self, employees: List[Dict]) -> List[LinkedInEmployee]:
         """Parse employee data."""
         result = []
-        c_suite_keywords = ["ceo", "cto", "cfo", "coo", "chief", "president", "vp", "vice president", "director"]
+        c_suite_keywords = [
+            "ceo",
+            "cto",
+            "cfo",
+            "coo",
+            "chief",
+            "president",
+            "vp",
+            "vice president",
+            "director",
+        ]
 
         for emp in employees:
             profile = emp.get("profile", {})
             title = profile.get("headline", "").lower()
             is_decision_maker = any(kw in title for kw in c_suite_keywords)
 
-            result.append(LinkedInEmployee(
-                name=f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip(),
-                title=profile.get("headline", ""),
-                profile_url=profile.get("public_identifier"),
-                location=profile.get("city"),
-                is_decision_maker=is_decision_maker,
-            ))
+            result.append(
+                LinkedInEmployee(
+                    name=f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip(),
+                    title=profile.get("headline", ""),
+                    profile_url=profile.get("public_identifier"),
+                    location=profile.get("city"),
+                    is_decision_maker=is_decision_maker,
+                )
+            )
 
         return result
 
@@ -389,7 +409,9 @@ class LinkedInTool:
                 lines.append(f"- {emp.name}: {emp.title}{dm_tag}")
 
         if data.locations:
-            lines.append(f"\n**Locations ({len(data.locations)}):** {', '.join(data.locations[:5])}")
+            lines.append(
+                f"\n**Locations ({len(data.locations)}):** {', '.join(data.locations[:5])}"
+            )
 
         return "\n".join(lines)
 

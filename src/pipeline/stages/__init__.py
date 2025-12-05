@@ -26,6 +26,10 @@ from .research import (
     ReportGenerationStage,
     ResearchPhaseStage,
 )
+from .planning import (
+    PlanningInput,
+    ResearchPlanningStage,
+)
 
 __all__ = [
     # Search
@@ -52,4 +56,7 @@ __all__ = [
     "ResearchAnalysisStage",
     "ReportGenerationStage",
     "ResearchPhaseStage",
+    # Planning (AI-first)
+    "PlanningInput",
+    "ResearchPlanningStage",
 ]

@@ -11,10 +11,10 @@ from typing import List, Optional
 
 import aiohttp
 
-from ..base import SearchProvider, SearchResult, SearchError, RateLimitError
+from src.tools.search.base import SearchProvider, SearchResult, SearchError, RateLimitError
 from src.core.logging import setup_logger
 from src.core.config import get_settings
-from src.core.network.http_client import get_http_client
+from src.infrastructure.network.http_client import get_http_client
 
 logger = setup_logger("search.serper")
 
@@ -55,7 +55,11 @@ class SerperProvider(SearchProvider):
         # Check for SERPER_API_KEY in settings
         serper_key = getattr(settings, "SERPER_API_KEY", None)
         if serper_key:
-            return serper_key.get_secret_value() if hasattr(serper_key, "get_secret_value") else serper_key
+            return (
+                serper_key.get_secret_value()
+                if hasattr(serper_key, "get_secret_value")
+                else serper_key
+            )
         return None
 
     async def search(self, query: str, max_results: int = 10) -> List[SearchResult]:
@@ -102,17 +106,18 @@ class SerperProvider(SearchProvider):
                 if response.status != 200:
                     text = await response.text()
                     raise SearchError(
-                        f"HTTP {response.status}: {text[:200]}",
-                        self.name,
-                        query
+                        f"HTTP {response.status}: {text[:200]}", self.name, query
                     )
 
                 data = await response.json()
                 return self._parse_results(data, max_results)
 
         except aiohttp.ClientError as e:
-            logger.error(f"Serper network error: {e}")
-            raise SearchError(f"Network error: {e}", self.name, query)
+            # Sanitize error message to prevent API key leakage
+            # Some aiohttp exceptions may include request headers in their repr
+            safe_error = str(type(e).__name__)
+            logger.error(f"Serper network error: {safe_error}")
+            raise SearchError(f"Network error: {safe_error}", self.name, query)
         except asyncio.TimeoutError:
             logger.error(f"Serper request timed out for '{query[:30]}...'")
             raise SearchError("Request timed out", self.name, query)
@@ -123,30 +128,37 @@ class SerperProvider(SearchProvider):
 
         # Organic results
         for item in data.get("organic", [])[:max_results]:
-            results.append(SearchResult(
-                title=item.get("title", "No Title"),
-                url=item.get("link", ""),
-                snippet=item.get("snippet", ""),
-                source=self.name,
-                score=item.get("position"),
-                raw_data=item
-            ))
+            results.append(
+                SearchResult(
+                    title=item.get("title", "No Title"),
+                    url=item.get("link", ""),
+                    snippet=item.get("snippet", ""),
+                    source=self.name,
+                    score=item.get("position"),
+                    raw_data=item,
+                )
+            )
 
         # Include knowledge graph if present
         kg = data.get("knowledgeGraph")
         if kg and len(results) < max_results:
-            results.insert(0, SearchResult(
-                title=kg.get("title", "Knowledge Graph"),
-                url=kg.get("website", kg.get("descriptionLink", "")),
-                snippet=kg.get("description", ""),
-                source=f"{self.name}_kg",
-                raw_data=kg
-            ))
+            results.insert(
+                0,
+                SearchResult(
+                    title=kg.get("title", "Knowledge Graph"),
+                    url=kg.get("website", kg.get("descriptionLink", "")),
+                    snippet=kg.get("description", ""),
+                    source=f"{self.name}_kg",
+                    raw_data=kg,
+                ),
+            )
 
         logger.info(f"Serper found {len(results)} results for query")
         return results[:max_results]
 
-    async def search_news(self, query: str, max_results: int = 10) -> List[SearchResult]:
+    async def search_news(
+        self, query: str, max_results: int = 10
+    ) -> List[SearchResult]:
         """
         Search Google News via Serper.
 
@@ -184,21 +196,25 @@ class SerperProvider(SearchProvider):
 
                 results = []
                 for item in data.get("news", [])[:max_results]:
-                    results.append(SearchResult(
-                        title=item.get("title", "No Title"),
-                        url=item.get("link", ""),
-                        snippet=item.get("snippet", ""),
-                        source=f"{self.name}_news",
-                        published_date=item.get("date"),
-                        raw_data=item
-                    ))
+                    results.append(
+                        SearchResult(
+                            title=item.get("title", "No Title"),
+                            url=item.get("link", ""),
+                            snippet=item.get("snippet", ""),
+                            source=f"{self.name}_news",
+                            published_date=item.get("date"),
+                            raw_data=item,
+                        )
+                    )
 
                 logger.info(f"Serper News found {len(results)} results")
                 return results
 
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            logger.error(f"Serper news search failed: {e}")
-            raise SearchError(str(e), self.name, query)
+            # Sanitize error message to prevent API key leakage
+            safe_error = str(type(e).__name__)
+            logger.error(f"Serper news search failed: {safe_error}")
+            raise SearchError(safe_error, self.name, query)
 
     def is_available(self) -> bool:
         """Check if Serper API key is configured."""

@@ -23,16 +23,18 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import threading
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
-from ..core.types import CompanyProfile
-from ..core.logging import setup_logger
-from ..services.content import get_html_cache
-from ..tools.data.company.github import GitHubTool, GitHubPresence
-from ..tools.data.company.opencorporates import OpenCorporatesTool, CorporateRegistryData
-from ..tools.data.company.whois import WhoisTool, DomainAnalysis
+from src.core.types import CompanyProfile
+from src.core.logging import setup_logger
+from src.core.logging.progress import get_progress_tracker, ResearchStage
+from src.infrastructure.content import get_html_cache
+from src.tools.data.company.github import GitHubTool, GitHubPresence
+from src.tools.data.company.opencorporates import OpenCorporatesTool, CorporateRegistryData
+from src.tools.data.company.whois import WhoisTool, DomainAnalysis
 
 from .context import create_context
 from .research_pipeline import (
@@ -124,6 +126,16 @@ class PipelineOrchestrator:
         """
         logger.info(f"Starting research for {company_name} ({url})")
 
+        # Initialize progress tracker for dashboard visibility
+        progress_tracker = get_progress_tracker()
+        progress_tracker.create_progress(
+            task_id="",  # Will be set by CLI callback if registered
+            company_name=company_name,
+            total_depth=1,
+            total_queries=len(self._config.research_types) * 5,  # Estimate ~5 queries per type
+        )
+        progress_tracker.set_stage(ResearchStage.INITIALIZING, f"Initializing research for {company_name}")
+
         # Create company profile with country and industry enrichment (BUG-049, BUG-050)
         company = CompanyProfile(
             name=company_name,
@@ -143,6 +155,9 @@ class PipelineOrchestrator:
         # Create context
         ctx = create_context(timeout_seconds=self._config.timeout_seconds)
 
+        # Update progress - starting research
+        progress_tracker.set_stage(ResearchStage.SEARCHING, f"Gathering data for {company_name}")
+
         try:
             # Execute pipeline
             result = await self._pipeline.research(
@@ -150,6 +165,9 @@ class PipelineOrchestrator:
                 ctx=ctx,
                 extra_context=extra_context,
             )
+
+            # Update progress - analyzing results
+            progress_tracker.set_stage(ResearchStage.ANALYZING, f"Analyzing results for {company_name}")
 
             # Save HTML cache index after research completes
             try:
@@ -159,9 +177,11 @@ class PipelineOrchestrator:
 
             # Convert to dictionary format for backward compatibility
             if result.is_success and result.output:
+                # Mark progress as complete
+                progress_tracker.set_stage(ResearchStage.COMPLETE, f"Research complete for {company_name}")
                 output = result.output
                 return {
-                    "status": "success",
+                    "status": "completed",
                     "company_name": company_name,
                     "website": url,
                     "phases": [
@@ -230,11 +250,11 @@ class PipelineOrchestrator:
                     "request_id": result.request_id,
                 }
 
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, asyncio.CancelledError):
             logger.info("Research interrupted by user")
             raise
         except Exception as e:
-            logger.error(f"Error during research execution: {e}", exc_info=True)
+            logger.exception("Error during research execution")
             return {
                 "status": "failed",
                 "company_name": company_name,
@@ -394,8 +414,10 @@ class PipelineOrchestrator:
                 "markdown_report": github.format_for_research(presence),
             }
 
+        except asyncio.CancelledError:
+            raise  # Always re-raise cancellation
         except Exception as e:
-            logger.error(f"GitHub analysis failed for {company_name}: {e}")
+            logger.exception(f"GitHub analysis failed for {company_name}")
             return {
                 "status": "error",
                 "message": str(e),
@@ -482,8 +504,10 @@ class PipelineOrchestrator:
 
             await oc.close()
 
+        except asyncio.CancelledError:
+            raise  # Always re-raise cancellation
         except Exception as e:
-            logger.error(f"OpenCorporates lookup failed: {e}")
+            logger.exception("OpenCorporates lookup failed")
             markdown_parts.append(f"## Corporate Registry\n\n*Error: {e}*\n")
 
         # WHOIS lookup
@@ -521,8 +545,10 @@ class PipelineOrchestrator:
 
                 await whois.close()
 
+            except asyncio.CancelledError:
+                raise  # Always re-raise cancellation
             except Exception as e:
-                logger.error(f"WHOIS lookup failed: {e}")
+                logger.exception("WHOIS lookup failed")
                 markdown_parts.append(f"## Domain Ownership\n\n*Error: {e}*\n")
 
         results["markdown_report"] = "\n\n".join(markdown_parts)

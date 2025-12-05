@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from ...core.logging import setup_logger
+from src.core.logging import setup_logger
 from .source_tracker import get_source_tracker
 
 logger = setup_logger("metrics")
@@ -304,7 +304,7 @@ class MetricsService:
         summary = self.get_summary()
 
         try:
-            from ...utils.cli import console, print_research_metrics, ResearchMetrics
+            from src.utils.cli import console, print_research_metrics, ResearchMetrics
 
             # Convert to ResearchMetrics for rich display
             metrics = ResearchMetrics(

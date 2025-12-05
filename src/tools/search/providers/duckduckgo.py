@@ -12,7 +12,7 @@ Limitations:
 
 import asyncio
 from typing import List
-from ..base import SearchProvider, SearchResult, SearchError, RateLimitError
+from src.tools.search.base import SearchProvider, SearchResult, SearchError, RateLimitError
 from src.core.logging import setup_logger
 from src.utils.url_utils import get_ddg_region
 
@@ -119,16 +119,24 @@ class DuckDuckGoProvider(SearchProvider):
             logger.debug(f"DuckDuckGo search region: {search_region} (BUG-049)")
 
             loop = asyncio.get_event_loop()
-            raw_results = await loop.run_in_executor(
-                None,
-                lambda: list(ddgs.text(
-                    query,
-                    region=search_region,
-                    max_results=request_count,
-                    safesearch="moderate",
-                    backend="auto"  # Use auto backend for better result coverage (TECH-030)
-                ))
-            )
+            # CQ-092: Wrap run_in_executor with timeout to prevent hanging
+            try:
+                raw_results = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None,
+                        lambda: list(ddgs.text(
+                            query,
+                            region=search_region,
+                            max_results=request_count,
+                            safesearch="moderate",
+                            backend="auto"  # Use auto backend for better result coverage (TECH-030)
+                        ))
+                    ),
+                    timeout=self.timeout + 10,  # Add buffer over DDGS internal timeout
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"DuckDuckGo search timed out after {self.timeout + 10}s for '{query[:30]}...'")
+                raise SearchError(f"Search timed out after {self.timeout + 10}s", self.name, query)
 
             # Trim to requested amount
             raw_results = raw_results[:max_results]
@@ -192,10 +200,18 @@ class DuckDuckGoProvider(SearchProvider):
             ddgs = self._get_client()
 
             loop = asyncio.get_event_loop()
-            raw_results = await loop.run_in_executor(
-                None,
-                lambda: list(ddgs.news(query, max_results=max_results))
-            )
+            # CQ-092: Wrap run_in_executor with timeout to prevent hanging
+            try:
+                raw_results = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None,
+                        lambda: list(ddgs.news(query, max_results=max_results))
+                    ),
+                    timeout=self.timeout + 10,  # Add buffer over DDGS internal timeout
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"DuckDuckGo news search timed out after {self.timeout + 10}s for '{query[:30]}...'")
+                raise SearchError(f"News search timed out after {self.timeout + 10}s", self.name, query)
 
             results = []
             for r in raw_results:

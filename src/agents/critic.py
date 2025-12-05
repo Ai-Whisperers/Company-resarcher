@@ -1,15 +1,28 @@
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Literal
 from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
 from .base_agent import BaseAgent
-from ..core.types import CompanyProfile, ResearchPhaseResult
-from ..core.models import StrategicInsights
-from ..core.logging import setup_logger
-from ..services.content import robust_json_parse
-from ..services.security import sanitize_company_name
+from src.core.types import CompanyProfile, ResearchPhaseResult
+from src.core.models import StrategicInsights
+from src.core.logging import setup_logger
+from src.infrastructure.content import robust_json_parse
+from src.infrastructure.security import sanitize_company_name
 
 logger = setup_logger("critic")
+
+
+class CritiqueResponse(BaseModel):
+    """Structured response from the Logic Critic."""
+
+    status: Literal["APPROVE", "REJECT"] = Field(
+        description="Approval status of the report"
+    )
+    feedback: str = Field(
+        description="Detailed feedback if rejected, or 'No feedback provided' if approved"
+    )
+    score: int = Field(description="Quality score from 1-10", ge=1, le=10)
 
 
 @dataclass
@@ -22,8 +35,18 @@ class CritiqueResult:
     approved: bool
 
     @classmethod
+    def from_response(cls, response: CritiqueResponse) -> "CritiqueResult":
+        """Create from Pydantic model."""
+        return cls(
+            status=response.status,
+            feedback=response.feedback,
+            score=response.score,
+            approved=response.status == "APPROVE",
+        )
+
+    @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CritiqueResult":
-        """Create from dictionary."""
+        """Create from dictionary (legacy support)."""
         status = data.get("status", "APPROVE")
         return cls(
             status=status,
@@ -73,13 +96,46 @@ class LogicCritic(BaseAgent):
         Returns:
             CritiqueResult with approval status and feedback
         """
-        # Convert to dict for internal processing
-        result_dict = await self.critique(
-            company=company,
-            insights=insights.to_legacy_dict(),
-            drafts=drafts,
-        )
-        return CritiqueResult.from_dict(result_dict)
+        safe_name = sanitize_company_name(company.name)
+
+        # Prepare context
+        context = f"""
+        Insights:
+        {insights.model_dump_json(indent=2)}
+
+        Drafts:
+        {json.dumps(drafts, indent=2)}
+        """
+
+        prompt = f"""
+        You are a Senior Editor and Logic Critic. Review the research report for {safe_name}.
+        Identify any logical contradictions, weak arguments, or missing critical data points.
+        
+        If the report is solid, approve it.
+        If there are major issues, reject it and provide specific feedback for improvement.
+        
+        Data:
+        {context}
+        """
+
+        try:
+            # Use structured output generation
+            response = await self._generate_structured(
+                prompt=prompt,
+                schema=CritiqueResponse,
+                system="You are a critical editor who ensures high-quality research outputs.",
+            )
+            return CritiqueResult.from_response(response)
+
+        except Exception as e:
+            logger.error(f"Structured critique failed: {e}", exc_info=True)
+            # Fallback to safe default
+            return CritiqueResult(
+                status="APPROVE",
+                feedback=f"Error during critique: {e}. Passing by default.",
+                score=5,
+                approved=True,
+            )
 
     async def critique(
         self, company: CompanyProfile, insights: Dict[str, Any], drafts: Dict[str, str]
@@ -87,8 +143,11 @@ class LogicCritic(BaseAgent):
         """
         Review research report (legacy Dict[str, Any] version).
 
-        For new code, prefer critique_typed() which provides type safety.
+        Maintained for backward compatibility, but delegates to typed implementation where possible
+        or uses legacy generation if needed.
         """
+        # Try to use the typed version if we can reconstruct the objects,
+        # otherwise use legacy generation
 
         context = f"""
         Insights:
@@ -120,27 +179,38 @@ class LogicCritic(BaseAgent):
         """
 
         try:
-            content_json_str = await self.ai.generate(prompt)
-            data = robust_json_parse(content_json_str)
-
-            # Defaults
-            data.setdefault("status", "APPROVE")
-            data.setdefault("feedback", "No feedback provided.")
-            data.setdefault("score", 5)
-
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.error(f"JSON parsing failed in critic: {e}", exc_info=True)
-            data = {
-                "status": "APPROVE",
-                "feedback": "Error during critique, passing by default.",
-                "score": 5,
+            # Try structured generation first even for legacy call
+            response = await self._generate_structured(
+                prompt=prompt,
+                schema=CritiqueResponse,
+                system="You are a critical editor.",
+            )
+            return {
+                "status": response.status,
+                "feedback": response.feedback,
+                "score": response.score,
             }
+
         except Exception as e:
-            logger.error(f"Unexpected error in critic: {e}", exc_info=True)
-            data = {
-                "status": "APPROVE",
-                "feedback": "Error during critique, passing by default.",
-                "score": 5,
-            }
+            logger.warning(
+                f"Structured critique failed in legacy method, falling back to text: {e}"
+            )
 
-        return data
+            # Fallback to legacy text generation
+            try:
+                content_json_str = await self.ai.generate(prompt)
+                data = robust_json_parse(content_json_str)
+
+                # Defaults
+                data.setdefault("status", "APPROVE")
+                data.setdefault("feedback", "No feedback provided.")
+                data.setdefault("score", 5)
+                return data
+
+            except Exception as e2:
+                logger.error(f"Legacy critique failed: {e2}", exc_info=True)
+                return {
+                    "status": "APPROVE",
+                    "feedback": "Error during critique, passing by default.",
+                    "score": 5,
+                }

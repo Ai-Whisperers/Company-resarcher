@@ -22,9 +22,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from ...core.logging import setup_logger
-from ...core.types import ResearchSource
-from ..data.source_registry import (
+from src.core.logging import setup_logger
+from src.core.types import ResearchSource
+from src.services.data.source_registry import (
     PersistentSourceRegistry,
     SourceRecord,
     get_source_registry,
@@ -35,7 +35,7 @@ from .existing_data_analyzer import (
     ExistingDataAnalyzer,
     get_data_analyzer,
 )
-from ..data.official_site_crawler import (
+from src.services.data.official_site_crawler import (
     OfficialSiteCrawler,
     CrawlResult,
     detect_official_website,
@@ -48,6 +48,7 @@ logger = setup_logger("incremental_research")
 @dataclass
 class IncrementalStats:
     """Statistics for an incremental research run."""
+
     urls_skipped_seen: int = 0
     urls_skipped_similar: int = 0
     urls_fetched_new: int = 0
@@ -77,19 +78,25 @@ class IncrementalStats:
             "gaps_remaining": self.gaps_remaining,
             "duration_seconds": round(self.duration_seconds, 2),
             "efficiency_rate": self._calc_efficiency(),
-            "official_site": {
-                "detected": self.official_site_detected,
-                "url": self.official_site_url,
-                "pages_discovered": self.official_pages_discovered,
-                "pages_crawled": self.official_pages_crawled,
-                "pages_skipped": self.official_pages_skipped,
-                "pages_failed": self.official_pages_failed,
-            } if self.official_site_detected else None,
+            "official_site": (
+                {
+                    "detected": self.official_site_detected,
+                    "url": self.official_site_url,
+                    "pages_discovered": self.official_pages_discovered,
+                    "pages_crawled": self.official_pages_crawled,
+                    "pages_skipped": self.official_pages_skipped,
+                    "pages_failed": self.official_pages_failed,
+                }
+                if self.official_site_detected
+                else None
+            ),
         }
 
     def _calc_efficiency(self) -> str:
         """Calculate research efficiency."""
-        total_considered = self.urls_skipped_seen + self.urls_skipped_similar + self.urls_fetched_new
+        total_considered = (
+            self.urls_skipped_seen + self.urls_skipped_similar + self.urls_fetched_new
+        )
         if total_considered == 0:
             return "N/A"
         skipped = self.urls_skipped_seen + self.urls_skipped_similar
@@ -99,6 +106,7 @@ class IncrementalStats:
 @dataclass
 class IncrementalResearchResult:
     """Result of incremental research."""
+
     company_name: str
     success: bool
     stats: IncrementalStats
@@ -113,6 +121,7 @@ class IncrementalResearchResult:
 @dataclass
 class FilteredSearchResult:
     """A search result that passed incremental filtering."""
+
     url: str
     title: str
     snippet: str
@@ -168,21 +177,24 @@ class IncrementalResearchService:
     async def _get_search_tool(self):
         """Lazy load search tool."""
         if self._search_tool is None:
-            from ...tools import get_shared_search_tool
+            from src.tools import get_shared_search_tool
+
             self._search_tool = get_shared_search_tool()
         return self._search_tool
 
     async def _get_browser_tool(self):
         """Lazy load browser tool."""
         if self._browser_tool is None:
-            from ...tools import get_shared_browser_tool
+            from src.tools import get_shared_browser_tool
+
             self._browser_tool = get_shared_browser_tool()
         return self._browser_tool
 
     async def _get_ai_client(self):
         """Lazy load AI client."""
         if self._ai_client is None:
-            from ...core.ai import get_ai_manager
+            from src.infrastructure.ai import get_ai_manager
+
             self._ai_client = get_ai_manager()
         return self._ai_client
 
@@ -255,7 +267,9 @@ class IncrementalResearchService:
             new_sources_official: List[ResearchSource] = []
             if official_sources:
                 new_sources_official.extend(official_sources)
-                logger.info(f"Official site crawl yielded {len(official_sources)} new sources")
+                logger.info(
+                    f"Official site crawl yielded {len(official_sources)} new sources"
+                )
 
             # 4. Generate delta queries (targeting gaps only)
             delta_queries = analyzer.get_delta_queries(analysis_before, max_queries)
@@ -285,7 +299,9 @@ class IncrementalResearchService:
                 target_field = query_info["target_field"]
 
                 try:
-                    results = await search_tool.search(query, max_results=max_sources_per_query)
+                    results = await search_tool.search(
+                        query, max_results=max_sources_per_query
+                    )
 
                     for result in results:
                         url = result.get("url", "")
@@ -298,15 +314,17 @@ class IncrementalResearchService:
                             logger.debug(f"Skipping seen URL: {url[:60]}...")
                             continue
 
-                        filtered_results.append(FilteredSearchResult(
-                            url=url,
-                            title=result.get("title", ""),
-                            snippet=result.get("snippet", ""),
-                            relevance_score=result.get("_relevance_score", 0.5),
-                            is_new=True,
-                            fills_gap=True,
-                            target_gaps=[target_field],
-                        ))
+                        filtered_results.append(
+                            FilteredSearchResult(
+                                url=url,
+                                title=result.get("title", ""),
+                                snippet=result.get("snippet", ""),
+                                relevance_score=result.get("_relevance_score", 0.5),
+                                is_new=True,
+                                fills_gap=True,
+                                target_gaps=[target_field],
+                            )
+                        )
 
                 except Exception as e:
                     logger.warning(f"Search failed for '{query[:50]}...': {e}")
@@ -377,7 +395,9 @@ class IncrementalResearchService:
 
             # 6. Combine official site sources with search sources
             all_new_sources = new_sources_official + new_sources
-            logger.info(f"Total new sources: {len(all_new_sources)} ({len(new_sources_official)} official, {len(new_sources)} search)")
+            logger.info(
+                f"Total new sources: {len(all_new_sources)} ({len(new_sources_official)} official, {len(new_sources)} search)"
+            )
 
             # 7. Extract data from new sources and update outputs
             filled_gaps = []
@@ -453,10 +473,12 @@ class IncrementalResearchService:
                 gaps_by_file[gap.source_file].append(gap)
 
         # Build context from all sources
-        source_context = "\n\n".join([
-            f"SOURCE: {s.title}\n{s.content[:2000]}"
-            for s in sources[:10]  # Limit to 10 sources
-        ])
+        source_context = "\n\n".join(
+            [
+                f"SOURCE: {s.title}\n{s.content[:2000]}"
+                for s in sources[:10]  # Limit to 10 sources
+            ]
+        )
 
         # Try to fill each gap
         for gap in gaps[:20]:  # Limit to 20 gaps per run
@@ -512,18 +534,19 @@ INSTRUCTIONS:
 
             # Patterns to replace N/A with value
             patterns = [
-                (rf'(\|\s*\*\*{re.escape(field_name)}\*\*\s*\|)\s*N/A\s*\|',
-                 rf'\1 {value} |'),
-                (rf'(\*\*{re.escape(field_name)}:\*\*)\s*N/A',
-                 rf'\1 {value}'),
-                (rf'(\*\*{re.escape(field_name)}:\*\*)\s*Unknown',
-                 rf'\1 {value}'),
-                (rf'({re.escape(field_name)}[^|]*\|)[^|]*N/A[^|]*\|',
-                 rf'\1 {value} |'),
+                (
+                    rf"(\|\s*\*\*{re.escape(field_name)}\*\*\s*\|)\s*N/A\s*\|",
+                    rf"\1 {value} |",
+                ),
+                (rf"(\*\*{re.escape(field_name)}:\*\*)\s*N/A", rf"\1 {value}"),
+                (rf"(\*\*{re.escape(field_name)}:\*\*)\s*Unknown", rf"\1 {value}"),
+                (rf"({re.escape(field_name)}[^|]*\|)[^|]*N/A[^|]*\|", rf"\1 {value} |"),
             ]
 
             for pattern, replacement in patterns:
-                content, count = re.subn(pattern, replacement, content, flags=re.IGNORECASE)
+                content, count = re.subn(
+                    pattern, replacement, content, flags=re.IGNORECASE
+                )
                 if count > 0:
                     break
 
@@ -653,6 +676,7 @@ INSTRUCTIONS:
                 if detect_official_website(url, company_name):
                     # Extract base URL
                     from urllib.parse import urlparse
+
                     parsed = urlparse(url)
                     base_url = f"{parsed.scheme}://{parsed.netloc}"
                     return base_url
@@ -693,15 +717,17 @@ INSTRUCTIONS:
                 continue
 
             # Passed filter
-            filtered.append(FilteredSearchResult(
-                url=url,
-                title=result.get("title", ""),
-                snippet=result.get("snippet", ""),
-                relevance_score=result.get("_relevance_score", 0.5),
-                is_new=True,
-                fills_gap=bool(target_gaps),
-                target_gaps=target_gaps or [],
-            ))
+            filtered.append(
+                FilteredSearchResult(
+                    url=url,
+                    title=result.get("title", ""),
+                    snippet=result.get("snippet", ""),
+                    relevance_score=result.get("_relevance_score", 0.5),
+                    is_new=True,
+                    fills_gap=bool(target_gaps),
+                    target_gaps=target_gaps or [],
+                )
+            )
 
         return filtered, stats
 
@@ -737,6 +763,7 @@ INSTRUCTIONS:
 # =============================================================================
 # Convenience Functions
 # =============================================================================
+
 
 async def run_incremental_research(
     company_name: str,
@@ -828,7 +855,9 @@ def print_incremental_report(result: IncrementalResearchResult) -> None:
         print()
 
     print("EFFICIENCY METRICS:")
-    print(f"  - URLs checked: {result.stats.urls_skipped_seen + result.stats.urls_skipped_similar + result.stats.urls_fetched_new}")
+    print(
+        f"  - URLs checked: {result.stats.urls_skipped_seen + result.stats.urls_skipped_similar + result.stats.urls_fetched_new}"
+    )
     print(f"  - Already seen (skipped): {result.stats.urls_skipped_seen}")
     print(f"  - Similar content (skipped): {result.stats.urls_skipped_similar}")
     print(f"  - New content fetched: {result.stats.urls_fetched_new}")

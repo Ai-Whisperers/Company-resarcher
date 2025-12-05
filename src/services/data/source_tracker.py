@@ -15,9 +15,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 import re
 
-from ...core.types import ResearchSource
-from ...core.logging import setup_logger
-from ...core.content.content_data_extractor import get_content_extractor, ExtractionResult
+from src.core.types import ResearchSource
+from src.core.logging import setup_logger
+from src.infrastructure.content.content_data_extractor import get_content_extractor, ExtractionResult
 
 logger = setup_logger("source_tracker")
 
@@ -152,15 +152,15 @@ class SourceTracker:
             extractor = get_content_extractor()
             result = extractor.extract(source.url, source.content or "")
 
-            # Map extracted data type sections to actual folder names
+            # Map extracted data type sections to numbered folder names
             section_name_mapping = {
-                "data_room": "data_room",
-                "investment_analysis": "investment_analysis",
-                "competitive_landscape": "competitive_landscape",
-                "market_intelligence": "market_intelligence",
-                "strategic_context": "strategic_context",
-                "sales_intelligence": "sales_intelligence",
-                "marketing_execution": "marketing_execution",
+                "data_room": "06-Data-Room",
+                "investment_analysis": "09-Investment-Analysis",
+                "competitive_landscape": "03-Competitive-Landscape",
+                "market_intelligence": "01-Market-Intelligence",
+                "strategic_context": "00-Strategic-Context",
+                "sales_intelligence": "08-Sales-Intelligence",
+                "marketing_execution": "05-Marketing-Execution",
             }
 
             additional = set()
@@ -184,8 +184,27 @@ class SourceTracker:
         return [self.track_source(s, section) for s in sources if s.url]
 
     def _assess_reliability(self, source: ResearchSource) -> str:
-        """Assess the reliability of a source based on URL patterns."""
+        """Assess the reliability of a source based on URL patterns and content."""
         url_lower = source.url.lower()
+        title_lower = (source.title or "").lower()
+        content_lower = (source.content or "")[:500].lower()
+
+        # ERROR PAGE CHECK - Always return Low for error/blocked pages
+        error_indicators = [
+            "error: the request could not be satisfied",
+            "access denied",
+            "your request originates",
+            "cloudflare",
+            "just a moment",
+            "page not found",
+            "404",
+            "403",
+            "blocked",
+            "pdf document (not extracted)",
+        ]
+        for indicator in error_indicators:
+            if indicator in title_lower or indicator in content_lower:
+                return "Low"
 
         # High reliability patterns
         high_patterns = [

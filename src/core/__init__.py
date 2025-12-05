@@ -20,8 +20,8 @@ from .config import (
     Profile,
 )
 
-# AI Clients - from ai subdirectory
-from .ai import (
+# AI Clients - from infrastructure/ai
+from src.infrastructure.ai import (
     BaseAIClient,
     AIClientManager,
     get_ai_manager,
@@ -33,22 +33,22 @@ from .ai import (
     MockAIClient,
 )
 
-# HTTP Client - from network subdirectory
-from .network.http_client import (
+# HTTP Client - from infrastructure/network
+from src.infrastructure.network.http_client import (
     get_http_client,
     HTTPClient,
     HTTPClientConfig,
 )
 
-# Rate Limiting - from resilience subdirectory
-from .resilience.rate_limiting import (
+# Rate Limiting - from lib.resilience
+from src.lib.resilience.rate_limiting import (
     get_rate_limiter_manager,
     RateLimiterManager,
     RateLimitConfig,
 )
 
-# Caching - from cache subdirectory
-from .cache import get_ai_cache
+# Caching - from infrastructure/cache
+from src.infrastructure.cache import get_ai_cache
 
 # Logging - from logging subdirectory
 from .logging import setup_logger, get_logger
@@ -65,8 +65,8 @@ from .exceptions import (
     ValidationError,
 )
 
-# Resilience patterns - from resilience subdirectory
-from .resilience import CircuitBreaker, RetryStrategy
+# Resilience patterns - from lib.resilience
+from src.lib.resilience import CircuitBreaker, RetryStrategy
 
 __all__ = [
     # Config

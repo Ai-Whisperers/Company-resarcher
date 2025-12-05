@@ -19,7 +19,7 @@ from .downloaders import (
 )
 from .processors import FinancialDataProcessor, ProcessedFinancials
 
-from ...core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("financial_pipeline")
 

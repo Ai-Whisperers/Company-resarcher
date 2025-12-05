@@ -33,8 +33,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from ...core.config import get_settings
-from ...core.logging import setup_logger
+from src.core.config import get_settings
+from src.core.logging import setup_logger
 
 logger = setup_logger("semantic_cache")
 settings = get_settings()

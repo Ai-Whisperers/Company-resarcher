@@ -11,10 +11,10 @@ https://docs.github.com/en/rest
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from src.core.config import get_settings
-from src.core.network.http_client import get_http_client
+from src.infrastructure.network.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class Repository:
     open_issues: int = 0
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    topics: List[str] = field(default_factory=list)
+    topics: list[str] = field(default_factory=list)
     is_fork: bool = False
     html_url: Optional[str] = None
     license: Optional[str] = None
@@ -59,9 +59,11 @@ class Repository:
 class TechStackAnalysis:
     """Tech stack analysis results."""
 
-    primary_languages: Dict[str, int] = field(default_factory=dict)  # language -> repo count
-    frameworks: List[str] = field(default_factory=list)
-    topics: Dict[str, int] = field(default_factory=dict)  # topic -> count
+    primary_languages: dict[str, int] = field(
+        default_factory=dict
+    )  # language -> repo count
+    frameworks: list[str] = field(default_factory=list)
+    topics: dict[str, int] = field(default_factory=dict)  # topic -> count
     total_repos: int = 0
     total_stars: int = 0
     active_repos: int = 0  # updated in last 6 months
@@ -74,7 +76,7 @@ class RecentActivity:
 
     repos_updated: int = 0
     repos_created: int = 0
-    most_active: List[str] = field(default_factory=list)
+    most_active: list[str] = field(default_factory=list)
     period_days: int = 30
 
 
@@ -160,14 +162,18 @@ class GitHubTool:
             return self._token
         token = getattr(self._settings, "GITHUB_API_TOKEN", None)
         if token:
-            return token.get_secret_value() if hasattr(token, "get_secret_value") else token
+            return (
+                token.get_secret_value()
+                if hasattr(token, "get_secret_value")
+                else token
+            )
         return None
 
     def is_available(self) -> bool:
         """Check if GitHub API is available (token configured)."""
         return bool(self.token)
 
-    def _headers(self) -> Dict[str, str]:
+    def _headers(self) -> dict[str, str]:
         """Get request headers with authentication."""
         headers = {
             "Accept": "application/vnd.github.v3+json",
@@ -204,13 +210,16 @@ class GitHubTool:
         # Strategy 2: Search organizations
         search_results = await self._search_organizations(company_name)
         if search_results:
-            logger.info(f"Found GitHub org '{search_results[0].login}' via search for '{company_name}'")
+            logger.info(
+                f"Found GitHub org '{search_results[0].login}' "
+                f"via search for '{company_name}'"
+            )
             return search_results[0]
 
         logger.info(f"No GitHub organization found for '{company_name}'")
         return None
 
-    def _get_normalized_names(self, company_name: str) -> List[str]:
+    def _get_normalized_names(self, company_name: str) -> list[str]:
         """Generate normalized org name variations to try."""
         # Base normalization
         base = company_name.lower().replace(" ", "").replace("-", "").replace(".", "")
@@ -251,14 +260,16 @@ class GitHubTool:
                     logger.warning("GitHub API rate limit exceeded")
                     return None
                 else:
-                    logger.debug(f"GitHub API returned {response.status} for org {org_name}")
+                    logger.debug(
+                        f"GitHub API returned {response.status} for org {org_name}"
+                    )
                     return None
 
         except Exception as e:
             logger.error(f"Error fetching GitHub org {org_name}: {e}")
             return None
 
-    async def _search_organizations(self, query: str) -> List[GitHubOrg]:
+    async def _search_organizations(self, query: str) -> list[GitHubOrg]:
         """Search for organizations by name."""
         try:
             url = f"{self.BASE_URL}/search/users"
@@ -288,7 +299,7 @@ class GitHubTool:
         self,
         org_name: str,
         limit: int = 100,
-    ) -> List[Repository]:
+    ) -> list[Repository]:
         """
         Get all public repositories for an organization.
 
@@ -299,7 +310,7 @@ class GitHubTool:
         Returns:
             List of Repository objects
         """
-        repos: List[Repository] = []
+        repos: list[Repository] = []
         page = 1
 
         try:
@@ -346,8 +357,8 @@ class GitHubTool:
         """
         repos = await self.get_organization_repos(org_name)
 
-        languages: Dict[str, int] = {}
-        topics: Dict[str, int] = {}
+        languages: dict[str, int] = {}
+        topics: dict[str, int] = {}
         total_stars = 0
         active_count = 0
         six_months_ago = datetime.now(timezone.utc) - timedelta(days=180)
@@ -371,7 +382,9 @@ class GitHubTool:
                 active_count += 1
 
         # Infer frameworks from topics
-        frameworks = [t for t in topics.keys() if t.lower() in self.FRAMEWORK_INDICATORS]
+        frameworks = [
+            t for t in topics.keys() if t.lower() in self.FRAMEWORK_INDICATORS
+        ]
 
         # Sort languages and topics by count
         sorted_languages = dict(sorted(languages.items(), key=lambda x: -x[1])[:10])
@@ -462,7 +475,7 @@ class GitHubTool:
             logger.error(f"Error analyzing GitHub presence for {company_name}: {e}")
             return GitHubPresence(found=False, error=str(e))
 
-    async def check_rate_limit(self) -> Dict[str, Any]:
+    async def check_rate_limit(self) -> dict[str, Any]:
         """
         Check GitHub API rate limit status.
 
@@ -495,7 +508,9 @@ class GitHubTool:
         created_at = None
         if data.get("created_at"):
             try:
-                created_at = datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
+                created_at = datetime.fromisoformat(
+                    data["created_at"].replace("Z", "+00:00")
+                )
             except (ValueError, TypeError):
                 pass
 
@@ -519,13 +534,17 @@ class GitHubTool:
 
         if data.get("created_at"):
             try:
-                created_at = datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
+                created_at = datetime.fromisoformat(
+                    data["created_at"].replace("Z", "+00:00")
+                )
             except (ValueError, TypeError):
                 pass
 
         if data.get("updated_at"):
             try:
-                updated_at = datetime.fromisoformat(data["updated_at"].replace("Z", "+00:00"))
+                updated_at = datetime.fromisoformat(
+                    data["updated_at"].replace("Z", "+00:00")
+                )
             except (ValueError, TypeError):
                 pass
 
@@ -563,7 +582,10 @@ class GitHubTool:
         if not presence.found:
             if presence.error:
                 return f"## GitHub Presence\n\n*Error: {presence.error}*\n"
-            return "## GitHub Presence\n\n*No GitHub organization found for this company.*\n"
+            return (
+                "## GitHub Presence\n\n"
+                "*No GitHub organization found for this company.*\n"
+            )
 
         lines = []
         org = presence.org
@@ -591,9 +613,11 @@ class GitHubTool:
                 lines.append(f"- {lang}: {count} repositories")
 
             if tech.frameworks:
-                lines.append(f"\n**Frameworks & Tools**: {', '.join(tech.frameworks[:10])}")
+                lines.append(
+                    f"\n**Frameworks & Tools**: {', '.join(tech.frameworks[:10])}"
+                )
 
-            lines.append(f"\n**Repository Stats:**")
+            lines.append("\n**Repository Stats:**")
             lines.append(f"- Total Repos (non-fork): {tech.total_repos}")
             lines.append(f"- Active Repos (6 months): {tech.active_repos}")
             lines.append(f"- Total Stars: {tech.total_stars:,}")

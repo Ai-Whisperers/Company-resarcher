@@ -49,7 +49,10 @@ try:
     from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
     from opentelemetry.sdk.resources import Resource, SERVICE_NAME
     from opentelemetry.trace import Status, StatusCode, SpanKind
-    from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+    from opentelemetry.trace.propagation.tracecontext import (
+        TraceContextTextMapPropagator,
+    )
+
     OPENTELEMETRY_AVAILABLE = True
 except ImportError:
     OPENTELEMETRY_AVAILABLE = False
@@ -63,6 +66,7 @@ except ImportError:
 # Try to import OTLP exporter for production use
 try:
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
     OTLP_AVAILABLE = True
 except ImportError:
     OTLP_AVAILABLE = False
@@ -76,11 +80,19 @@ except ImportError:
 # Try to import prometheus_client, gracefully degrade if not available
 try:
     from prometheus_client import (
-        Counter, Histogram, Gauge, Info, Summary,
-        generate_latest, CONTENT_TYPE_LATEST,
-        CollectorRegistry, REGISTRY,
-        multiprocess, values
+        Counter,
+        Histogram,
+        Gauge,
+        Info,
+        Summary,
+        generate_latest,
+        CONTENT_TYPE_LATEST,
+        CollectorRegistry,
+        REGISTRY,
+        multiprocess,
+        values,
     )
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -97,9 +109,11 @@ except ImportError:
 # Configuration
 # =============================================================================
 
+
 @dataclass
 class TelemetryConfig:
     """Configuration for telemetry system."""
+
     service_name: str = "company-researcher"
     service_version: str = "1.0.0"
     environment: str = "development"
@@ -123,7 +137,8 @@ class TelemetryConfig:
             environment=os.getenv("ENVIRONMENT", "development"),
             tracing_enabled=os.getenv("OTEL_ENABLED", "true").lower() == "true",
             otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
-            console_exporter=os.getenv("OTEL_CONSOLE_EXPORTER", "false").lower() == "true",
+            console_exporter=os.getenv("OTEL_CONSOLE_EXPORTER", "false").lower()
+            == "true",
             trace_sample_rate=float(os.getenv("OTEL_TRACE_SAMPLE_RATE", "1.0")),
             metrics_enabled=os.getenv("PROMETHEUS_ENABLED", "true").lower() == "true",
             metrics_port=int(os.getenv("PROMETHEUS_PORT", "9090")),
@@ -133,6 +148,7 @@ class TelemetryConfig:
 # =============================================================================
 # Tracer Implementation
 # =============================================================================
+
 
 class NoOpSpan:
     """No-op span for when OpenTelemetry is not available."""
@@ -238,6 +254,7 @@ class Tracer:
 # Metrics Implementation
 # =============================================================================
 
+
 class MetricsRegistry:
     """Registry for Prometheus metrics."""
 
@@ -284,7 +301,7 @@ class MetricsRegistry:
         self._counters["ai_tokens_used"] = Counter(
             "ai_tokens_used_total",
             "Total tokens consumed",
-            ["provider", "type"],  # type: prompt, completion
+            ["provider", "type"],  # metric type: prompt, completion
         )
 
         # Cache metrics
@@ -318,10 +335,12 @@ class MetricsRegistry:
             "app",
             "Application information",
         )
-        self._info["app_info"].info({
-            "version": self.config.service_version,
-            "environment": self.config.environment,
-        })
+        self._info["app_info"].info(
+            {
+                "version": self.config.service_version,
+                "environment": self.config.environment,
+            }
+        )
 
         # Startup time
         self._gauges["startup_time_seconds"] = Gauge(
@@ -427,11 +446,13 @@ def init_telemetry(
     if OPENTELEMETRY_AVAILABLE and _config.tracing_enabled:
         try:
             # Create resource
-            resource = Resource.create({
-                SERVICE_NAME: _config.service_name,
-                "service.version": _config.service_version,
-                "deployment.environment": _config.environment,
-            })
+            resource = Resource.create(
+                {
+                    SERVICE_NAME: _config.service_name,
+                    "service.version": _config.service_version,
+                    "deployment.environment": _config.environment,
+                }
+            )
 
             # Create provider
             provider = TracerProvider(resource=resource)
@@ -494,6 +515,7 @@ def get_telemetry_config() -> TelemetryConfig:
 # Convenience Functions
 # =============================================================================
 
+
 @contextmanager
 def trace_span(
     name: str,
@@ -521,14 +543,21 @@ def record_request(
 ):
     """Record a request metric."""
     metrics = get_metrics()
-    metrics.inc_counter("requests_total", {
-        "endpoint": endpoint,
-        "method": method,
-        "status": str(status),
-    })
-    metrics.observe_histogram("request_duration_seconds", duration_seconds, {
-        "endpoint": endpoint,
-    })
+    metrics.inc_counter(
+        "requests_total",
+        {
+            "endpoint": endpoint,
+            "method": method,
+            "status": str(status),
+        },
+    )
+    metrics.observe_histogram(
+        "request_duration_seconds",
+        duration_seconds,
+        {
+            "endpoint": endpoint,
+        },
+    )
 
 
 def record_ai_request(
@@ -541,25 +570,40 @@ def record_ai_request(
 ):
     """Record an AI API request metric."""
     metrics = get_metrics()
-    metrics.inc_counter("ai_requests_total", {
-        "provider": provider,
-        "model": model,
-        "status": status,
-    })
-    metrics.observe_histogram("ai_latency_seconds", latency_seconds, {
-        "provider": provider,
-        "model": model,
-    })
+    metrics.inc_counter(
+        "ai_requests_total",
+        {
+            "provider": provider,
+            "model": model,
+            "status": status,
+        },
+    )
+    metrics.observe_histogram(
+        "ai_latency_seconds",
+        latency_seconds,
+        {
+            "provider": provider,
+            "model": model,
+        },
+    )
     if prompt_tokens:
-        metrics.inc_counter("ai_tokens_used", {
-            "provider": provider,
-            "type": "prompt",
-        }, prompt_tokens)
+        metrics.inc_counter(
+            "ai_tokens_used",
+            {
+                "provider": provider,
+                "type": "prompt",
+            },
+            prompt_tokens,
+        )
     if completion_tokens:
-        metrics.inc_counter("ai_tokens_used", {
-            "provider": provider,
-            "type": "completion",
-        }, completion_tokens)
+        metrics.inc_counter(
+            "ai_tokens_used",
+            {
+                "provider": provider,
+                "type": "completion",
+            },
+            completion_tokens,
+        )
 
 
 def record_cache_hit(cache_type: str = "ai"):
@@ -577,15 +621,19 @@ def record_cache_miss(cache_type: str = "ai"):
 def record_error(error_type: str, component: str):
     """Record an error."""
     metrics = get_metrics()
-    metrics.inc_counter("errors_total", {
-        "error_type": error_type,
-        "component": component,
-    })
+    metrics.inc_counter(
+        "errors_total",
+        {
+            "error_type": error_type,
+            "component": component,
+        },
+    )
 
 
 # =============================================================================
 # Decorators
 # =============================================================================
+
 
 def traced(
     name: str = None,
@@ -604,6 +652,7 @@ def traced(
         async def fetch_url(url: str):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         span_name = name or func.__name__
 
@@ -638,6 +687,7 @@ def traced(
                     raise
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return sync_wrapper
@@ -654,6 +704,7 @@ def timed_metric(metric_name: str, labels: Dict[str, str] = None):
         def query_database():
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
@@ -676,6 +727,7 @@ def timed_metric(metric_name: str, labels: Dict[str, str] = None):
                 metrics.observe_histogram(metric_name, duration, labels)
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return sync_wrapper

@@ -31,8 +31,8 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from ..core.result import Result, Ok, Err
-from ..core.types import CompanyProfile, ResearchPhaseResult
+from src.core.result import Result, Ok, Err
+from src.core.types import CompanyProfile, ResearchPhaseResult, ResearchIntelligenceBrief
 
 from .context import RequestContext, create_context
 from .pipeline import Pipeline, PipelineConfig, PipelineResult, PipelineStatus
@@ -41,6 +41,10 @@ from .stages.research import (
     ResearchInput,
     ResearchOutput,
     ResearchPhaseStage,
+)
+from .stages.planning import (
+    PlanningInput,
+    ResearchPlanningStage,
 )
 
 
@@ -60,6 +64,7 @@ class ResearchPipelineConfig:
         max_sources_per_query: Maximum sources to fetch per search query
         timeout_seconds: Total timeout for the entire research process
         max_retries: Maximum retry attempts for failed stages
+        enable_ai_planning: Enable AI-first research planning (generates intelligent brief)
     """
 
     research_types: List[str] = field(default_factory=lambda: [
@@ -73,6 +78,7 @@ class ResearchPipelineConfig:
     max_sources_per_query: int = 3
     timeout_seconds: float = 600.0  # 10 minutes default
     max_retries: int = 2
+    enable_ai_planning: bool = True  # NEW: Enable AI-first research planning
 
 
 # =============================================================================
@@ -92,11 +98,13 @@ class ParallelResearchStage(Stage[ResearchInput, ResearchOutput]):
         self,
         research_types: List[str],
         max_sources_per_query: int = 3,
+        research_brief: Optional[ResearchIntelligenceBrief] = None,
     ):
         self._research_types = research_types
         self._max_sources = max_sources_per_query
+        self._research_brief = research_brief
         self._phase_stages = [
-            ResearchPhaseStage(rt, max_sources_per_query)
+            ResearchPhaseStage(rt, max_sources_per_query, research_brief=research_brief)
             for rt in research_types
         ]
 
@@ -183,9 +191,11 @@ class SequentialResearchStage(Stage[ResearchInput, ResearchOutput]):
         self,
         research_types: List[str],
         max_sources_per_query: int = 3,
+        research_brief: Optional[ResearchIntelligenceBrief] = None,
     ):
         self._research_types = research_types
         self._max_sources = max_sources_per_query
+        self._research_brief = research_brief
 
     @property
     def name(self) -> str:
@@ -213,7 +223,11 @@ class SequentialResearchStage(Stage[ResearchInput, ResearchOutput]):
 
             ctx.logger.info(f"Starting phase: {research_type}")
 
-            stage = ResearchPhaseStage(research_type, self._max_sources)
+            stage = ResearchPhaseStage(
+                research_type,
+                self._max_sources,
+                research_brief=self._research_brief,
+            )
             result = await stage.run(input, ctx)
 
             if result.is_ok:
@@ -278,26 +292,18 @@ class ResearchPipeline:
         """
         self.config = config or ResearchPipelineConfig()
 
-        # Create the main research stage
-        if self.config.parallel_phases:
-            self._research_stage = ParallelResearchStage(
-                research_types=self.config.research_types,
-                max_sources_per_query=self.config.max_sources_per_query,
-            )
-        else:
-            self._research_stage = SequentialResearchStage(
-                research_types=self.config.research_types,
-                max_sources_per_query=self.config.max_sources_per_query,
-            )
+        # Planning stage is created dynamically per-request (needs company context)
+        self._planning_stage = ResearchPlanningStage() if self.config.enable_ai_planning else None
 
-        # Create the underlying pipeline
-        self._pipeline = Pipeline(
-            stages=[self._research_stage],
-            config=PipelineConfig(
-                max_retries=self.config.max_retries,
-                timeout_seconds=self.config.timeout_seconds,
-                checkpoint_enabled=True,
-            ),
+        # Research stages are created per-request now (need brief from planning)
+        # We'll create them in the research() method after planning completes
+        self._research_stage = None
+
+        # Create the underlying pipeline config
+        self._pipeline_config = PipelineConfig(
+            max_retries=self.config.max_retries,
+            timeout_seconds=self.config.timeout_seconds,
+            checkpoint_enabled=True,
         )
 
     async def research(
@@ -308,6 +314,11 @@ class ResearchPipeline:
     ) -> PipelineResult[ResearchOutput]:
         """
         Conduct research on a company.
+
+        This method implements AI-first research planning:
+        1. (Optional) Generate Research Intelligence Brief using AI
+        2. Execute research phases with brief-guided queries and filtering
+        3. Return structured research output
 
         Args:
             company: The company to research
@@ -325,23 +336,79 @@ class ResearchPipeline:
             f"Starting research for {company.name}",
             research_types=self.config.research_types,
             parallel=self.config.parallel_phases,
+            ai_planning=self.config.enable_ai_planning,
         )
 
-        # Create input
+        # =================================================================
+        # PHASE 0: AI-FIRST RESEARCH PLANNING (NEW)
+        # Generate Research Intelligence Brief before any web scraping
+        # =================================================================
+        research_brief: Optional[ResearchIntelligenceBrief] = None
+
+        if self._planning_stage and self.config.enable_ai_planning:
+            ctx.logger.info("Generating AI Research Intelligence Brief...")
+
+            planning_input = PlanningInput(
+                company=company,
+                extra_context=extra_context or {},
+            )
+
+            planning_result = await self._planning_stage.run(planning_input, ctx)
+
+            if planning_result.is_ok:
+                research_brief = planning_result.unwrap().output
+                ctx.logger.info(
+                    f"Research brief generated",
+                    confidence=research_brief.confidence_score,
+                    query_types=len(research_brief.priority_queries),
+                    entity_ids=len(research_brief.entity_identifiers),
+                )
+            else:
+                ctx.logger.warning(
+                    f"Research planning failed, proceeding without brief: "
+                    f"{planning_result.unwrap_err().message}"
+                )
+
+        # =================================================================
+        # PHASE 1+: Execute research with brief-guided stages
+        # =================================================================
+
+        # Create the research stage with the brief
+        if self.config.parallel_phases:
+            research_stage = ParallelResearchStage(
+                research_types=self.config.research_types,
+                max_sources_per_query=self.config.max_sources_per_query,
+                research_brief=research_brief,
+            )
+        else:
+            research_stage = SequentialResearchStage(
+                research_types=self.config.research_types,
+                max_sources_per_query=self.config.max_sources_per_query,
+                research_brief=research_brief,
+            )
+
+        # Create input with the brief
         input = ResearchInput(
             company=company,
             research_types=self.config.research_types,
             max_sources_per_query=self.config.max_sources_per_query,
             extra_context=extra_context or {},
+            research_brief=research_brief,
         )
 
-        # Execute pipeline
-        result = await self._pipeline.execute(input, ctx)
+        # Create and execute pipeline
+        pipeline = Pipeline(
+            stages=[research_stage],
+            config=self._pipeline_config,
+        )
+
+        result = await pipeline.execute(input, ctx)
 
         ctx.logger.info(
             f"Research completed for {company.name}",
             status=result.status.value,
             phases=len(result.output.phases) if result.output else 0,
+            used_brief=research_brief is not None,
         )
 
         return result

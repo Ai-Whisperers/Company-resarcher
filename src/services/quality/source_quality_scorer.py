@@ -15,7 +15,7 @@ from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from ...utils.url_utils import (
+from src.utils.url_utils import (
     get_domain,
     is_global_business_domain,
     calculate_source_relevance_score,
@@ -29,7 +29,7 @@ from ...utils.url_utils import (
 # This ensures backward compatibility while using the centralized registry
 def _build_authority_scores() -> Dict[str, float]:
     """Build authority scores dict from centralized registry."""
-    from ...core.sources.source_registry import (
+    from src.infrastructure.sources.source_registry import (
         get_all_tier1_sources,
         get_all_tier2_sources,
         LOW_PRIORITY_DOMAINS,

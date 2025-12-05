@@ -8,7 +8,7 @@ Quality: Excellent, AI-optimized results
 import asyncio
 import os
 from typing import List, Optional
-from ..base import SearchProvider, SearchResult, SearchError, RateLimitError
+from src.tools.search.base import SearchProvider, SearchResult, SearchError, RateLimitError
 from src.core.logging import setup_logger
 from src.core.config import get_settings
 

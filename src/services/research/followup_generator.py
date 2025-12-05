@@ -22,14 +22,15 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
 
-from ...core.logging import setup_logger
-from ...core.ai import get_ai_manager
+from src.core.logging import setup_logger
+from src.infrastructure.ai import get_ai_manager
 
 logger = setup_logger("followup_generator")
 
 
 class QuestionPriority(str, Enum):
     """Priority level for follow-up questions."""
+
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
@@ -37,6 +38,7 @@ class QuestionPriority(str, Enum):
 
 class QuestionCategory(str, Enum):
     """Category of follow-up question."""
+
     KNOWLEDGE_GAP = "knowledge_gap"
     DEEPER_ANALYSIS = "deeper_analysis"
     VERIFICATION = "verification"
@@ -47,6 +49,7 @@ class QuestionCategory(str, Enum):
 @dataclass
 class FollowupQuestion:
     """A single follow-up question with metadata."""
+
     text: str
     priority: QuestionPriority
     category: QuestionCategory
@@ -69,6 +72,7 @@ class FollowupQuestion:
 @dataclass
 class FollowupResult:
     """Result of follow-up question generation."""
+
     questions: List[FollowupQuestion]
     company_name: str
     knowledge_gaps: List[str]
@@ -206,8 +210,9 @@ Respond in JSON format:
                 # Keep highest priority questions
                 parsed.questions.sort(
                     key=lambda q: (
-                        0 if q.priority == QuestionPriority.HIGH else
-                        1 if q.priority == QuestionPriority.MEDIUM else 2
+                        0
+                        if q.priority == QuestionPriority.HIGH
+                        else 1 if q.priority == QuestionPriority.MEDIUM else 2
                     )
                 )
                 parsed.questions = parsed.questions[:max_questions]
@@ -318,12 +323,21 @@ Respond in JSON format:
 
         phase_questions = {
             "market": [
-                ("What is the total addressable market (TAM) for {company}?", QuestionPriority.HIGH),
-                ("What are the key market trends affecting {company}?", QuestionPriority.MEDIUM),
+                (
+                    "What is the total addressable market (TAM) for {company}?",
+                    QuestionPriority.HIGH,
+                ),
+                (
+                    "What are the key market trends affecting {company}?",
+                    QuestionPriority.MEDIUM,
+                ),
             ],
             "financial": [
                 ("What is {company}'s revenue growth rate?", QuestionPriority.HIGH),
-                ("What are {company}'s key financial metrics?", QuestionPriority.MEDIUM),
+                (
+                    "What are {company}'s key financial metrics?",
+                    QuestionPriority.MEDIUM,
+                ),
             ],
             "competitor": [
                 ("Who are {company}'s main competitors?", QuestionPriority.HIGH),
@@ -331,36 +345,48 @@ Respond in JSON format:
             ],
             "brand": [
                 ("What is {company}'s brand positioning?", QuestionPriority.MEDIUM),
-                ("What is the customer sentiment towards {company}?", QuestionPriority.LOW),
+                (
+                    "What is the customer sentiment towards {company}?",
+                    QuestionPriority.LOW,
+                ),
             ],
             "sales": [
-                ("What are {company}'s primary sales channels?", QuestionPriority.MEDIUM),
+                (
+                    "What are {company}'s primary sales channels?",
+                    QuestionPriority.MEDIUM,
+                ),
                 ("What is {company}'s pricing strategy?", QuestionPriority.MEDIUM),
             ],
         }
 
         # Check which phases have data and generate questions for gaps
-        completed_phases = {p.get("phase_name") for p in phases if p.get("markdown_content")}
+        completed_phases = {
+            p.get("phase_name") for p in phases if p.get("markdown_content")
+        }
 
         for phase, phase_qs in phase_questions.items():
             if phase not in completed_phases:
                 for text_template, priority in phase_qs:
-                    questions.append(FollowupQuestion(
-                        text=text_template.format(company=company_name),
-                        priority=priority,
-                        category=QuestionCategory.KNOWLEDGE_GAP,
-                        phase=phase,
-                        context=f"No data found for {phase} research phase",
-                    ))
+                    questions.append(
+                        FollowupQuestion(
+                            text=text_template.format(company=company_name),
+                            priority=priority,
+                            category=QuestionCategory.KNOWLEDGE_GAP,
+                            phase=phase,
+                            context=f"No data found for {phase} research phase",
+                        )
+                    )
 
         # Add general follow-up questions
-        questions.append(FollowupQuestion(
-            text=f"What are the key risks facing {company_name}?",
-            priority=QuestionPriority.HIGH,
-            category=QuestionCategory.DEEPER_ANALYSIS,
-            phase="general",
-            context="Risk assessment is critical for investment decisions",
-        ))
+        questions.append(
+            FollowupQuestion(
+                text=f"What are the key risks facing {company_name}?",
+                priority=QuestionPriority.HIGH,
+                category=QuestionCategory.DEEPER_ANALYSIS,
+                phase="general",
+                context="Risk assessment is critical for investment decisions",
+            )
+        )
 
         return FollowupResult(
             questions=questions,
@@ -410,6 +436,7 @@ Respond in JSON format with a "questions" array containing objects with "text", 
 
             # Parse response
             import json
+
             response_text = response.unwrap()
             start = response_text.find("{")
             end = response_text.rfind("}") + 1
@@ -419,13 +446,15 @@ Respond in JSON format with a "questions" array containing objects with "text", 
                 questions = []
 
                 for q in data.get("questions", [])[:max_questions]:
-                    questions.append(FollowupQuestion(
-                        text=q.get("text", ""),
-                        priority=QuestionPriority(q.get("priority", "medium")),
-                        category=QuestionCategory.DEEPER_ANALYSIS,
-                        phase=phase_name,
-                        context=q.get("context", ""),
-                    ))
+                    questions.append(
+                        FollowupQuestion(
+                            text=q.get("text", ""),
+                            priority=QuestionPriority(q.get("priority", "medium")),
+                            category=QuestionCategory.DEEPER_ANALYSIS,
+                            phase=phase_name,
+                            context=q.get("context", ""),
+                        )
+                    )
 
                 return questions
 

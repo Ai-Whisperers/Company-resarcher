@@ -25,8 +25,8 @@ from dataclasses import dataclass
 
 import yaml
 
-from ...core.logging import setup_logger
-from ...core.ai import get_ai_manager
+from src.core.logging import setup_logger
+from src.infrastructure.ai import get_ai_manager
 from .cross_company_reader import CrossCompanyReader, CompanyCache
 
 logger = setup_logger("market_consolidation")
@@ -35,6 +35,7 @@ logger = setup_logger("market_consolidation")
 @dataclass
 class CompanyResearch:
     """Research data loaded from a company's output folder."""
+
     name: str
     folder: Path
     sections: Dict[str, str]  # section_path -> content
@@ -75,7 +76,7 @@ class MarketConsolidator:
         Returns:
             CompanyResearch with all section content
         """
-        safe_name = re.sub(r'[<>:"/\\|?*]', '_', company_folder)
+        safe_name = re.sub(r'[<>:"/\\|?*]', "_", company_folder)
         folder_path = self.base_dir / safe_name
 
         if not folder_path.exists():
@@ -142,7 +143,7 @@ class MarketConsolidator:
             raise ValueError("No company research found to consolidate")
 
         # Create output folder
-        safe_market_name = re.sub(r'[<>:"/\\|?*]', '_', market_name)
+        safe_market_name = re.sub(r'[<>:"/\\|?*]', "_", market_name)
         output_dir = self.base_dir / safe_market_name
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -166,7 +167,7 @@ class MarketConsolidator:
         # 4. Individual company summaries
         for company in companies:
             summary = self._extract_company_summary(company)
-            safe_name = re.sub(r'[<>:"/\\|?*]', '_', company.name)
+            safe_name = re.sub(r'[<>:"/\\|?*]', "_", company.name)
             drafts[f"02-Company-Profiles/{safe_name}.md"] = summary
 
         # 5. Combined sources
@@ -313,10 +314,12 @@ Format in Markdown with tables where appropriate."""
                 f"{company.sources_count} | {html_size} |"
             )
 
-        lines.extend([
-            "",
-            "## Available Sections\n",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Available Sections\n",
+            ]
+        )
 
         # Collect all unique section paths
         all_sections = set()
@@ -326,7 +329,9 @@ Format in Markdown with tables where appropriate."""
                 all_sections.add(section)
 
         lines.append("| Section | " + " | ".join(c.name for c in companies) + " |")
-        lines.append("|---------|" + "|".join("-" * len(c.name) for c in companies) + "|")
+        lines.append(
+            "|---------|" + "|".join("-" * len(c.name) for c in companies) + "|"
+        )
 
         for section in sorted(all_sections):
             row = [section]
@@ -444,12 +449,14 @@ Format in Markdown with tables where appropriate."""
         if market_config:
             market_data = market_config.get("market", {})
             if market_size := market_data.get("market_size"):
-                lines.extend([
-                    "\n## Market Size\n",
-                    f"- 2025: {market_size.get('value_2025', 'N/A')}",
-                    f"- 2030: {market_size.get('value_2030', 'N/A')}",
-                    f"- CAGR: {market_size.get('cagr', 'N/A')}",
-                ])
+                lines.extend(
+                    [
+                        "\n## Market Size\n",
+                        f"- 2025: {market_size.get('value_2025', 'N/A')}",
+                        f"- 2030: {market_size.get('value_2030', 'N/A')}",
+                        f"- CAGR: {market_size.get('cagr', 'N/A')}",
+                    ]
+                )
 
         lines.append("\n## Key Findings\n")
         lines.append("*See individual company sections for detailed analysis.*")

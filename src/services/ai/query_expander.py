@@ -1,7 +1,7 @@
 import logging
 import json
 from typing import List
-from ...core.ai import AIClientManager
+from src.infrastructure.ai import AIClientManager
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ Return JSON:
             )
 
             try:
-                from ..content.json_parser_helper import robust_json_parse
+                from src.infrastructure.content.json_parser_helper import robust_json_parse
 
                 parsed = robust_json_parse(result)
             except ImportError:

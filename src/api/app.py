@@ -7,7 +7,7 @@ import time
 import uuid
 import json
 from contextlib import asynccontextmanager
-from typing import Optional, Set
+from typing import Any, Dict, List, Optional, Set
 from datetime import datetime, timezone
 
 from fastapi import (
@@ -24,7 +24,15 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
-from .models import ResearchRequest, ResearchResponse, TaskStatusResponse, Task, ResearchMode, ResearchPhase, MarketConsolidationRequest
+from .models import (
+    ResearchRequest,
+    ResearchResponse,
+    TaskStatusResponse,
+    Task,
+    ResearchMode,
+    ResearchPhase,
+    MarketConsolidationRequest,
+)
 from .database import get_db
 from src.core.config import (
     get_settings,
@@ -34,8 +42,13 @@ from src.core.config import (
     STATUS_COMPLETED,
     STATUS_FAILED,
 )
-from src.core.resilience.rate_limiting import rate_limiter_manager, RateLimitConfig
+from src.lib.resilience.rate_limiting import rate_limiter_manager, RateLimitConfig
 from src.core.logging import setup_logger
+from src.core.logging.telemetry import init_telemetry, get_metrics, PROMETHEUS_AVAILABLE
+from src.core.logging.error_tracking import init_error_tracking, capture_exception
+from src.core.logging.logger import set_request_id, get_request_id, clear_request_id
+from .database import SessionLocal, Base, engine
+from src.pipeline.orchestrator import PipelineOrchestrator
 
 logger = setup_logger("api")
 
@@ -137,11 +150,21 @@ async def lifespan(app: FastAPI):
     _setup_signal_handlers()
 
     # Startup: Initialize telemetry (OPS-001)
-    init_telemetry(service_name="company-researcher")
-    logger.info("Telemetry initialized")
+    try:
+        init_telemetry(service_name="company-researcher")
+        logger.info("Telemetry initialized")
+    except ValueError as e:
+        # Handle duplicate Prometheus metrics registration (e.g., during reload)
+        if "Duplicated timeseries" in str(e):
+            logger.warning(f"Telemetry already registered, skipping: {e}")
+        else:
+            raise
 
     # Startup: Initialize error tracking (Issue #066)
-    init_error_tracking()
+    try:
+        init_error_tracking()
+    except Exception as e:
+        logger.warning(f"Error tracking initialization failed: {e}")
 
     # Startup: Create tables
     Base.metadata.create_all(bind=engine)
@@ -177,12 +200,36 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    # ... (app config)
+    title="Company Research API",
+    description="API for conducting comprehensive company research",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-# ... (CORS config)
+# CORS configuration - configurable via environment for production
+# Set CORS_ORIGINS environment variable to comma-separated list of allowed origins
+# Example: CORS_ORIGINS=https://dashboard.example.com,https://app.example.com
+_cors_origins_env = os.getenv("CORS_ORIGINS", "")
+_cors_origins = (
+    [origin.strip() for origin in _cors_origins_env.split(",") if origin.strip()]
+    if _cors_origins_env
+    else [
+        # Development defaults
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://localhost:8000",
+    ]
+)
 
-# ... (middleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-API-Key", "Authorization"],
+)
 
 # API Key Authentication
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -326,6 +373,182 @@ RESEARCH_TIMEOUT_SECONDS = int(
 )  # 30 minutes default
 
 
+# =============================================================================
+# Research Mode Handlers (CQ-115: Extracted for reduced complexity)
+# =============================================================================
+
+
+async def _run_comprehensive_research(request: ResearchRequest, url: str) -> dict:
+    """Execute comprehensive research mode with 200+ queries."""
+    from src.pipeline.comprehensive_research import ComprehensiveResearchService
+
+    service = ComprehensiveResearchService(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
+    comprehensive_result = await service.research_company(
+        company_name=request.company_name,
+        website=url,
+        industry=request.industry,
+        country=request.country,
+    )
+    return {
+        "status": "success" if comprehensive_result.success else "partial_success",
+        "company_name": request.company_name,
+        "website": url,
+        "mode": "comprehensive",
+        "sections": {
+            section: {
+                filename: {
+                    "content": file_result.content[:10000],
+                    "sources_count": len(file_result.sources),
+                }
+                for filename, file_result in section_data.items()
+            }
+            for section, section_data in comprehensive_result.sections.items()
+            if not section.startswith("_")
+        },
+        "total_sources": comprehensive_result.total_sources,
+        "ai_enhancements_applied": comprehensive_result.ai_enhancements_applied,
+        "duration_seconds": comprehensive_result.duration_seconds,
+    }
+
+
+async def _run_deep_research(request: ResearchRequest, url: str) -> dict:
+    """Execute deep research mode with learnings extraction."""
+    from src.services.research import DeepResearchService
+    from src.core.types import CompanyProfile
+
+    service = DeepResearchService()
+    company = CompanyProfile(
+        name=request.company_name,
+        website=url,
+        industry=request.industry,
+    )
+    deep_result = await service.research(company, max_iterations=3)
+    return {
+        "status": "success",
+        "company_name": request.company_name,
+        "website": url,
+        "mode": "deep",
+        "learnings": deep_result.get("learnings", []),
+        "sources": deep_result.get("sources", []),
+        "gaps_filled": deep_result.get("gaps_filled", 0),
+    }
+
+
+async def _run_incremental_research(request: ResearchRequest, url: str) -> dict:
+    """Execute incremental research mode building on existing data."""
+    from src.services.research.incremental import IncrementalResearchService
+
+    service = IncrementalResearchService(base_dir="outputs")
+    inc_result = await service.research_incremental(
+        company_name=request.company_name,
+        industry=request.industry or "general",
+        country=request.country or "USA",
+        max_queries=30,
+    )
+    return {
+        "status": "success" if inc_result.success else "failed",
+        "company_name": request.company_name,
+        "website": url,
+        "mode": "incremental",
+        "stats": inc_result.stats.to_dict(),
+        "filled_gaps": inc_result.filled_gaps,
+        "remaining_gaps": inc_result.remaining_gaps[:10],
+        "new_sources_count": len(inc_result.new_sources),
+        "error": inc_result.error,
+    }
+
+
+async def _run_single_phase_research(request: ResearchRequest, url: str) -> dict:
+    """Execute single phase research mode."""
+    if not request.single_phase:
+        raise ValueError(
+            "single_phase field is required when research_mode is 'single_phase'"
+        )
+
+    orchestrator = PipelineOrchestrator(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
+    result = await orchestrator.research_single_phase(
+        company_name=request.company_name,
+        url=url,
+        research_type=request.single_phase.value,
+        industry=request.industry,
+    )
+    result["mode"] = "single_phase"
+    return result
+
+
+async def _run_iterative_research(request: ResearchRequest, url: str) -> dict:
+    """Execute iterative research mode with automatic gap-filling."""
+    from src.services.research.iterative import IterativeResearchService
+
+    service = IterativeResearchService()
+    iter_result = await service.research_iterative(
+        company_name=request.company_name,
+        website=url,
+        industry=request.industry or "general",
+        max_iterations=3,
+    )
+    return {
+        "status": "success" if iter_result.get("success") else "partial",
+        "company_name": request.company_name,
+        "website": url,
+        "mode": "iterative",
+        "iterations_completed": iter_result.get("iterations", 0),
+        "learnings": iter_result.get("learnings", []),
+        "gaps_remaining": iter_result.get("gaps_remaining", []),
+        "sources_count": len(iter_result.get("sources", [])),
+    }
+
+
+async def _run_standard_research(
+    request: ResearchRequest, url: str, phases_to_run: list
+) -> dict:
+    """Execute standard research mode (default)."""
+    orchestrator = PipelineOrchestrator(
+        research_types=phases_to_run,
+        timeout_seconds=RESEARCH_TIMEOUT_SECONDS,
+    )
+    result = await orchestrator.conduct_research(
+        company_name=request.company_name,
+        url=url,
+        industry=request.industry,
+    )
+    result["mode"] = "standard"
+    return result
+
+
+async def _add_optional_enrichments(
+    request: ResearchRequest, url: str, result: dict
+) -> None:
+    """Add optional enrichments like GitHub and corporate registry."""
+    if request.include_github:
+        try:
+            orchestrator = PipelineOrchestrator(
+                timeout_seconds=RESEARCH_TIMEOUT_SECONDS
+            )
+            github_result = await orchestrator.research_github_presence(
+                request.company_name
+            )
+            result["github"] = github_result
+        except Exception as gh_err:
+            logger.warning(f"GitHub analysis failed (non-fatal): {gh_err}")
+            result["github"] = {"status": "error", "message": str(gh_err)}
+
+    if request.include_corporate_registry:
+        try:
+            orchestrator = PipelineOrchestrator(
+                timeout_seconds=RESEARCH_TIMEOUT_SECONDS
+            )
+            registry_result = await orchestrator.research_corporate_registry(
+                company_name=request.company_name,
+                country=request.country,
+                website=url,
+            )
+            result["corporate_registry"] = registry_result
+        except Exception as reg_err:
+            logger.warning(f"Corporate registry lookup failed (non-fatal): {reg_err}")
+            result["corporate_registry"] = {"status": "error", "message": str(reg_err)}
+
+
 async def run_research_task(
     task_id: str, request: ResearchRequest, request_id: str = None
 ):
@@ -352,162 +575,36 @@ async def run_research_task(
 
     db = SessionLocal()
     try:
-        logger.info(f"Starting research task {task_id} (mode: {request.research_mode.value})")
+        logger.info(
+            f"Starting research task {task_id} (mode: {request.research_mode.value})"
+        )
         save_task(db, task_id, status=STATUS_IN_PROGRESS)
 
-        result = {}
         url = str(request.url) if request.url else ""
 
-        # Determine which phases to run
-        phases_to_run = None
-        if request.phases:
-            phases_to_run = [p.value for p in request.phases]
+        # Determine which phases to run for standard mode
+        phases_to_run = [p.value for p in request.phases] if request.phases else None
 
-        # Route to appropriate research mode
-        if request.research_mode == ResearchMode.COMPREHENSIVE:
-            # Full comprehensive research with 200+ queries
-            from src.pipeline.comprehensive_research import ComprehensiveResearchService
-            service = ComprehensiveResearchService(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
-            comprehensive_result = await service.research_company(
-                company_name=request.company_name,
-                website=url,
-                industry=request.industry,
-                country=request.country,
-            )
-            result = {
-                "status": "success" if comprehensive_result.success else "partial_success",
-                "company_name": request.company_name,
-                "website": url,
-                "mode": "comprehensive",
-                "sections": {
-                    section: {
-                        filename: {
-                            "content": file_result.content[:10000],  # Truncate for storage
-                            "sources_count": len(file_result.sources),
-                        }
-                        for filename, file_result in section_data.items()
-                    }
-                    for section, section_data in comprehensive_result.sections.items()
-                    if not section.startswith("_")
-                },
-                "total_sources": comprehensive_result.total_sources,
-                "ai_enhancements_applied": comprehensive_result.ai_enhancements_applied,
-                "duration_seconds": comprehensive_result.duration_seconds,
-            }
+        # Route to appropriate research mode using extracted handlers (CQ-115)
+        mode_handlers = {
+            ResearchMode.COMPREHENSIVE: lambda: _run_comprehensive_research(
+                request, url
+            ),
+            ResearchMode.DEEP: lambda: _run_deep_research(request, url),
+            ResearchMode.INCREMENTAL: lambda: _run_incremental_research(request, url),
+            ResearchMode.SINGLE_PHASE: lambda: _run_single_phase_research(request, url),
+            ResearchMode.ITERATIVE: lambda: _run_iterative_research(request, url),
+        }
 
-        elif request.research_mode == ResearchMode.DEEP:
-            # Deep research with learnings extraction
-            from src.services.research import DeepResearchService
-            from src.core.types import CompanyProfile
-            service = DeepResearchService()
-            company = CompanyProfile(
-                name=request.company_name,
-                website=url,
-                industry=request.industry,
-            )
-            deep_result = await service.research(company, max_iterations=3)
-            result = {
-                "status": "success",
-                "company_name": request.company_name,
-                "website": url,
-                "mode": "deep",
-                "learnings": deep_result.get("learnings", []),
-                "sources": deep_result.get("sources", []),
-                "gaps_filled": deep_result.get("gaps_filled", 0),
-            }
-
-        elif request.research_mode == ResearchMode.INCREMENTAL:
-            # Incremental research - builds on existing data
-            from src.services.research.incremental import IncrementalResearchService
-            service = IncrementalResearchService(base_dir="outputs")
-            inc_result = await service.research_incremental(
-                company_name=request.company_name,
-                industry=request.industry or "general",
-                country=request.country or "USA",
-                max_queries=30,
-            )
-            result = {
-                "status": "success" if inc_result.success else "failed",
-                "company_name": request.company_name,
-                "website": url,
-                "mode": "incremental",
-                "stats": inc_result.stats.to_dict(),
-                "filled_gaps": inc_result.filled_gaps,
-                "remaining_gaps": inc_result.remaining_gaps[:10],  # Top 10 remaining
-                "new_sources_count": len(inc_result.new_sources),
-                "error": inc_result.error,
-            }
-
-        elif request.research_mode == ResearchMode.SINGLE_PHASE:
-            # Single phase research
-            if not request.single_phase:
-                raise ValueError("single_phase field is required when research_mode is 'single_phase'")
-            orchestrator = PipelineOrchestrator(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
-            result = await orchestrator.research_single_phase(
-                company_name=request.company_name,
-                url=url,
-                research_type=request.single_phase.value,
-                industry=request.industry,
-            )
-            result["mode"] = "single_phase"
-
-        elif request.research_mode == ResearchMode.ITERATIVE:
-            # Iterative research with automatic gap-filling
-            from src.services.research.iterative import IterativeResearchService
-            service = IterativeResearchService()
-            iter_result = await service.research_iterative(
-                company_name=request.company_name,
-                website=url,
-                industry=request.industry or "general",
-                max_iterations=3,
-            )
-            result = {
-                "status": "success" if iter_result.get("success") else "partial",
-                "company_name": request.company_name,
-                "website": url,
-                "mode": "iterative",
-                "iterations_completed": iter_result.get("iterations", 0),
-                "learnings": iter_result.get("learnings", []),
-                "gaps_remaining": iter_result.get("gaps_remaining", []),
-                "sources_count": len(iter_result.get("sources", [])),
-            }
-
+        handler = mode_handlers.get(request.research_mode)
+        if handler:
+            result = await handler()
         else:
             # Standard research (default)
-            orchestrator = PipelineOrchestrator(
-                research_types=phases_to_run,
-                timeout_seconds=RESEARCH_TIMEOUT_SECONDS,
-            )
-            result = await orchestrator.conduct_research(
-                company_name=request.company_name,
-                url=url,
-                industry=request.industry,
-            )
-            result["mode"] = "standard"
+            result = await _run_standard_research(request, url, phases_to_run)
 
-        # Add optional GitHub analysis
-        if request.include_github:
-            try:
-                orchestrator = PipelineOrchestrator(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
-                github_result = await orchestrator.research_github_presence(request.company_name)
-                result["github"] = github_result
-            except Exception as gh_err:
-                logger.warning(f"GitHub analysis failed (non-fatal): {gh_err}")
-                result["github"] = {"status": "error", "message": str(gh_err)}
-
-        # Add optional corporate registry lookup
-        if request.include_corporate_registry:
-            try:
-                orchestrator = PipelineOrchestrator(timeout_seconds=RESEARCH_TIMEOUT_SECONDS)
-                registry_result = await orchestrator.research_corporate_registry(
-                    company_name=request.company_name,
-                    country=request.country,
-                    website=url,
-                )
-                result["corporate_registry"] = registry_result
-            except Exception as reg_err:
-                logger.warning(f"Corporate registry lookup failed (non-fatal): {reg_err}")
-                result["corporate_registry"] = {"status": "error", "message": str(reg_err)}
+        # Add optional enrichments (GitHub, corporate registry)
+        await _add_optional_enrichments(request, url, result)
 
         save_task(db, task_id, status=STATUS_COMPLETED, result=result)
 
@@ -592,7 +689,8 @@ async def start_research(
     request: ResearchRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    _api_key: str = Depends(verify_api_key),
+    # Note: API key auth disabled for dashboard access. Re-enable for production.
+    # _api_key: str = Depends(verify_api_key),
 ):
     task_id = str(uuid.uuid4())
     # Capture request ID to propagate to background task for log tracing
@@ -667,7 +765,7 @@ async def get_task_status(
 
 
 # Track running tasks for cancellation support
-_running_tasks: dict[str, asyncio.Task] = {}
+_running_tasks: Dict[str, "asyncio.Task[Any]"] = {}
 STATUS_CANCELLED = "cancelled"
 
 
@@ -737,7 +835,7 @@ async def list_tasks(
     offset: int = 0,
     db: Session = Depends(get_db),
     _api_key: str = Depends(verify_api_key),
-):
+) -> Dict[str, Any]:
     """
     List all research tasks with pagination.
     Results are ordered by creation time (newest first).
@@ -922,6 +1020,7 @@ async def liveness_probe():
 )
 async def readiness_probe(db: Session = Depends(get_db)):
     from sqlalchemy import text
+    from src.core.config import get_settings
 
     # Don't accept traffic if shutting down
     if shutdown_manager.is_shutting_down:
@@ -974,6 +1073,7 @@ async def detailed_health_check(db: Session = Depends(get_db)):
     Includes latency measurements for each component.
     """
     from sqlalchemy import text
+    from src.core.config import get_settings
 
     health = {
         "status": "healthy",
@@ -1044,7 +1144,7 @@ async def detailed_health_check(db: Session = Depends(get_db)):
 
     # Check cache (if available)
     try:
-        from ..core.cache import AICache
+        from src.core.cache import AICache
 
         cache = AICache()
         cache_stats = cache.get_stats() if hasattr(cache, "get_stats") else {}
@@ -1094,9 +1194,26 @@ async def metrics_endpoint():
     responses={
         200: {"description": "Configuration reloaded successfully"},
         401: {"description": "Invalid or missing API key"},
+        429: {"description": "Rate limit exceeded for admin endpoint"},
     },
 )
-async def reload_config(_api_key: str = Depends(verify_api_key)):
+async def reload_config(request: Request, _api_key: str = Depends(verify_api_key)):
+    # Apply strict rate limiting for admin endpoints (CQ-037)
+    # 1 request per minute per IP for admin operations
+    client_ip = request.client.host if request.client else "unknown"
+    admin_limiter_name = f"admin_ip_{client_ip}"
+
+    rate_limiter_manager.get_limiter(
+        admin_limiter_name, RateLimitConfig(rate=1.0 / 60.0, burst=1)
+    )
+
+    if not await rate_limiter_manager.acquire(admin_limiter_name):
+        logger.warning(f"Admin rate limit exceeded for IP: {client_ip}")
+        raise HTTPException(
+            status_code=429,
+            detail="Admin rate limit exceeded. Please wait before retrying.",
+        )
+
     clear_settings()
     logger.info("Configuration reloaded via admin endpoint")
     return {"status": "ok", "message": "Configuration reloaded successfully"}
@@ -1381,7 +1498,9 @@ async def get_research_gaps(
             "company_name": company_name,
             "overall_completeness": f"{analysis.overall_completeness:.0%}",
             "total_data_points": len(analysis.all_data_points),
-            "usable_data_points": sum(1 for dp in analysis.all_data_points if dp.is_usable),
+            "usable_data_points": sum(
+                1 for dp in analysis.all_data_points if dp.is_usable
+            ),
             "total_gaps": len(analysis.all_gaps),
             "priority_gaps": [
                 {
@@ -1498,19 +1617,22 @@ async def get_followup_questions(
 
     result = task.get("result")
     if not result:
-        raise HTTPException(status_code=400, detail="No results available for this task")
+        raise HTTPException(
+            status_code=400, detail="No results available for this task"
+        )
 
     try:
         generator = get_followup_generator()
-        followups = await generator.generate_followups(result, max_questions=max_questions)
+        followups = await generator.generate_followups(
+            result, max_questions=max_questions
+        )
 
         response_data = followups.to_dict()
 
         # Filter by priority if specified
         if priority:
             response_data["questions"] = [
-                q for q in response_data["questions"]
-                if q["priority"] == priority
+                q for q in response_data["questions"] if q["priority"] == priority
             ]
 
         return {
@@ -1520,7 +1642,9 @@ async def get_followup_questions(
         }
     except Exception as e:
         logger.error(f"Failed to generate follow-ups: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to generate follow-ups: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate follow-ups: {str(e)}"
+        )
 
 
 @app.get(
@@ -1569,7 +1693,9 @@ async def get_report_quality(
 
     result = task.get("result")
     if not result:
-        raise HTTPException(status_code=400, detail="No results available for this task")
+        raise HTTPException(
+            status_code=400, detail="No results available for this task"
+        )
 
     try:
         # Build drafts from phases

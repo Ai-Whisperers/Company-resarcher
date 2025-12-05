@@ -21,8 +21,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import urljoin, urlparse
 import xml.etree.ElementTree as ET
 
-from ...core.logging import setup_logger
-from ...core.types import ResearchSource
+from src.core.logging import setup_logger
+from src.core.types import ResearchSource
 
 logger = setup_logger("official_site_crawler")
 
@@ -208,7 +208,7 @@ class OfficialSiteCrawler:
     async def _get_browser_tool(self):
         """Lazy load browser tool."""
         if self._browser_tool is None:
-            from ...tools import get_shared_browser_tool
+            from src.tools import get_shared_browser_tool
             self._browser_tool = get_shared_browser_tool()
         return self._browser_tool
 

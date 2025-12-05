@@ -31,7 +31,7 @@ from typing import Any, Dict, List, Optional, TypedDict
 from dataclasses import dataclass, field
 from enum import Enum
 
-from ..core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("mcp_state")
 

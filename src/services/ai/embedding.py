@@ -8,7 +8,7 @@ Privacy-preserving and free compared to API-based embeddings.
 import asyncio
 from typing import List, Optional, Union
 import numpy as np
-from ...core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("embedding_service")
 

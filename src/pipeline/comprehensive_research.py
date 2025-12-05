@@ -19,52 +19,76 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import jinja2
 
-from ..core.types import CompanyProfile, ResearchSource
-from ..core.research import (
+from src.core.types import CompanyProfile, ResearchSource
+from src.core.research import (
     COMPREHENSIVE_QUERIES,
     QueryTemplate,
     format_query,
 )
-from ..services.data import SourceTracker, reset_source_tracker
-from ..services.content import robust_json_parse
-from ..core.logging import setup_logger
-from ..utils.url_utils import add_country_context_to_query
-from ..core.content.relevance_filter import RelevanceFilter
-from ..core.resilience.adaptive_timeout import get_adaptive_timeout_manager
-from ..core.company_probe import probe_company_presence, CompanyPresence, RESEARCH_PROFILES
-from ..core.cache.url_cache import reset_url_cache
-from ..services.content import get_html_cache
-from ..core.ai.features import get_query_planner, QueryPlan
-from ..core.ai import (
+from src.services.data import SourceTracker, reset_source_tracker
+from src.infrastructure.content import robust_json_parse
+from src.core.logging import setup_logger
+from src.utils.url_utils import add_country_context_to_query
+from src.infrastructure.content.relevance_filter import RelevanceFilter
+from src.lib.resilience.adaptive_timeout import get_adaptive_timeout_manager
+from src.core.company_probe import (
+    probe_company_presence,
+    CompanyPresence,
+    RESEARCH_PROFILES,
+)
+from src.core.cache.url_cache import reset_url_cache
+from src.infrastructure.content import get_html_cache
+from src.infrastructure.ai.features import get_query_planner, QueryPlan
+from src.infrastructure.ai import (
     AIEnhancementOrchestrator,
     get_ai_orchestrator,
     reset_ai_orchestrator,
 )
+
 # PERF-017 to PERF-020: New optimization modules
-from ..core.research import (
+from src.core.research import (
     AdaptiveQueryStrategy,
     get_query_strategy,
     QueryStrategy,
 )
-from ..core.cache import (
+from src.core.cache import (
     get_cross_company_cache,
     reset_cross_company_cache,
 )
-from ..core.domain.domain_timeout import (
+from src.core.domain.domain_timeout import (
     get_timeout_manager,
     is_domain_circuit_open,
 )
-from ..core.resilience.search_fallback import (
+from src.lib.resilience.search_fallback import (
     SearchFallbackManager,
     get_fallback_queries,
 )
-from ..core.logging.observability import ObservabilityContext
-from ..tools.data.financial.sec import SECTool
-from ..tools.data.social.reddit import RedditTool
-from ..tools.data.social.twitter import TwitterTool
+from src.core.logging.observability import ObservabilityContext
+from src.tools.data.financial.sec import SECTool
+from src.tools.data.social.reddit import RedditTool
+from src.tools.data.social.twitter import TwitterTool
+
 # ARCH-001: Unified Pipeline Orchestration
-from ..core.sources.unified_fetcher import UnifiedDataFetcher, UnifiedResult
-from ..core.sources.data_router import CompanyProfile as RouterProfile, create_profile_from_dict
+from src.infrastructure.sources.unified_fetcher import UnifiedDataFetcher, UnifiedResult
+from src.infrastructure.sources.data_router import (
+    CompanyProfile as RouterProfile,
+    create_profile_from_dict,
+)
+
+# FIX-001 to FIX-006: Quality improvement modules - Using v2.0 comprehensive filter
+from src.infrastructure.sources.comprehensive_filter import (
+    ComprehensiveSourceFilter,
+    filter_sources_for_synthesis,
+)
+from src.core.research.competitor_knowledge import (
+    get_competitor_knowledge,
+    CompetitorKnowledge,
+)
+from src.core.research.query_localizer import (
+    QueryLocalizer,
+    localize_queries_for_country,
+)
+from src.lib.output.output_structure import get_output_folder_name
 
 logger = setup_logger("comprehensive_research")
 
@@ -73,9 +97,11 @@ logger = setup_logger("comprehensive_research")
 # Data Classes
 # =============================================================================
 
+
 @dataclass
 class SectionResearchResult:
     """Result of researching a single section."""
+
     section: str
     file: str
     sources: List[ResearchSource] = field(default_factory=list)
@@ -126,6 +152,7 @@ class SectionResearchResult:
 @dataclass
 class ComprehensiveResearchResult:
     """Result of comprehensive research across all sections."""
+
     company: CompanyProfile
     sections: Dict[str, Dict[str, SectionResearchResult]] = field(default_factory=dict)
     source_tracker: Optional[SourceTracker] = None
@@ -135,6 +162,8 @@ class ComprehensiveResearchResult:
     # Retry statistics
     sections_retried: int = 0
     retry_sources_gained: int = 0
+    # Unified data from multiple sources (stored separately to maintain type safety)
+    unified_data: Optional[Dict[str, Any]] = None
     # AI Enhancement results (FEAT-AI-ENH)
     extracted_entities: Optional[Dict[str, Any]] = None
     contradictions: Optional[Dict[str, Any]] = None
@@ -168,6 +197,7 @@ class ComprehensiveResearchResult:
 # Comprehensive Research Service
 # =============================================================================
 
+
 class ComprehensiveResearchService:
     """
     Service for executing comprehensive research across all sections.
@@ -182,6 +212,13 @@ class ComprehensiveResearchService:
     # PERF-021: Enable parallel multi-engine search (DuckDuckGo + Jina + Tavily in parallel)
     PARALLEL_SEARCH_ENABLED = os.getenv("PARALLEL_SEARCH", "true").lower() == "true"
     PARALLEL_SEARCH_TIMEOUT = float(os.getenv("PARALLEL_SEARCH_TIMEOUT", "30"))
+    # PERF-022: Use distributed search for batching multiple queries across providers
+    DISTRIBUTED_SEARCH_ENABLED = (
+        os.getenv("DISTRIBUTED_SEARCH", "true").lower() == "true"
+    )
+    DISTRIBUTED_SEARCH_MIN_QUERIES = int(
+        os.getenv("DISTRIBUTED_SEARCH_MIN_QUERIES", "3")
+    )
 
     def __init__(
         self,
@@ -259,12 +296,18 @@ class ComprehensiveResearchService:
             # Adjust max queries based on presence
             if probe_result.presence == CompanyPresence.MINIMAL:
                 self.max_queries_per_section = min(self.max_queries_per_section, 20)
-                logger.info(f"Reduced queries per section to {self.max_queries_per_section} for minimal presence")
+                logger.info(
+                    f"Reduced queries per section to {self.max_queries_per_section} for minimal presence"
+                )
             elif probe_result.presence == CompanyPresence.LIMITED:
                 self.max_queries_per_section = min(self.max_queries_per_section, 35)
-                logger.info(f"Reduced queries per section to {self.max_queries_per_section} for limited presence")
-        except Exception as e:
-            logger.warning(f"Company probe failed, using default research depth: {e}")
+                logger.info(
+                    f"Reduced queries per section to {self.max_queries_per_section} for limited presence"
+                )
+        except asyncio.CancelledError:
+            raise  # Always re-raise cancellation
+        except Exception:
+            logger.exception("Company probe failed, using default research depth")
 
         # Create relevance filter for this company
         self._relevance_filter = RelevanceFilter(
@@ -272,6 +315,29 @@ class ComprehensiveResearchService:
             country=company.country,
             industry=company.industry,
         )
+
+        # FIX-001 to FIX-006: Initialize quality improvement filters
+        self._source_filter = ComprehensiveSourceFilter(
+            company_name=company.name,
+            country=company.country,
+            industry=company.industry,
+            enable_entity_validation=True,
+            enable_recency_filter=True,
+            minimum_sources=3,
+        )
+        logger.info(f"Source filter initialized for {company.name}")
+
+        # Initialize query localizer for country-specific queries
+        self._query_localizer = QueryLocalizer(
+            country=company.country or "Global",
+            generate_local_variants=True,
+            include_english=True,
+        )
+        logger.info(f"Query localizer initialized for {company.country or 'Global'}")
+
+        # Initialize competitor knowledge base
+        self._competitor_knowledge = get_competitor_knowledge()
+        logger.info("Competitor knowledge base initialized")
 
         # Initialize AI query planner for smarter search queries
         self._query_planner = get_query_planner()
@@ -294,8 +360,10 @@ class ComprehensiveResearchService:
                 presence_level=presence_level,
             )
             logger.info(f"Query strategy: {self._query_strategy.strategy.value}")
-        except Exception as e:
-            logger.debug(f"Query strategy initialization skipped: {e}")
+        except asyncio.CancelledError:
+            raise  # Always re-raise cancellation
+        except Exception:
+            logger.debug("Query strategy initialization skipped", exc_info=True)
             self._query_strategy = None
 
         # PERF-018: Initialize search fallback manager
@@ -328,7 +396,9 @@ class ComprehensiveResearchService:
                     exchange=getattr(company, "exchange", None),
                 )
 
-                logger.info(f"=== UNIFIED ORCHESTRATION: Pre-fetching from available sources ===")
+                logger.info(
+                    f"=== UNIFIED ORCHESTRATION: Pre-fetching from available sources ==="
+                )
                 self._unified_data = await unified_fetcher.fetch_all(router_profile)
 
                 if self._unified_data.sources_used:
@@ -340,9 +410,13 @@ class ComprehensiveResearchService:
                     )
 
                     # Store unified data for use by section research
-                    result.sections["_unified_data"] = {
-                        "sources_used": [s.value for s in self._unified_data.sources_used],
-                        "sources_failed": [s.value for s in self._unified_data.sources_failed],
+                    result.unified_data = {
+                        "sources_used": [
+                            s.value for s in self._unified_data.sources_used
+                        ],
+                        "sources_failed": [
+                            s.value for s in self._unified_data.sources_failed
+                        ],
                         "metadata": self._unified_data.metadata,
                     }
                 else:
@@ -350,8 +424,10 @@ class ComprehensiveResearchService:
 
                 await unified_fetcher.close()
 
-            except Exception as e:
-                logger.warning(f"Unified data orchestration failed: {e}")
+            except asyncio.CancelledError:
+                raise  # Always re-raise cancellation
+            except Exception:
+                logger.exception("Unified data orchestration failed")
                 self._unified_data = None
 
         # Execute research for each section with rate limiting
@@ -361,20 +437,22 @@ class ComprehensiveResearchService:
         async def run_section_with_limit(section_name: str, queries: list):
             """Run a section with concurrency limiting."""
             async with section_semaphore:
-                logger.info(f"Researching section: {section_name} ({len(queries)} queries)")
+                logger.info(
+                    f"Researching section: {section_name} ({len(queries)} queries)"
+                )
                 return await self._research_section(company, section_name, queries)
 
         section_tasks = []
         for section_name, queries in COMPREHENSIVE_QUERIES.items():
-            section_tasks.append(
-                run_section_with_limit(section_name, queries)
-            )
+            section_tasks.append(run_section_with_limit(section_name, queries))
 
         # Run sections with limited concurrency to avoid rate limiting
         section_results = await asyncio.gather(*section_tasks, return_exceptions=True)
 
         # Aggregate results
-        for section_name, section_result in zip(COMPREHENSIVE_QUERIES.keys(), section_results):
+        for section_name, section_result in zip(
+            COMPREHENSIVE_QUERIES.keys(), section_results
+        ):
             if isinstance(section_result, Exception):
                 logger.error(f"Section {section_name} failed: {section_result}")
                 continue
@@ -387,12 +465,16 @@ class ComprehensiveResearchService:
         # PARALLEL ENRICHMENT: SEC, News, Social, Financial run concurrently
         # PERF-030: These are independent operations - run in parallel for 3-5x speedup
         # ====================================================================
-        output_dir = Path(os.getenv("OUTPUT_DIR", "outputs")) / company.name.replace(" ", "_")
+        output_dir = Path(os.getenv("OUTPUT_DIR", "outputs")) / company.name.replace(
+            " ", "_"
+        )
         output_dir.mkdir(parents=True, exist_ok=True)
 
         enable_sec = os.getenv("ENABLE_SEC_FILINGS", "true").lower() == "true"
-        enable_social = os.getenv("ENABLE_SOCIAL_INTELLIGENCE", "true").lower() == "true"
-        ticker = getattr(company, 'ticker', None)
+        enable_social = (
+            os.getenv("ENABLE_SOCIAL_INTELLIGENCE", "true").lower() == "true"
+        )
+        ticker = getattr(company, "ticker", None)
 
         # First, detect SEC ticker if needed (quick operation)
         sec_ticker = None
@@ -404,47 +486,103 @@ class ComprehensiveResearchService:
                 )
                 if sec_ticker and not ticker:
                     ticker = sec_ticker
-            except Exception as e:
-                logger.warning(f"SEC ticker detection failed: {e}")
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("SEC ticker detection failed")
 
         # Define all enrichment tasks
         async def run_sec_research():
+            """
+            Fetch SEC EDGAR filings for public companies.
+
+            Searches for 10-K, 10-Q, and 8-K filings using the detected
+            ticker symbol. Returns None if SEC is disabled or no ticker found.
+
+            Returns:
+                Dict of SectionResearchResult objects keyed by file name, or None.
+            """
             if not enable_sec or not sec_ticker:
                 return None
             try:
                 logger.info(f"=== SEC FILINGS: Researching {sec_ticker} (parallel) ===")
-                return await self._research_sec_filings(company=company, ticker=sec_ticker)
-            except Exception as e:
-                logger.warning(f"SEC integration failed: {e}")
+                return await self._research_sec_filings(
+                    company=company, ticker=sec_ticker
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("SEC integration failed")
                 return None
 
         async def run_news_research():
+            """
+            Fetch news intelligence from multiple news APIs.
+
+            Queries news sources for recent articles, sentiment analysis,
+            and coverage trends related to the company.
+
+            Returns:
+                Dict containing news data, analysis results, and metadata.
+            """
             try:
-                return await self._research_news_intelligence(company=company, output_dir=output_dir)
+                return await self._research_news_intelligence(
+                    company=company, output_dir=output_dir
+                )
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
-                logger.warning(f"News intelligence failed: {e}")
+                logger.exception("News intelligence failed")
                 return {"error": str(e)}
 
         async def run_social_research():
+            """
+            Fetch social media intelligence from Twitter and Reddit.
+
+            Gathers mentions, sentiment, and engagement metrics from
+            social platforms. Skipped if ENABLE_SOCIAL_INTELLIGENCE is false.
+
+            Returns:
+                Dict containing social media data and analysis, or error info.
+            """
             if not enable_social:
                 return {"enabled": False}
             try:
-                return await self._research_social_intelligence(company=company, output_dir=output_dir)
+                return await self._research_social_intelligence(
+                    company=company, output_dir=output_dir
+                )
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
-                logger.warning(f"Social intelligence failed: {e}")
+                logger.exception("Social intelligence failed")
                 return {"error": str(e)}
 
         async def run_financial_research():
+            """
+            Fetch deep financial data from Financial Modeling Prep API.
+
+            Retrieves financial statements, ratios, valuation metrics,
+            and market data. Requires a valid ticker symbol.
+
+            Returns:
+                Dict containing financial data and analysis, or error info.
+            """
             if not ticker:
                 return {"error": f"No ticker symbol for {company.name}"}
             try:
-                return await self._research_financial_deep_dive(company=company, ticker=ticker, output_dir=output_dir)
+                return await self._research_financial_deep_dive(
+                    company=company, ticker=ticker, output_dir=output_dir
+                )
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
-                logger.warning(f"Financial deep dive failed: {e}")
+                logger.exception("Financial deep dive failed")
                 return {"error": str(e)}
 
         # Run all enrichment tasks in PARALLEL
-        logger.info("=== PARALLEL ENRICHMENT: Running SEC, News, Social, Financial concurrently ===")
+        logger.info(
+            "=== PARALLEL ENRICHMENT: Running SEC, News, Social, Financial concurrently ==="
+        )
         enrichment_results = await asyncio.gather(
             run_sec_research(),
             run_news_research(),
@@ -460,19 +598,27 @@ class ComprehensiveResearchService:
             result.sections["sec_filings"] = sec_results
             sec_source_count = sum(len(r.sources) for r in sec_results.values())
             result.total_sources += sec_source_count
-            logger.info(f"SEC filings added: {sec_source_count} sources across {len(sec_results)} files")
+            logger.info(
+                f"SEC filings added: {sec_source_count} sources across {len(sec_results)} files"
+            )
         elif not sec_ticker:
             logger.info(f"No SEC filings available for {company.name}")
 
         # Process News results
-        if isinstance(news_results, dict) and news_results.get("enabled") and news_results.get("api_available"):
+        if (
+            isinstance(news_results, dict)
+            and news_results.get("enabled")
+            and news_results.get("api_available")
+        ):
             logger.info(
                 f"News intelligence: {news_results.get('articles_found', 0)} articles, "
                 f"sentiment={news_results.get('sentiment_label', 'neutral')}, "
                 f"signals={news_results.get('signals_detected', 0)}"
             )
             if news_results.get("crisis_alert"):
-                logger.warning(f"CRISIS ALERT: Potential crisis indicators detected for {company.name}")
+                logger.warning(
+                    f"CRISIS ALERT: Potential crisis indicators detected for {company.name}"
+                )
 
         # Process Social results
         if isinstance(social_results, dict) and social_results.get("enabled"):
@@ -488,21 +634,29 @@ class ComprehensiveResearchService:
                 logger.info("Social intelligence: No API credentials configured")
 
         # Process Financial results
-        if isinstance(fmp_results, dict) and fmp_results.get("enabled") and fmp_results.get("api_available"):
+        if (
+            isinstance(fmp_results, dict)
+            and fmp_results.get("enabled")
+            and fmp_results.get("api_available")
+        ):
             logger.info(
                 f"Financial deep dive: {ticker} - "
                 f"Rating={fmp_results.get('rating', 'N/A')}, "
                 f"Recommendation={fmp_results.get('rating_recommendation', 'N/A')}"
             )
         elif not ticker:
-            logger.debug(f"Financial deep dive skipped: No ticker symbol for {company.name}")
+            logger.debug(
+                f"Financial deep dive skipped: No ticker symbol for {company.name}"
+            )
 
         # Retry failed sections if enabled (default: enabled)
         enable_retry = os.getenv("SECTION_RETRY_ENABLED", "true").lower() == "true"
         if enable_retry:
             failed_count = len(result.get_failed_sections())
             if failed_count > 0:
-                logger.info(f"Found {failed_count} sections with insufficient sources, starting retry pass...")
+                logger.info(
+                    f"Found {failed_count} sections with insufficient sources, starting retry pass..."
+                )
                 retry_sources = await self._retry_failed_sections(company, result)
                 result.retry_sources_gained = retry_sources
                 result.sections_retried = failed_count
@@ -512,12 +666,20 @@ class ComprehensiveResearchService:
         # FEAT-AI-ENH: Apply AI Enhancement features
         # Entity extraction, contradiction detection, gap analysis
         # ====================================================================
-        enable_ai_enhancements = os.getenv("ENABLE_AI_ENHANCEMENTS", "true").lower() == "true"
-        if enable_ai_enhancements and hasattr(self, '_ai_orchestrator') and self._ai_orchestrator:
+        enable_ai_enhancements = (
+            os.getenv("ENABLE_AI_ENHANCEMENTS", "true").lower() == "true"
+        )
+        if (
+            enable_ai_enhancements
+            and hasattr(self, "_ai_orchestrator")
+            and self._ai_orchestrator
+        ):
             try:
                 await self._apply_ai_enhancements(company, result)
-            except Exception as ai_err:
-                logger.warning(f"AI enhancements failed (non-fatal): {ai_err}")
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("AI enhancements failed (non-fatal)")
 
         result.source_tracker = self.source_tracker
         result.total_queries = sum(len(q) for q in COMPREHENSIVE_QUERIES.values())
@@ -526,12 +688,15 @@ class ComprehensiveResearchService:
         logger.info(
             f"Comprehensive research complete: {result.total_sources} sources, "
             f"{result.total_queries} queries, {result.duration_seconds:.1f}s"
-            + (f", {result.sections_retried} retried (+{result.retry_sources_gained} sources)"
-               if result.sections_retried > 0 else "")
+            + (
+                f", {result.sections_retried} retried (+{result.retry_sources_gained} sources)"
+                if result.sections_retried > 0
+                else ""
+            )
         )
 
         # Close observability context - flush traces to Langfuse
-        if hasattr(self, '_obs_context') and self._obs_context:
+        if hasattr(self, "_obs_context") and self._obs_context:
             self._obs_context.__exit__(None, None, None)
             logger.info(f"Completed observability trace for {company.name}")
 
@@ -548,7 +713,7 @@ class ComprehensiveResearchService:
 
         # Create observability span for this section
         section_span = None
-        if hasattr(self, '_obs_context') and self._obs_context:
+        if hasattr(self, "_obs_context") and self._obs_context:
             section_span = self._obs_context.span(
                 name=f"section_{section_name}",
                 input_data={"query_count": len(queries)},
@@ -572,12 +737,14 @@ class ComprehensiveResearchService:
                 f"confidence={query_plan.confidence:.0%}, "
                 f"known entities: {sum(len(v) for v in query_plan.key_entities.values())}"
             )
-        except Exception as e:
-            logger.debug(f"AI query planning skipped for {section_name}: {e}")
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.debug(f"AI query planning skipped for {section_name}", exc_info=True)
 
         # Group queries by target file
         queries_by_file: Dict[str, List[QueryTemplate]] = {}
-        for query in queries[:self.max_queries_per_section]:
+        for query in queries[: self.max_queries_per_section]:
             file_key = query.file
             if file_key not in queries_by_file:
                 queries_by_file[file_key] = []
@@ -652,7 +819,7 @@ class ComprehensiveResearchService:
             formatted_queries = template_queries
 
         # PERF-017: Apply adaptive query strategy based on company presence
-        if hasattr(self, '_query_strategy') and self._query_strategy:
+        if hasattr(self, "_query_strategy") and self._query_strategy:
             original_count = len(formatted_queries)
             formatted_queries = self._query_strategy.adapt_queries(
                 formatted_queries,
@@ -664,11 +831,67 @@ class ComprehensiveResearchService:
                     f"(strategy: {self._query_strategy.strategy.value})"
                 )
 
+        # FIX-006: Add localized queries (Spanish variants for LATAM countries)
+        if hasattr(self, "_query_localizer") and self._query_localizer:
+            original_count = len(formatted_queries)
+            localized_queries = []
+            seen_queries = set()
+
+            for query in formatted_queries:
+                # Add original query
+                if query.lower() not in seen_queries:
+                    localized_queries.append(query)
+                    seen_queries.add(query.lower())
+
+                # Generate localized variants
+                variants = self._query_localizer.localize_query(
+                    query, company.name, company.industry
+                )
+                for variant in variants:
+                    if variant.lower() not in seen_queries:
+                        localized_queries.append(variant)
+                        seen_queries.add(variant.lower())
+
+            # Add country-specific queries for competitive landscape sections
+            if "competitive" in section.lower() or "competitor" in filename.lower():
+                local_queries = self._query_localizer.generate_local_queries(
+                    company.name, company.industry
+                )
+                for lq in local_queries:
+                    if lq.lower() not in seen_queries:
+                        localized_queries.append(lq)
+                        seen_queries.add(lq.lower())
+
+            # Limit total queries
+            formatted_queries = localized_queries[: self.max_queries_per_section + 10]
+
+            if len(formatted_queries) > original_count:
+                logger.info(
+                    f"  {section}/{filename}: Added {len(formatted_queries) - original_count} "
+                    f"localized queries ({self._query_localizer.config.primary_language.value})"
+                )
+
         # Execute queries with concurrency control
         semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_QUERIES)
         adaptive_timeout = get_adaptive_timeout_manager()
 
-        async def search_query(query: str, is_fallback: bool = False) -> List[ResearchSource]:
+        async def search_query(
+            query: str, is_fallback: bool = False
+        ) -> List[ResearchSource]:
+            """
+            Execute a single search query with fallback and filtering.
+
+            Inner function for parallel query execution. Handles rate limiting,
+            parallel multi-engine search, relevance filtering, domain circuit
+            breakers, and fallback query generation.
+
+            Args:
+                query: The search query string
+                is_fallback: Whether this is a retry after initial query failure
+
+            Returns:
+                List of ResearchSource objects, may be empty on failure
+            """
             async with semaphore:
                 try:
                     # PERF-013: Check if section should be skipped
@@ -677,7 +900,9 @@ class ComprehensiveResearchService:
                         return []
 
                     # PERF-021: Use parallel multi-engine search for faster results
-                    if self.PARALLEL_SEARCH_ENABLED and hasattr(self.search_tool, 'search_parallel'):
+                    if self.PARALLEL_SEARCH_ENABLED and hasattr(
+                        self.search_tool, "search_parallel"
+                    ):
                         search_results = await self.search_tool.search_parallel(
                             query,
                             max_results=self.MAX_RESULTS_PER_QUERY,
@@ -690,11 +915,21 @@ class ComprehensiveResearchService:
                         )
 
                     # PERF-020: If no results and not already a fallback, try fallback queries
-                    if not search_results and not is_fallback and hasattr(self, '_fallback_manager'):
+                    if (
+                        not search_results
+                        and not is_fallback
+                        and hasattr(self, "_fallback_manager")
+                    ):
                         fallback_queries = self._fallback_manager.get_fallbacks(query)
-                        for fallback_query in fallback_queries[:2]:  # Try up to 2 fallbacks
-                            logger.debug(f"Trying fallback query: {fallback_query[:50]}...")
-                            fallback_results = await search_query(fallback_query, is_fallback=True)
+                        for fallback_query in fallback_queries[
+                            :2
+                        ]:  # Try up to 2 fallbacks
+                            logger.debug(
+                                f"Trying fallback query: {fallback_query[:50]}..."
+                            )
+                            fallback_results = await search_query(
+                                fallback_query, is_fallback=True
+                            )
                             if fallback_results:
                                 logger.info(f"Fallback successful for: {query[:30]}...")
                                 return fallback_results
@@ -703,7 +938,7 @@ class ComprehensiveResearchService:
                         return []
 
                     # PERF-017: Filter search results for relevance BEFORE fetching
-                    if hasattr(self, '_relevance_filter') and self._relevance_filter:
+                    if hasattr(self, "_relevance_filter") and self._relevance_filter:
                         filtered_results = self._relevance_filter.filter_results(
                             search_results,
                             max_results=self.MAX_RESULTS_PER_QUERY,
@@ -715,59 +950,101 @@ class ComprehensiveResearchService:
                         search_results = filtered_results
 
                     # AI-017: Use AI relevance scoring for smarter pre-fetch filtering
-                    if hasattr(self, '_ai_orchestrator') and self._ai_orchestrator and search_results:
+                    if (
+                        hasattr(self, "_ai_orchestrator")
+                        and self._ai_orchestrator
+                        and search_results
+                    ):
                         try:
-                            search_results = await self._ai_orchestrator.score_search_results(
-                                query=query,
-                                results=search_results,
-                                target_data=section,
-                                threshold=0.4,
+                            search_results = (
+                                await self._ai_orchestrator.score_search_results(
+                                    query=query,
+                                    results=search_results,
+                                    target_data=section,
+                                    threshold=0.4,
+                                )
                             )
-                        except Exception as ai_err:
-                            logger.debug(f"AI relevance scoring skipped: {ai_err}")
+                        except asyncio.CancelledError:
+                            raise
+                        except Exception:
+                            logger.debug("AI relevance scoring skipped", exc_info=True)
 
                     urls = [r.get("url") for r in search_results if r.get("url")]
                     if urls:
                         # PERF-019: Check domain circuit breakers before fetching
-                        if hasattr(self, '_domain_timeout') and self._domain_timeout:
+                        if hasattr(self, "_domain_timeout") and self._domain_timeout:
                             filtered_urls = []
                             for url in urls:
                                 if not is_domain_circuit_open(url):
                                     filtered_urls.append(url)
                                 else:
-                                    logger.debug(f"Skipping URL (circuit open): {url[:50]}...")
+                                    logger.debug(
+                                        f"Skipping URL (circuit open): {url[:50]}..."
+                                    )
                             if filtered_urls:
                                 urls = filtered_urls
                             elif urls:
                                 # All URLs had open circuits, use original list anyway
-                                logger.debug("All URLs have open circuits, using original list")
+                                logger.debug(
+                                    "All URLs have open circuits, using original list"
+                                )
 
-                        sources = await self.browser_tool.fetch_multiple(urls[:self.MAX_RESULTS_PER_QUERY])
+                        sources = await self.browser_tool.fetch_multiple(
+                            urls[: self.MAX_RESULTS_PER_QUERY]
+                        )
                         # PERF-013: Record success/failure for adaptive timeout
                         if sources:
-                            adaptive_timeout.record_success(query, section, result_count=len(sources))
+                            adaptive_timeout.record_success(
+                                query, section, result_count=len(sources)
+                            )
                         else:
-                            adaptive_timeout.record_failure(query, section, is_empty=True)
+                            adaptive_timeout.record_failure(
+                                query, section, is_empty=True
+                            )
                         return sources
                     else:
                         adaptive_timeout.record_failure(query, section, is_empty=True)
+                except asyncio.CancelledError:
+                    raise  # Always re-raise cancellation
+                except asyncio.TimeoutError:
+                    logger.debug(f"Query timed out: {query[:50]}...")
+                    adaptive_timeout.record_failure(query, section, is_timeout=True)
                 except Exception as e:
-                    logger.debug(f"Query failed: {query[:50]}... - {e}")
-                    adaptive_timeout.record_failure(query, section, is_timeout="timeout" in str(e).lower())
+                    logger.debug(
+                        f"Query failed: {query[:50]}... - {type(e).__name__}: {e}"
+                    )
+                    adaptive_timeout.record_failure(query, section, is_timeout=False)
                 return []
 
         # Execute all queries for this file
-        all_sources_lists = await asyncio.gather(
-            *[search_query(q) for q in formatted_queries],
-            return_exceptions=True,
+        # PERF-022: Use distributed search for efficient batching when we have multiple queries
+        use_distributed = (
+            self.DISTRIBUTED_SEARCH_ENABLED
+            and len(formatted_queries) >= self.DISTRIBUTED_SEARCH_MIN_QUERIES
+            and hasattr(self.search_tool, "search_distributed")
         )
+
+        if use_distributed:
+            # Batch search phase using queue-based distribution
+            logger.debug(
+                f"  {section}/{filename}: Using distributed search for {len(formatted_queries)} queries"
+            )
+            all_sources_lists = await self._execute_distributed_search(
+                formatted_queries, section, adaptive_timeout
+            )
+        else:
+            # Traditional per-query execution
+            all_sources_lists = await asyncio.gather(
+                *[search_query(q) for q in formatted_queries],
+                return_exceptions=True,
+            )
 
         # Aggregate sources (with country filtering for BUG-049)
         target_industry = company.industry
         target_country_tld = company.get_country_tld()
         seen_urls = set()
         filtered_foreign_count = 0
-        
+
         for sources in all_sources_lists:
             if isinstance(sources, Exception):
                 continue
@@ -786,13 +1063,42 @@ class ComprehensiveResearchService:
                     )
 
         if filtered_foreign_count > 0:
-            logger.info(f"  {section}/{filename}: Filtered {filtered_foreign_count} irrelevant foreign sources (BUG-049)")
+            logger.info(
+                f"  {section}/{filename}: Filtered {filtered_foreign_count} irrelevant foreign sources (BUG-049)"
+            )
+
+        # FIX-001 to FIX-005: Apply comprehensive source filtering
+        # Filter out failed sources, wrong entity, outdated data
+        if hasattr(self, "_source_filter") and self._source_filter and result.sources:
+            pre_filter_count = len(result.sources)
+            filter_result = self._source_filter.filter_sources(
+                result.sources,
+                section_name=f"{section}/{filename}",
+            )
+            result.sources = filter_result.usable_sources
+
+            # Log filtering stats
+            if filter_result.total_filtered > 0:
+                logger.info(
+                    f"  {section}/{filename}: Quality filter removed {filter_result.total_filtered} sources "
+                    f"(failed={filter_result.failed_rejected}, entity={filter_result.entity_rejected}, "
+                    f"outdated={filter_result.outdated_rejected})"
+                )
+
+            # Warn if below minimum
+            if not filter_result.has_minimum_sources:
+                logger.warning(
+                    f"  {section}/{filename}: Below minimum source threshold! "
+                    f"Have {len(result.sources)}, need 3"
+                )
 
         # Track query statistics for retry logic
         result.queries_executed = len(formatted_queries)
         result.queries_failed = sum(
-            1 for sources in all_sources_lists
-            if isinstance(sources, Exception) or (isinstance(sources, list) and len(sources) == 0)
+            1
+            for sources in all_sources_lists
+            if isinstance(sources, Exception)
+            or (isinstance(sources, list) and len(sources) == 0)
         )
 
         logger.info(
@@ -801,6 +1107,82 @@ class ComprehensiveResearchService:
         )
 
         return result
+
+    async def _execute_distributed_search(
+        self,
+        queries: List[str],
+        section: str,
+        adaptive_timeout,
+    ) -> List[List[ResearchSource]]:
+        """
+        Execute multiple queries using distributed search (PERF-022).
+
+        Uses the queue-based search_distributed() method for efficient
+        batching of queries across multiple search providers.
+
+        Args:
+            queries: List of search queries to execute
+            section: Section name for logging and timeout tracking
+            adaptive_timeout: Timeout manager for recording success/failure
+
+        Returns:
+            List of source lists (one per query, in same order as input queries)
+        """
+        try:
+            # Batch search phase using distributed queue
+            search_results_by_query = await self.search_tool.search_distributed(
+                queries,
+                max_results_per_query=self.MAX_RESULTS_PER_QUERY,
+                timeout_seconds=self.PARALLEL_SEARCH_TIMEOUT
+                * 2,  # Allow more time for batch
+            )
+
+            # Process each query's results (filtering and fetching)
+            async def process_query_results(query: str) -> List[ResearchSource]:
+                """Process search results for a single query."""
+                search_results = search_results_by_query.get(query, [])
+
+                if not search_results:
+                    adaptive_timeout.record_failure(query, section, is_empty=True)
+                    return []
+
+                # Extract URLs and fetch content
+                urls = [r.get("url") for r in search_results if r.get("url")]
+                if urls:
+                    # Check domain circuit breakers
+                    if hasattr(self, "_domain_timeout") and self._domain_timeout:
+                        filtered_urls = [
+                            url for url in urls if not is_domain_circuit_open(url)
+                        ]
+                        if filtered_urls:
+                            urls = filtered_urls
+
+                    sources = await self.browser_tool.fetch_multiple(
+                        urls[: self.MAX_RESULTS_PER_QUERY]
+                    )
+                    if sources:
+                        adaptive_timeout.record_success(
+                            query, section, result_count=len(sources)
+                        )
+                        return sources
+
+                adaptive_timeout.record_failure(query, section, is_empty=True)
+                return []
+
+            # Process all query results concurrently
+            results = await asyncio.gather(
+                *[process_query_results(q) for q in queries],
+                return_exceptions=True,
+            )
+
+            return results
+
+        except asyncio.CancelledError:
+            raise  # Always re-raise cancellation
+        except Exception:
+            logger.exception("Distributed search failed, falling back")
+            # Return empty results for all queries on failure
+            return [[] for _ in queries]
 
     async def _retry_failed_sections(
         self,
@@ -826,7 +1208,9 @@ class ComprehensiveResearchService:
             logger.info("No failed sections to retry")
             return 0
 
-        logger.info(f"=== RETRY PASS: {len(failed_sections)} sections need retry (PARALLEL) ===")
+        logger.info(
+            f"=== RETRY PASS: {len(failed_sections)} sections need retry (PARALLEL) ==="
+        )
 
         # Wait before retry to let network/rate limits recover
         retry_delay = int(os.getenv("SECTION_RETRY_DELAY_SECONDS", "30"))
@@ -834,7 +1218,9 @@ class ComprehensiveResearchService:
         await asyncio.sleep(retry_delay)
 
         # PERF-031: Run retries in parallel instead of sequential
-        async def retry_single_section(section_name: str, filename: str, section_result: SectionResearchResult) -> int:
+        async def retry_single_section(
+            section_name: str, filename: str, section_result: SectionResearchResult
+        ) -> int:
             """Retry a single section and return new sources gained."""
             logger.info(
                 f"Retrying {section_name}/{filename} "
@@ -846,7 +1232,9 @@ class ComprehensiveResearchService:
             file_queries = [q for q in section_queries if q.file == filename]
 
             if not file_queries:
-                logger.warning(f"No queries found for {section_name}/{filename}, skipping")
+                logger.warning(
+                    f"No queries found for {section_name}/{filename}, skipping"
+                )
                 return 0
 
             query_plan = self._query_plans.get(section_name)
@@ -855,8 +1243,12 @@ class ComprehensiveResearchService:
 
             try:
                 new_result = await self._research_file(
-                    company, section_name, filename, file_queries,
-                    ai_queries=ai_queries, query_plan=query_plan,
+                    company,
+                    section_name,
+                    filename,
+                    file_queries,
+                    ai_queries=ai_queries,
+                    query_plan=query_plan,
                 )
 
                 existing_urls = {s.url for s in section_result.sources}
@@ -867,11 +1259,15 @@ class ComprehensiveResearchService:
 
                 section_result.retry_count += 1
                 new_sources = len(section_result.sources) - old_source_count
-                logger.info(f"  Retry result: {new_sources} new sources (total now: {len(section_result.sources)})")
+                logger.info(
+                    f"  Retry result: {new_sources} new sources (total now: {len(section_result.sources)})"
+                )
                 return new_sources
 
-            except Exception as e:
-                logger.error(f"Retry failed for {section_name}/{filename}: {e}")
+            except asyncio.CancelledError:
+                raise  # Always re-raise cancellation
+            except Exception:
+                logger.exception(f"Retry failed for {section_name}/{filename}")
                 section_result.retry_count += 1
                 return 0
 
@@ -879,6 +1275,17 @@ class ComprehensiveResearchService:
         retry_semaphore = asyncio.Semaphore(4)
 
         async def bounded_retry(sn: str, fn: str, sr: SectionResearchResult) -> int:
+            """
+            Wrapper that applies concurrency limit to retry operations.
+
+            Args:
+                sn: Section name to retry
+                fn: File name within the section
+                sr: The SectionResearchResult to update with retry results
+
+            Returns:
+                Number of new sources gained from the retry
+            """
             async with retry_semaphore:
                 return await retry_single_section(sn, fn, sr)
 
@@ -928,41 +1335,66 @@ class ComprehensiveResearchService:
         for section_name, section_results in result.sections.items():
             if section_name.startswith("_"):
                 continue  # Skip internal data like _unified_data
+            if not isinstance(section_results, dict):
+                continue
             for filename, file_result in section_results.items():
+                if not isinstance(file_result, SectionResearchResult):
+                    continue
                 for source in file_result.sources:
-                    all_sources.append({
-                        "url": source.url,
-                        "title": source.title,
-                        "content": source.content[:5000] if source.content else "",
-                        "section": section_name,
-                        "filename": filename,
-                    })
+                    all_sources.append(
+                        {
+                            "url": source.url,
+                            "title": source.title,
+                            "content": source.content[:5000] if source.content else "",
+                            "section": section_name,
+                            "filename": filename,
+                        }
+                    )
 
         if not all_sources:
             logger.info("No sources to enhance")
             return
 
-        logger.info(f"Enhancing {len(all_sources)} sources across {len(result.sections)} sections")
+        logger.info(
+            f"Enhancing {len(all_sources)} sources across {len(result.sections)} sections"
+        )
 
         # 1. Entity Extraction
         try:
-            entities = await self._ai_orchestrator.extract_entities(all_sources[:50])  # Limit for cost
-            if entities and (entities.people or entities.companies or entities.financials):
+            entities = await self._ai_orchestrator.extract_entities(
+                all_sources[:50]
+            )  # Limit for cost
+            if entities and (
+                entities.people or entities.companies or entities.financials
+            ):
                 result.extracted_entities = {
                     "people": [
                         {"name": p.name, "role": p.role, "source": p.source_url}
                         for p in entities.people[:20]
                     ],
                     "companies": [
-                        {"name": c.name, "relationship": c.relationship, "source": c.source_url}
+                        {
+                            "name": c.name,
+                            "relationship": c.relationship,
+                            "source": c.source_url,
+                        }
                         for c in entities.companies[:20]
                     ],
                     "financials": [
-                        {"metric": f.metric, "value": f.value, "period": f.period, "source": f.source_url}
+                        {
+                            "metric": f.metric,
+                            "value": f.value,
+                            "period": f.period,
+                            "source": f.source_url,
+                        }
                         for f in entities.financials[:30]
                     ],
                     "locations": [
-                        {"name": loc.name, "type": loc.location_type, "source": loc.source_url}
+                        {
+                            "name": loc.name,
+                            "type": loc.location_type,
+                            "source": loc.source_url,
+                        }
                         for loc in entities.locations[:10]
                     ],
                 }
@@ -971,8 +1403,10 @@ class ComprehensiveResearchService:
                     f"{len(entities.companies)} companies, "
                     f"{len(entities.financials)} financials"
                 )
-        except Exception as e:
-            logger.debug(f"Entity extraction skipped: {e}")
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.debug("Entity extraction skipped", exc_info=True)
 
         # 2. Gap Analysis
         try:
@@ -1002,16 +1436,16 @@ class ComprehensiveResearchService:
                     f"Gap analysis: {gaps.total_gaps} gaps found, "
                     f"{len(gaps.critical_gaps)} critical"
                 )
-        except Exception as e:
-            logger.debug(f"Gap analysis skipped: {e}")
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.debug("Gap analysis skipped", exc_info=True)
 
         result.ai_enhancements_applied = True
         logger.info("=== AI ENHANCEMENT PASS COMPLETE ===")
 
     async def _detect_sec_filings_available(
-        self,
-        company_name: str,
-        ticker: Optional[str] = None
+        self, company_name: str, ticker: Optional[str] = None
     ) -> Optional[str]:
         """
         Check if company has SEC filings and return ticker.
@@ -1034,7 +1468,9 @@ class ComprehensiveResearchService:
         # Try to find ticker from company name
         found_ticker = sec_tool.find_ticker(company_name)
         if found_ticker and sec_tool.check_sec_availability(found_ticker):
-            logger.info(f"Found SEC ticker '{found_ticker}' for company '{company_name}'")
+            logger.info(
+                f"Found SEC ticker '{found_ticker}' for company '{company_name}'"
+            )
             return found_ticker
 
         logger.debug(f"No SEC filings found for: {company_name}")
@@ -1074,16 +1510,16 @@ class ComprehensiveResearchService:
             ten_k_content = sec_tool.get_latest_10k_content(ticker)
             if ten_k_content:
                 logger.info(f"Retrieved 10-K for {ticker}: {len(ten_k_content)} chars")
-        except Exception as e:
-            logger.warning(f"Failed to retrieve 10-K for {ticker}: {e}")
+        except Exception:
+            logger.exception(f"Failed to retrieve 10-K for {ticker}")
 
         # Get recent 8-K filings
         eight_k_filings = []
         try:
             eight_k_filings = sec_tool.get_8k_filings(ticker, limit=5)
             logger.info(f"Retrieved {len(eight_k_filings)} 8-K filings for {ticker}")
-        except Exception as e:
-            logger.warning(f"Failed to retrieve 8-K filings for {ticker}: {e}")
+        except Exception:
+            logger.exception(f"Failed to retrieve 8-K filings for {ticker}")
 
         # Process each SEC output file
         for filename, filing_type, section_type in sec_files:
@@ -1123,8 +1559,10 @@ class ComprehensiveResearchService:
                 result.queries_executed = 1
                 logger.info(f"SEC {filename}: {len(result.sources)} sources")
 
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
-                logger.warning(f"Failed to process SEC {filename}: {e}")
+                logger.exception(f"Failed to process SEC {filename}")
                 result.error = str(e)
 
             results[filename] = result
@@ -1163,7 +1601,6 @@ Provide a structured summary including:
 {ten_k_text[:80000]}
 
 Provide a concise, well-organized summary (500-1000 words).""",
-
             "risk_factors": f"""Extract the Risk Factors (Item 1A) from this 10-K filing for {company_name}.
 
 Categorize and summarize the key risks:
@@ -1177,7 +1614,6 @@ Categorize and summarize the key risks:
 {ten_k_text[:80000]}
 
 Provide a structured summary of the top 10-15 most significant risks.""",
-
             "financial_highlights": f"""Extract Financial Highlights from this 10-K filing (Item 8) for {company_name}.
 
 Include:
@@ -1191,7 +1627,6 @@ Include:
 {ten_k_text[:80000]}
 
 Provide specific numbers and year-over-year comparisons where available.""",
-
             "mda": f"""Extract the Management Discussion & Analysis (Item 7) from this 10-K for {company_name}.
 
 Summarize:
@@ -1205,7 +1640,6 @@ Summarize:
 {ten_k_text[:80000]}
 
 Provide a concise executive summary (500-800 words).""",
-
             "compensation": f"""Extract executive compensation information from this filing for {company_name}.
 
 If available, include:
@@ -1232,8 +1666,10 @@ Extract any compensation-related information available.""",
                 max_tokens=2000,
             )
             return response
-        except Exception as e:
-            logger.warning(f"AI extraction failed for {section_type}: {e}")
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception(f"AI extraction failed for {section_type}")
             return ""
 
     # =========================================================================
@@ -1268,7 +1704,7 @@ Extract any compensation-related information available.""",
             return {"enabled": False, "articles_found": 0}
 
         try:
-            from ..tools.data.content.news_aggregator import NewsAggregatorTool
+            from src.tools.data.content.news_aggregator import NewsAggregatorTool
 
             news_tool = NewsAggregatorTool()
 
@@ -1321,7 +1757,8 @@ Extract any compensation-related information available.""",
                 days_back=company_lookback,
             )
             total_signals = sum(
-                len(v) for k, v in signals.items()
+                len(v)
+                for k, v in signals.items()
                 if isinstance(v, list) and k != "total_articles"
             )
             logger.info(f"  Business signals: {total_signals} detected")
@@ -1341,13 +1778,18 @@ Extract any compensation-related information available.""",
                 "api_available": True,
                 "articles_found": len(company_news),
                 "industry_articles": len(industry_news),
-                "sentiment_score": sentiment.get("overall_sentiment", {}).get("compound", 0),
-                "sentiment_label": sentiment.get("overall_sentiment", {}).get("label", "neutral"),
+                "sentiment_score": sentiment.get("overall_sentiment", {}).get(
+                    "compound", 0
+                ),
+                "sentiment_label": sentiment.get("overall_sentiment", {}).get(
+                    "label", "neutral"
+                ),
                 "sentiment_trend": sentiment.get("trend", "stable"),
                 "crisis_alert": sentiment.get("crisis_alert", False),
                 "signals_detected": total_signals,
                 "signal_breakdown": {
-                    k: len(v) for k, v in signals.items()
+                    k: len(v)
+                    for k, v in signals.items()
                     if isinstance(v, list) and k != "total_articles"
                 },
             }
@@ -1355,8 +1797,10 @@ Extract any compensation-related information available.""",
         except ImportError as e:
             logger.warning(f"NewsAggregatorTool not available: {e}")
             return {"enabled": True, "error": str(e), "articles_found": 0}
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
-            logger.error(f"News intelligence failed: {e}")
+            logger.exception("News intelligence failed")
             return {"enabled": True, "error": str(e), "articles_found": 0}
 
     async def _write_news_reports(
@@ -1386,25 +1830,31 @@ Extract any compensation-related information available.""",
         recent_news_content = self._generate_recent_news_md(
             company, company_news, industry_news, generated_at
         )
-        (news_dir / "01-Recent-News.md").write_text(recent_news_content, encoding="utf-8")
+        (news_dir / "01-Recent-News.md").write_text(
+            recent_news_content, encoding="utf-8"
+        )
 
         # 02-Sentiment-Analysis.md
         sentiment_content = self._generate_sentiment_md(
             company, sentiment, generated_at
         )
-        (news_dir / "02-Sentiment-Analysis.md").write_text(sentiment_content, encoding="utf-8")
+        (news_dir / "02-Sentiment-Analysis.md").write_text(
+            sentiment_content, encoding="utf-8"
+        )
 
         # 03-Business-Signals.md
-        signals_content = self._generate_signals_md(
-            company, signals, generated_at
+        signals_content = self._generate_signals_md(company, signals, generated_at)
+        (news_dir / "03-Business-Signals.md").write_text(
+            signals_content, encoding="utf-8"
         )
-        (news_dir / "03-Business-Signals.md").write_text(signals_content, encoding="utf-8")
 
         # 04-Crisis-Indicators.md
         crisis_content = self._generate_crisis_md(
             company, sentiment, signals, generated_at
         )
-        (news_dir / "04-Crisis-Indicators.md").write_text(crisis_content, encoding="utf-8")
+        (news_dir / "04-Crisis-Indicators.md").write_text(
+            crisis_content, encoding="utf-8"
+        )
 
         logger.info(f"  News reports written to {news_dir}")
 
@@ -1431,8 +1881,14 @@ Extract any compensation-related information available.""",
             for article in company_news[:15]:
                 title = article.title or "Untitled"
                 url = article.url or "#"
-                date = article.metadata.get("published_date", "")[:10] if article.metadata else ""
-                source = article.metadata.get("source_name", "") if article.metadata else ""
+                date = (
+                    article.metadata.get("published_date", "")[:10]
+                    if article.metadata
+                    else ""
+                )
+                source = (
+                    article.metadata.get("source_name", "") if article.metadata else ""
+                )
                 content = (article.content or "")[:200]
 
                 md += f"### [{title}]({url})\n"
@@ -1449,7 +1905,11 @@ Extract any compensation-related information available.""",
             for article in industry_news[:10]:
                 title = article.title or "Untitled"
                 url = article.url or "#"
-                date = article.metadata.get("published_date", "")[:10] if article.metadata else ""
+                date = (
+                    article.metadata.get("published_date", "")[:10]
+                    if article.metadata
+                    else ""
+                )
                 md += f"- [{title}]({url}) ({date})\n"
         else:
             md += "*No recent industry news found.*\n"
@@ -1619,7 +2079,9 @@ Extract any compensation-related information available.""",
         negative_count = sentiment.get("negative_count", 0)
         total_count = sentiment.get("article_count", 1)
         if total_count > 0 and negative_count / total_count > 0.5:
-            md += f"- **High negative article ratio** ({negative_count}/{total_count})\n"
+            md += (
+                f"- **High negative article ratio** ({negative_count}/{total_count})\n"
+            )
             red_flags_found = True
 
         if not red_flags_found:
@@ -1699,8 +2161,10 @@ Extract any compensation-related information available.""",
 
         except ImportError:
             logger.debug("praw not installed - Reddit analysis skipped")
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
-            logger.warning(f"Reddit analysis failed: {e}")
+            logger.exception("Reddit analysis failed")
             results["reddit_error"] = str(e)
 
         # Twitter analysis
@@ -1714,13 +2178,17 @@ Extract any compensation-related information available.""",
                     company_name=company.name,
                     hashtags=None,
                 )
-                results["twitter_mentions"] = twitter_analysis.total_mentions if twitter_analysis else 0
+                results["twitter_mentions"] = (
+                    twitter_analysis.total_mentions if twitter_analysis else 0
+                )
                 logger.info(f"  Twitter: {results['twitter_mentions']} mentions found")
             else:
                 logger.debug("Twitter API not configured")
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
-            logger.warning(f"Twitter analysis failed: {e}")
+            logger.exception("Twitter analysis failed")
             results["twitter_error"] = str(e)
 
         # Calculate overall sentiment
@@ -1770,25 +2238,31 @@ Extract any compensation-related information available.""",
 
         # Write all 4 report files
         (social_dir / "01-Reddit-Analysis.md").write_text(
-            self._generate_reddit_md(company, reddit_posts, reddit_analysis, generated_at),
-            encoding="utf-8"
+            self._generate_reddit_md(
+                company, reddit_posts, reddit_analysis, generated_at
+            ),
+            encoding="utf-8",
         )
         (social_dir / "02-Twitter-Analysis.md").write_text(
             self._generate_twitter_md(company, twitter_analysis, generated_at),
-            encoding="utf-8"
+            encoding="utf-8",
         )
         (social_dir / "03-Sentiment-Summary.md").write_text(
-            self._generate_social_sentiment_md(company, reddit_analysis, twitter_analysis, generated_at),
-            encoding="utf-8"
+            self._generate_social_sentiment_md(
+                company, reddit_analysis, twitter_analysis, generated_at
+            ),
+            encoding="utf-8",
         )
         (social_dir / "04-Social-Risks.md").write_text(
             self._generate_social_risks_md(company, reddit_posts, generated_at),
-            encoding="utf-8"
+            encoding="utf-8",
         )
 
         logger.info(f"  Social reports written to {social_dir}")
 
-    def _generate_reddit_md(self, company: CompanyProfile, posts: List, analysis, generated_at: str) -> str:
+    def _generate_reddit_md(
+        self, company: CompanyProfile, posts: List, analysis, generated_at: str
+    ) -> str:
         """Generate Reddit Analysis markdown."""
         md = f"# Reddit Analysis\n\n**Company:** {company.name}\n**Generated:** {generated_at}\n\n---\n\n"
 
@@ -1807,7 +2281,9 @@ Extract any compensation-related information available.""",
 
         return md if posts else md + "*No posts found.*\n"
 
-    def _generate_twitter_md(self, company: CompanyProfile, analysis, generated_at: str) -> str:
+    def _generate_twitter_md(
+        self, company: CompanyProfile, analysis, generated_at: str
+    ) -> str:
         """Generate Twitter Analysis markdown."""
         md = f"# Twitter/X Analysis\n\n**Company:** {company.name}\n**Generated:** {generated_at}\n\n---\n\n"
 
@@ -1832,7 +2308,13 @@ Extract any compensation-related information available.""",
 
         return md
 
-    def _generate_social_sentiment_md(self, company: CompanyProfile, reddit_analysis, twitter_analysis, generated_at: str) -> str:
+    def _generate_social_sentiment_md(
+        self,
+        company: CompanyProfile,
+        reddit_analysis,
+        twitter_analysis,
+        generated_at: str,
+    ) -> str:
         """Generate Social Sentiment Summary markdown."""
         md = f"# Social Sentiment Summary\n\n**Company:** {company.name}\n**Generated:** {generated_at}\n\n---\n\n"
 
@@ -1850,7 +2332,11 @@ Extract any compensation-related information available.""",
 
         total = total_pos + total_neg + total_neu
         if total > 0:
-            overall = "Positive" if total_pos / total > 0.4 else ("Negative" if total_neg / total > 0.4 else "Neutral")
+            overall = (
+                "Positive"
+                if total_pos / total > 0.4
+                else ("Negative" if total_neg / total > 0.4 else "Neutral")
+            )
             md += f"## Overall Sentiment: **{overall}**\n\n"
             md += f"| Sentiment | Count |\n|-----------|-------|\n"
             md += f"| Positive | {total_pos} |\n| Negative | {total_neg} |\n| Neutral | {total_neu} |\n"
@@ -1859,7 +2345,9 @@ Extract any compensation-related information available.""",
 
         return md
 
-    def _generate_social_risks_md(self, company: CompanyProfile, reddit_posts: List, generated_at: str) -> str:
+    def _generate_social_risks_md(
+        self, company: CompanyProfile, reddit_posts: List, generated_at: str
+    ) -> str:
         """Generate Social Risks markdown."""
         md = f"# Social Media Risks\n\n**Company:** {company.name}\n**Generated:** {generated_at}\n\n---\n\n"
 
@@ -1870,7 +2358,11 @@ Extract any compensation-related information available.""",
                 risks.append(f"- {len(negative_posts)} posts with negative scores")
 
             complaint_kw = ["scam", "fraud", "terrible", "worst", "avoid"]
-            complaints = [p for p in reddit_posts if any(kw in p.title.lower() for kw in complaint_kw)]
+            complaints = [
+                p
+                for p in reddit_posts
+                if any(kw in p.title.lower() for kw in complaint_kw)
+            ]
             if complaints:
                 risks.append(f"- {len(complaints)} posts with complaint keywords")
 
@@ -1913,11 +2405,13 @@ Extract any compensation-related information available.""",
         # Check if FMP is enabled
         enable_fmp = os.getenv("ENABLE_FINANCIAL_DEEP_DIVE", "true").lower() == "true"
         if not enable_fmp:
-            logger.info("Financial deep dive disabled via ENABLE_FINANCIAL_DEEP_DIVE=false")
+            logger.info(
+                "Financial deep dive disabled via ENABLE_FINANCIAL_DEEP_DIVE=false"
+            )
             return {"enabled": False}
 
         try:
-            from ..tools.data.financial.fmp import FinancialModelingPrepTool
+            from src.tools.data.financial.fmp import FinancialModelingPrepTool
 
             fmp = FinancialModelingPrepTool()
 
@@ -1956,7 +2450,9 @@ Extract any compensation-related information available.""",
                 "market_cap": profile.get("market_cap", 0) if profile else 0,
                 "sector": profile.get("sector", "") if profile else "",
                 "rating": rating.get("rating", "N/A") if rating else "N/A",
-                "rating_recommendation": rating.get("rating_recommendation", "") if rating else "",
+                "rating_recommendation": (
+                    rating.get("rating_recommendation", "") if rating else ""
+                ),
                 "pe_ratio": metrics.get("pe_ratio", 0) if metrics else 0,
                 "roe": metrics.get("roe", 0) if metrics else 0,
                 "estimates_count": len(analysis.get("estimates", [])),
@@ -1965,8 +2461,10 @@ Extract any compensation-related information available.""",
         except ImportError as e:
             logger.warning(f"FinancialModelingPrepTool not available: {e}")
             return {"enabled": True, "error": str(e)}
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
-            logger.error(f"Financial deep dive failed: {e}")
+            logger.exception("Financial deep dive failed")
             return {"enabled": True, "error": str(e)}
 
     async def _write_financial_reports(
@@ -1994,22 +2492,30 @@ Extract any compensation-related information available.""",
         profile_content = self._generate_fmp_profile_md(
             company, ticker, analysis.get("profile", {}), generated_at
         )
-        (fin_dir / "01-Company-Profile.md").write_text(profile_content, encoding="utf-8")
+        (fin_dir / "01-Company-Profile.md").write_text(
+            profile_content, encoding="utf-8"
+        )
 
         # 02-Financial-Metrics.md
         metrics_content = self._generate_fmp_metrics_md(
-            company, ticker, analysis.get("metrics", {}),
+            company,
+            ticker,
+            analysis.get("metrics", {}),
             analysis.get("income_statement", []),
             analysis.get("key_metrics", []),
-            generated_at
+            generated_at,
         )
-        (fin_dir / "02-Financial-Metrics.md").write_text(metrics_content, encoding="utf-8")
+        (fin_dir / "02-Financial-Metrics.md").write_text(
+            metrics_content, encoding="utf-8"
+        )
 
         # 03-Analyst-Estimates.md
         estimates_content = self._generate_fmp_estimates_md(
             company, ticker, analysis.get("estimates", []), generated_at
         )
-        (fin_dir / "03-Analyst-Estimates.md").write_text(estimates_content, encoding="utf-8")
+        (fin_dir / "03-Analyst-Estimates.md").write_text(
+            estimates_content, encoding="utf-8"
+        )
 
         # 04-Company-Rating.md
         rating_content = self._generate_fmp_rating_md(
@@ -2177,7 +2683,9 @@ Extract any compensation-related information available.""",
                 period = est.get("date", "N/A")[:10]
                 est_eps = est.get("estimated_eps", 0)
                 actual_eps = est.get("actual_eps")
-                actual_str = f"${actual_eps:.2f}" if actual_eps is not None else "Pending"
+                actual_str = (
+                    f"${actual_eps:.2f}" if actual_eps is not None else "Pending"
+                )
                 est_rev = est.get("revenue_estimated", 0)
                 analysts = est.get("number_of_analysts", 0)
                 md += f"| {period} | ${est_eps:.2f} | {actual_str} | ${est_rev:,.0f} | {analysts} |\n"
@@ -2246,6 +2754,7 @@ Extract any compensation-related information available.""",
 # Content Generation for All Files
 # =============================================================================
 
+
 class ContentGenerator:
     """Generates content for all 52+ output files."""
 
@@ -2268,8 +2777,39 @@ class ContentGenerator:
 
         # Generate content for each section/file with results
         for section_name, section_results in research_result.sections.items():
+            # Skip internal metadata sections (like _unified_data)
+            if section_name.startswith("_"):
+                continue
+
+            # Validate section_results is a dict of SectionResearchResult
+            if not isinstance(section_results, dict):
+                logger.warning(
+                    f"Skipping invalid section {section_name}: expected dict, got {type(section_results).__name__}"
+                )
+                continue
+
             for filename, file_result in section_results.items():
-                output_path = f"{file_result.section}/{filename}"
+                # Validate file_result is a SectionResearchResult
+                if not isinstance(file_result, SectionResearchResult):
+                    logger.warning(
+                        f"Skipping invalid file result in {section_name}/{filename}: "
+                        f"expected SectionResearchResult, got {type(file_result).__name__}"
+                    )
+                    continue
+
+                # DEBUG: Extra validation for section attribute
+                if not hasattr(file_result, "section") or not isinstance(
+                    file_result.section, str
+                ):
+                    logger.error(
+                        f"BUG: file_result.section is not a string in {section_name}/{filename}: "
+                        f"type={type(file_result).__name__}, section_type={type(getattr(file_result, 'section', None)).__name__}"
+                    )
+                    continue
+
+                # Convert snake_case section to numbered folder name
+                folder_name = get_output_folder_name(file_result.section)
+                output_path = f"{folder_name}/{filename}"
 
                 try:
                     content = await self._generate_file_content(
@@ -2279,11 +2819,13 @@ class ContentGenerator:
                         sources=file_result.sources,
                     )
                     outputs[output_path] = content
-                except Exception as e:
-                    logger.error(f"Failed to generate {output_path}: {e}")
+                except (asyncio.CancelledError, KeyboardInterrupt):
+                    raise  # Always re-raise cancellation/interrupt
+                except Exception:
+                    logger.exception(f"Failed to generate {output_path}")
                     # Generate placeholder
                     outputs[output_path] = self._generate_placeholder(
-                        company, filename, str(e)
+                        company, filename, "Content generation failed"
                     )
 
         # Add source tracking files
@@ -2301,15 +2843,66 @@ class ContentGenerator:
         sources: List[ResearchSource],
     ) -> str:
         """Generate content for a single file using AI."""
-        # Build context from sources
+        # FIX-002 v2.0: Use comprehensive filter for pre-synthesis filtering
+        filtered_sources = filter_sources_for_synthesis(
+            sources=sources,
+            company_name=company.name,
+            country=company.country,
+            industry=company.industry,
+            section_name=f"{section}/{filename}",
+        )
+
+        skipped_count = len(sources) - len(filtered_sources)
+        if skipped_count > 0:
+            logger.info(
+                f"  {section}/{filename}: Comprehensive filter removed {skipped_count} "
+                f"sources ({len(filtered_sources)} remaining)"
+            )
+
+        # Build context from filtered sources
         context_parts = []
-        for source in sources[:15]:  # Limit to prevent token overflow
+        for source in filtered_sources[:15]:  # Limit to prevent token overflow
             if source.content:
                 context_parts.append(
                     f"[Source: {source.title}]\n{source.content[:2000]}"
                 )
 
         context_text = "\n\n---\n\n".join(context_parts)
+
+        # FIX-004: Inject competitor knowledge for competitor-related files
+        if "competitor" in filename.lower() or "competitive" in section.lower():
+            if hasattr(self, "_competitor_knowledge") and self._competitor_knowledge:
+                competitors = self._competitor_knowledge.get_competitors(
+                    company.name, company.country, company.industry
+                )
+                if competitors:
+                    # Generate seeded competitor data
+                    seeded_data = (
+                        self._competitor_knowledge.format_competitor_list_markdown(
+                            competitors
+                        )
+                    )
+                    if not context_text:
+                        # No sources - use seeded data as primary context
+                        context_text = f"""[Seeded Competitor Data for {company.country} {company.industry}]
+{seeded_data}
+
+Note: This is pre-researched baseline competitor data. Market shares are estimates."""
+                        logger.info(
+                            f"  {section}/{filename}: Injected {len(competitors)} seeded competitors "
+                            f"(no source data available)"
+                        )
+                    else:
+                        # Have sources - append seeded data as supplementary
+                        context_text += f"""
+
+---
+
+[Supplementary: Known {company.country} {company.industry} Competitors]
+{seeded_data}"""
+                        logger.debug(
+                            f"  {section}/{filename}: Appended {len(competitors)} seeded competitors"
+                        )
 
         if not context_text:
             return self._generate_placeholder(company, filename, "No sources available")
@@ -2328,8 +2921,10 @@ class ContentGenerator:
             # Render template
             return self._render_template(filename, company, data, sources)
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
-            logger.error(f"AI generation failed for {filename}: {e}")
+            logger.exception(f"AI generation failed for {filename}")
             return self._generate_placeholder(company, filename, str(e))
 
     def _get_prompt_for_file(
@@ -2363,7 +2958,6 @@ Return JSON with:
     "employee_count": "Number of employees",
     "core_values": ["Value 1", "Value 2"]
 }}""",
-
             "01-Market-Size-Growth.md": f"""Analyze the following content about the {company.industry} market and extract market size/growth data.
 
 CONTENT:
@@ -2384,7 +2978,6 @@ Return JSON with:
     "trends": [{{"trend": "Name", "relevance": "How it affects company"}}],
     "key_statistics": ["Stat 1 with number", "Stat 2 with number"]
 }}""",
-
             "01-Competitor-List.md": f"""Analyze the following content and extract competitor information for {company.name}.
 
 CONTENT:
@@ -2407,7 +3000,6 @@ Return JSON with:
     "market_share_summary": "Overview of market share distribution",
     "competitive_dynamics": "How competitors interact"
 }}""",
-
             "01-Financials.md": f"""Analyze the following content and extract financial information about {company.name}.
 
 CONTENT:
@@ -2430,7 +3022,6 @@ Return JSON with:
     "financial_outlook": "Future outlook summary",
     "industry_comparison": "How they compare to industry"
 }}""",
-
             "05-Sales-Strategy.md": f"""Analyze the following content and extract sales intelligence for selling to/about {company.name}.
 
 CONTENT:
@@ -2459,7 +3050,6 @@ Return JSON with:
     "objections_responses": [{{"objection": "Common objection", "response": "How to address"}}],
     "next_steps": ["Step 1", "Step 2"]
 }}""",
-
             # SEC Filing prompts (10-SEC-Filings section)
             "01-Business-Overview.md": f"""Analyze the following SEC 10-K filing content for {company.name}.
 
@@ -2478,7 +3068,6 @@ Return JSON with:
     "properties": "Key facilities/properties",
     "fiscal_year_end": "Month"
 }}""",
-
             "02-Risk-Factors.md": f"""Analyze the following SEC filing risk factors for {company.name}.
 
 CONTENT:
@@ -2493,7 +3082,6 @@ Return JSON with:
     "technology_risks": [{{"risk": "Name", "description": "Details", "severity": "High/Medium/Low"}}],
     "summary": "Overall risk assessment"
 }}""",
-
             "03-Financial-Highlights.md": f"""Analyze the following SEC filing financial data for {company.name}.
 
 CONTENT:
@@ -2514,7 +3102,6 @@ Return JSON with:
     "key_ratios": [{{"ratio": "Name", "value": "X"}}],
     "fiscal_year": "Year"
 }}""",
-
             "04-MDA-Summary.md": f"""Analyze the following Management Discussion & Analysis from SEC filing for {company.name}.
 
 CONTENT:
@@ -2531,7 +3118,6 @@ Return JSON with:
     "critical_accounting": ["Policy 1", "Policy 2"],
     "management_focus": "Key priorities mentioned"
 }}""",
-
             "05-Recent-Events.md": f"""Analyze the following SEC 8-K filings (current reports) for {company.name}.
 
 CONTENT:
@@ -2551,7 +3137,6 @@ Return JSON with:
     "patterns": "Any patterns in recent events",
     "upcoming": "Upcoming expected events if mentioned"
 }}""",
-
             "06-Executive-Compensation.md": f"""Analyze the following executive compensation data from SEC filings for {company.name}.
 
 CONTENT:
@@ -2612,8 +3197,8 @@ Return a JSON object with the key information extracted, including specific numb
                     sources=[{"title": s.title, "url": s.url} for s in sources],
                     **data,
                 )
-        except Exception as e:
-            logger.debug(f"Template rendering failed for {filename}: {e}")
+        except Exception:
+            logger.debug(f"Template rendering failed for {filename}", exc_info=True)
 
         # Fallback: generate basic markdown
         return self._generate_basic_markdown(filename, company, data, sources)
@@ -2643,7 +3228,7 @@ Return a JSON object with the key information extracted, including specific numb
                         if isinstance(item, dict):
                             md += f"### {item.get('name', item.get('title', 'Item'))}\n"
                             for k, v in item.items():
-                                if v and k not in ('name', 'title'):
+                                if v and k not in ("name", "title"):
                                     md += f"- **{k.replace('_', ' ').title()}:** {v}\n"
                             md += "\n"
                         else:

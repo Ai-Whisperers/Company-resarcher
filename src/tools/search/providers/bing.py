@@ -13,10 +13,10 @@ from typing import List, Optional
 
 import aiohttp
 
-from ..base import SearchProvider, SearchResult, SearchError, RateLimitError
+from src.tools.search.base import SearchProvider, SearchResult, SearchError, RateLimitError
 from src.core.logging import setup_logger
 from src.core.config import get_settings
-from src.core.network.http_client import get_http_client
+from src.infrastructure.network.http_client import get_http_client
 
 logger = setup_logger("search.bing")
 
@@ -111,7 +111,9 @@ class BingSearchProvider(SearchProvider):
                     raise SearchError("Invalid API key", self.name, query)
 
                 if response.status == 403:
-                    raise SearchError("API key expired or quota exceeded", self.name, query)
+                    raise SearchError(
+                        "API key expired or quota exceeded", self.name, query
+                    )
 
                 if response.status != 200:
                     text = await response.text()
@@ -138,42 +140,52 @@ class BingSearchProvider(SearchProvider):
         # Web pages
         web_pages = data.get("webPages", {})
         for item in web_pages.get("value", [])[:max_results]:
-            results.append(SearchResult(
-                title=item.get("name", "No Title"),
-                url=item.get("url", ""),
-                snippet=item.get("snippet", ""),
-                source=self.name,
-                published_date=item.get("dateLastCrawled"),
-                raw_data=item,
-            ))
+            results.append(
+                SearchResult(
+                    title=item.get("name", "No Title"),
+                    url=item.get("url", ""),
+                    snippet=item.get("snippet", ""),
+                    source=self.name,
+                    published_date=item.get("dateLastCrawled"),
+                    raw_data=item,
+                )
+            )
 
         # Include computation if present (for math/unit queries)
         computation = data.get("computation")
         if computation and len(results) < max_results:
-            results.insert(0, SearchResult(
-                title=f"Computation: {computation.get('expression', '')}",
-                url="",
-                snippet=f"= {computation.get('value', '')}",
-                source=f"{self.name}_computation",
-                raw_data=computation,
-            ))
+            results.insert(
+                0,
+                SearchResult(
+                    title=f"Computation: {computation.get('expression', '')}",
+                    url="",
+                    snippet=f"= {computation.get('value', '')}",
+                    source=f"{self.name}_computation",
+                    raw_data=computation,
+                ),
+            )
 
         # Include time zone if present
         time_zone = data.get("timeZone")
         if time_zone and len(results) < max_results:
             primary = time_zone.get("primaryCityTime", {})
-            results.insert(0, SearchResult(
-                title=f"Time in {primary.get('location', 'Unknown')}",
-                url="",
-                snippet=primary.get("time", ""),
-                source=f"{self.name}_timezone",
-                raw_data=time_zone,
-            ))
+            results.insert(
+                0,
+                SearchResult(
+                    title=f"Time in {primary.get('location', 'Unknown')}",
+                    url="",
+                    snippet=primary.get("time", ""),
+                    source=f"{self.name}_timezone",
+                    raw_data=time_zone,
+                ),
+            )
 
         logger.info(f"Bing Search found {len(results)} results for query")
         return results[:max_results]
 
-    async def search_news(self, query: str, max_results: int = 10) -> List[SearchResult]:
+    async def search_news(
+        self, query: str, max_results: int = 10
+    ) -> List[SearchResult]:
         """
         Search Bing News.
 
@@ -222,14 +234,16 @@ class BingSearchProvider(SearchProvider):
 
                 results = []
                 for item in data.get("value", [])[:max_results]:
-                    results.append(SearchResult(
-                        title=item.get("name", "No Title"),
-                        url=item.get("url", ""),
-                        snippet=item.get("description", ""),
-                        source=f"{self.name}_news",
-                        published_date=item.get("datePublished"),
-                        raw_data=item,
-                    ))
+                    results.append(
+                        SearchResult(
+                            title=item.get("name", "No Title"),
+                            url=item.get("url", ""),
+                            snippet=item.get("description", ""),
+                            source=f"{self.name}_news",
+                            published_date=item.get("datePublished"),
+                            raw_data=item,
+                        )
+                    )
 
                 logger.info(f"Bing News found {len(results)} results")
                 return results
@@ -288,13 +302,15 @@ class BingSearchProvider(SearchProvider):
 
                 results = []
                 for item in data.get("value", [])[:max_results]:
-                    results.append(SearchResult(
-                        title=item.get("name", "No Title"),
-                        url=item.get("contentUrl", item.get("thumbnailUrl", "")),
-                        snippet=item.get("hostPageDisplayUrl", ""),
-                        source=f"{self.name}_images",
-                        raw_data=item,
-                    ))
+                    results.append(
+                        SearchResult(
+                            title=item.get("name", "No Title"),
+                            url=item.get("contentUrl", item.get("thumbnailUrl", "")),
+                            snippet=item.get("hostPageDisplayUrl", ""),
+                            source=f"{self.name}_images",
+                            raw_data=item,
+                        )
+                    )
 
                 logger.info(f"Bing Images found {len(results)} results")
                 return results

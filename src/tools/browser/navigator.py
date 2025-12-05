@@ -9,15 +9,38 @@ Handles:
 """
 
 import asyncio
+import re
 from typing import Optional, Literal
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 from playwright.async_api import Page, TimeoutError as PlaywrightTimeout
 
-from ...core.logging import setup_logger
-from ...core.validation import URLValidator, URLValidationError
+from src.core.logging import setup_logger
+from src.core.validation import URLValidator, URLValidationError
 
 logger = setup_logger("browser_navigator")
+
+# Patterns that indicate a download URL (not renderable HTML)
+DOWNLOAD_URL_PATTERNS = [
+    r"\.pdf($|\?)",
+    r"\.docx?($|\?)",
+    r"\.xlsx?($|\?)",
+    r"\.pptx?($|\?)",
+    r"\.zip($|\?)",
+    r"\.rar($|\?)",
+    r"\.exe($|\?)",
+    r"\.dmg($|\?)",
+    r"\.csv($|\?)",
+    r"/download/",
+    r"/document/.*\d{4}",  # Pattern like /document/2026-emerging-markets-outlook
+    r"/attachment/",
+    r"/files/",
+    r"action=download",
+    r"download=true",
+]
+
+DOWNLOAD_URL_REGEX = re.compile("|".join(DOWNLOAD_URL_PATTERNS), re.IGNORECASE)
 
 
 WaitUntil = Literal["load", "domcontentloaded", "networkidle", "commit"]
@@ -54,6 +77,14 @@ class Navigator:
         self.default_timeout_ms = default_timeout_ms
         self.default_wait_until = default_wait_until
 
+    def _is_download_url(self, url: str) -> bool:
+        """
+        Check if a URL appears to be a file download rather than renderable HTML.
+
+        These URLs cause "Download is starting" errors in Playwright.
+        """
+        return bool(DOWNLOAD_URL_REGEX.search(url))
+
     async def goto(
         self,
         page: Page,
@@ -75,6 +106,16 @@ class Navigator:
         Returns:
             NavigationResult with status information
         """
+        # Check for download URLs first (these cause "Download is starting" errors)
+        if self._is_download_url(url):
+            logger.debug(f"Skipping download URL: {url}")
+            return NavigationResult(
+                success=False,
+                url=url,
+                final_url=url,
+                error="URL appears to be a file download, skipping",
+            )
+
         # Validate URL
         if validate_url:
             try:

@@ -15,10 +15,10 @@ from urllib.parse import quote_plus
 
 import aiohttp
 
-from ..base import SearchProvider, SearchResult, SearchError, RateLimitError
+from src.tools.search.base import SearchProvider, SearchResult, SearchError, RateLimitError
 from src.core.logging import setup_logger
 from src.core.config import get_settings
-from src.core.network.http_client import get_http_client
+from src.infrastructure.network.http_client import get_http_client
 
 logger = setup_logger("search.jina")
 
@@ -64,7 +64,11 @@ class JinaSearchProvider(SearchProvider):
         settings = get_settings()
         jina_key = getattr(settings, "JINA_API_KEY", None)
         if jina_key:
-            return jina_key.get_secret_value() if hasattr(jina_key, "get_secret_value") else jina_key
+            return (
+                jina_key.get_secret_value()
+                if hasattr(jina_key, "get_secret_value")
+                else jina_key
+            )
         return None
 
     def _get_headers(self) -> dict:
@@ -111,9 +115,7 @@ class JinaSearchProvider(SearchProvider):
                 if response.status != 200:
                     text = await response.text()
                     raise SearchError(
-                        f"HTTP {response.status}: {text[:200]}",
-                        self.name,
-                        query
+                        f"HTTP {response.status}: {text[:200]}", self.name, query
                     )
 
                 # Try to parse as JSON, fall back to text
@@ -149,7 +151,7 @@ class JinaSearchProvider(SearchProvider):
                 url=item.get("url", item.get("link", "")),
                 snippet=item.get("description", item.get("content", ""))[:500],
                 source=self.name,
-                raw_data=item
+                raw_data=item,
             )
             results.append(result)
 
@@ -194,12 +196,14 @@ class JinaSearchProvider(SearchProvider):
                     snippet_lines.append(line)
 
             if url:
-                results.append(SearchResult(
-                    title=title or "Search Result",
-                    url=url,
-                    snippet=" ".join(snippet_lines)[:500],
-                    source=self.name,
-                ))
+                results.append(
+                    SearchResult(
+                        title=title or "Search Result",
+                        url=url,
+                        snippet=" ".join(snippet_lines)[:500],
+                        source=self.name,
+                    )
+                )
 
         logger.info(f"Jina parsed {len(results)} results from markdown")
         return results
@@ -233,7 +237,9 @@ class JinaSearchProvider(SearchProvider):
 
                 if response.status != 200:
                     text = await response.text()
-                    raise SearchError(f"HTTP {response.status}: {text[:200]}", self.name)
+                    raise SearchError(
+                        f"HTTP {response.status}: {text[:200]}", self.name
+                    )
 
                 content = await response.text()
                 logger.info(f"Jina extracted {len(content)} chars from {url[:50]}...")

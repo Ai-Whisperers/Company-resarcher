@@ -22,7 +22,7 @@ import re
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
 
-from ..logging import setup_logger
+from src.core.logging import setup_logger
 
 
 logger = setup_logger("security.data_guard")

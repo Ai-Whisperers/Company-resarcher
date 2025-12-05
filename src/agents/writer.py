@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 from .base_agent import BaseAgent
-from ..core.types import CompanyProfile, ResearchPhaseResult
-from ..core.models import (
+from src.core.types import CompanyProfile, ResearchPhaseResult
+from src.core.models import (
     FinancialData,
     MarketData,
     CompetitorData,
@@ -9,10 +9,10 @@ from ..core.models import (
     StrategicInsights,
     TypedResearchContext,
 )
-from ..core.logging import setup_logger
-from ..services.security import sanitize_company_name
-from ..services.quality import GroundingService
-from ..core.ai import AIClientManager
+from src.core.logging import setup_logger
+from src.infrastructure.security import sanitize_company_name
+from src.services.quality import GroundingService
+from src.infrastructure.ai import AIClientManager
 
 logger = setup_logger("writer")
 

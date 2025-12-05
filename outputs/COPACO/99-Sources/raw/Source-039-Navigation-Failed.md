@@ -4,10 +4,10 @@
 
 | Field | Value |
 |-------|-------|
-| **URL** | https://www.owler.com/company/copaco/competitors |
+| **URL** | https://www.fcc.gov/document/wcb-releases-2024-telecommunications-reporting-worksheets |
 | **Type** | Web |
-| **Date Accessed** | 2025-12-02 |
-| **Reliability** | Medium |
+| **Date Accessed** | 2025-12-04 |
+| **Reliability** | High |
 | **Language** | Auto-detected |
 
 ---
@@ -16,16 +16,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Sections Used** | brand_strategy, competitive_landscape, creative_inspiration, target_audience |
+| **Sections Used** | 06-Data-Room |
 
 ---
 
 ## Extracted Content
 
-Error: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://www.owler.com/company/copaco/competitors
-Call log:
-  - navigating to "https://www.owler.com/company/copaco/competitors", waiting until "domcontentloaded"
-
+No content extracted.
 
 ---
 
@@ -33,5 +30,5 @@ Call log:
 
 | Aspect | Assessment |
 |--------|------------|
-| **Reliability** | Medium |
-| **Content Length** | 213 characters |
+| **Reliability** | High |
+| **Content Length** | 0 characters |

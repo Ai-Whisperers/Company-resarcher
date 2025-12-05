@@ -1,11 +1,12 @@
 import json
+from typing import Tuple
 
 from .base_agent import BaseAgent
-from ..core.types import CompanyProfile, ResearchPhaseResult, ResearchContext
-from ..core.models import TypedResearchContext, StrategicInsights
-from ..core.logging import setup_logger
-from ..services.content import robust_json_parse
-from ..services.security import sanitize_company_name
+from src.core.types import CompanyProfile, ResearchPhaseResult, ResearchContext
+from src.core.models import TypedResearchContext, StrategicInsights
+from src.core.logging import setup_logger
+from src.infrastructure.content import robust_json_parse
+from src.infrastructure.security import sanitize_company_name
 
 logger = setup_logger("insight_generator")
 
@@ -26,7 +27,7 @@ class InsightGenerator(BaseAgent):
         self,
         company: CompanyProfile,
         context: TypedResearchContext,
-    ) -> tuple[ResearchPhaseResult, StrategicInsights]:
+    ) -> Tuple[ResearchPhaseResult, StrategicInsights]:
         """
         Synthesize research data into strategic insights using typed models (recommended).
 

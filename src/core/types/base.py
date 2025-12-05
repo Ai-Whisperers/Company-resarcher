@@ -402,7 +402,7 @@ class ResearchSource(BaseModel):
         Returns:
             True if the source should be filtered out.
         """
-        from ..utils.url_utils import is_irrelevant_foreign_source
+        from src.utils.url_utils import is_irrelevant_foreign_source
 
         return is_irrelevant_foreign_source(self.url, target_country_tld)
 
@@ -420,7 +420,7 @@ class ResearchSource(BaseModel):
         Returns:
             Relevance score from 0.0 to 1.0
         """
-        from ..utils.url_utils import calculate_source_relevance_score
+        from src.utils.url_utils import calculate_source_relevance_score
 
         return calculate_source_relevance_score(self.url, target_country_tld)
 
@@ -507,7 +507,7 @@ class CompanyProfile(BaseModel):
         if not self.website:
             return self
 
-        from ..utils.url_utils import extract_country_from_url
+        from src.utils.url_utils import extract_country_from_url
 
         detected_country = extract_country_from_url(self.website)
         if detected_country:
@@ -525,7 +525,7 @@ class CompanyProfile(BaseModel):
         if not self.website:
             return None
 
-        from ..utils.url_utils import extract_country_tld
+        from src.utils.url_utils import extract_country_tld
 
         return extract_country_tld(self.website)
 
@@ -543,7 +543,7 @@ class CompanyProfile(BaseModel):
         if self.industry:
             return self
 
-        from ..utils.url_utils import infer_industry
+        from src.utils.url_utils import infer_industry
 
         detected_industry = infer_industry(self.website or "", self.name)
         if detected_industry:

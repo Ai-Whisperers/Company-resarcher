@@ -1,0 +1,43 @@
+{
+  "mcpServers": {
+    "postgres-local": {
+      "command": "docker",
+      "args": [
+        "exec",
+        "-i",
+        "company-researcher-postgres",
+        "psql",
+        "-U",
+        "researcher",
+        "-d",
+        "company_research"
+      ]
+    },
+    "redis-local": {
+      "command": "docker",
+      "args": [
+        "exec",
+        "-i",
+        "company-researcher-redis",
+        "redis-cli"
+      ]
+    },
+    "qdrant-local": {
+      "command": "docker",
+      "args": [
+        "exec",
+        "-i",
+        "company-researcher-qdrant",
+        "curl",
+        "http://localhost:6333/collections"
+      ]
+    },
+    "git-tools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-git-server"
+      ]
+    }
+  }
+}

@@ -19,15 +19,15 @@ from typing import Dict, List, Optional, Set, Any, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from ...core.logging import setup_logger
-from ...core.content.content_data_extractor import (
+from src.core.logging import setup_logger
+from src.infrastructure.content.content_data_extractor import (
     ContentDataExtractor,
     get_content_extractor,
     DataType,
     ExtractedData,
     DATA_TYPE_TO_SECTIONS,
 )
-from ...core.ai import get_ai_manager
+from src.infrastructure.ai import get_ai_manager
 
 logger = setup_logger("source_reprocessor")
 
@@ -35,6 +35,7 @@ logger = setup_logger("source_reprocessor")
 @dataclass
 class ExtractedValue:
     """A specific value extracted from a source."""
+
     data_type: DataType
     value: str
     confidence: float
@@ -46,6 +47,7 @@ class ExtractedValue:
 @dataclass
 class SectionData:
     """Aggregated data for a section."""
+
     section_name: str
     file_path: str
     extracted_values: List[ExtractedValue] = field(default_factory=list)
@@ -61,6 +63,7 @@ class SectionData:
 @dataclass
 class ReprocessResult:
     """Result of reprocessing a company's sources."""
+
     company: str
     sources_analyzed: int
     values_extracted: int
@@ -93,7 +96,7 @@ class SourceReprocessor:
 
     def _get_company_dir(self, company_name: str) -> Path:
         """Get the company output directory."""
-        safe_name = re.sub(r'[<>:"/\\|?*]', '_', company_name)
+        safe_name = re.sub(r'[<>:"/\\|?*]', "_", company_name)
         return self.base_dir / safe_name
 
     def _load_raw_sources(self, company_dir: Path) -> List[Tuple[Path, str]]:
@@ -117,17 +120,16 @@ class SourceReprocessor:
     def _extract_url_from_source(self, content: str) -> str:
         """Extract the URL from a raw source file."""
         # Look for URL pattern in the source file
-        url_match = re.search(r'\*\*URL:\*\*\s*\[.*?\]\((https?://[^\)]+)\)', content)
+        url_match = re.search(r"\*\*URL:\*\*\s*\[.*?\]\((https?://[^\)]+)\)", content)
         if url_match:
             return url_match.group(1)
 
         # Fallback: look for any URL
-        url_match = re.search(r'https?://[^\s\)]+', content)
+        url_match = re.search(r"https?://[^\s\)]+", content)
         return url_match.group(0) if url_match else ""
 
     def _extract_from_sources(
-        self,
-        sources: List[Tuple[Path, str]]
+        self, sources: List[Tuple[Path, str]]
     ) -> Dict[str, SectionData]:
         """Extract data from all sources and organize by target section."""
 
@@ -149,14 +151,16 @@ class SourceReprocessor:
                             file_path="",  # Will be set later
                         )
 
-                    sections[section].extracted_values.append(ExtractedValue(
-                        data_type=extracted.data_type,
-                        value=extracted.value,
-                        confidence=extracted.confidence,
-                        source_file=source_path.name,
-                        source_url=url,
-                        context=extracted.context,
-                    ))
+                    sections[section].extracted_values.append(
+                        ExtractedValue(
+                            data_type=extracted.data_type,
+                            value=extracted.value,
+                            confidence=extracted.confidence,
+                            source_file=source_path.name,
+                            source_url=url,
+                            context=extracted.context,
+                        )
+                    )
 
         return sections
 
@@ -164,24 +168,24 @@ class SourceReprocessor:
         """Map section names to their output files."""
         mapping = {
             "data_room": [
-                company_dir / "data_room" / "01-Financials.md",
-                company_dir / "data_room" / "02-Statistics.md",
-                company_dir / "data_room" / "04-Key-Metrics.md",
+                company_dir / "06-Data-Room" / "01-Financials.md",
+                company_dir / "06-Data-Room" / "02-Statistics.md",
+                company_dir / "06-Data-Room" / "04-Key-Metrics.md",
             ],
             "competitive_landscape": [
-                company_dir / "competitive_landscape" / "04-Market-Share.md",
-                company_dir / "competitive_landscape" / "03-Pricing-Analysis.md",
+                company_dir / "03-Competitive-Landscape" / "04-Market-Share.md",
+                company_dir / "03-Competitive-Landscape" / "03-Pricing-Analysis.md",
             ],
             "market_intelligence": [
-                company_dir / "market_intelligence" / "01-Market-Size-Growth.md",
+                company_dir / "01-Market-Intelligence" / "01-Market-Size-Growth.md",
             ],
             "investment_analysis": [
-                company_dir / "investment_analysis" / "01-Growth-Signals.md",
-                company_dir / "investment_analysis" / "04-Valuation-Assessment.md",
+                company_dir / "09-Investment-Analysis" / "01-Growth-Signals.md",
+                company_dir / "09-Investment-Analysis" / "04-Valuation-Assessment.md",
             ],
             "strategic_context": [
-                company_dir / "strategic_context" / "01-Company-Overview.md",
-                company_dir / "strategic_context" / "04-Key-People.md",
+                company_dir / "00-Strategic-Context" / "01-Company-Overview.md",
+                company_dir / "00-Strategic-Context" / "04-Key-People.md",
             ],
         }
         return mapping
@@ -195,11 +199,11 @@ class SourceReprocessor:
             content = file_path.read_text(encoding="utf-8")
             # Check for empty indicators
             empty_patterns = [
-                r'##\s*Data Not Available',
-                r'No sources available',
-                r'Unable to generate content',
-                r'\*\*Revenue\*\*:\s*N/A',
-                r'\*\*Market Share\*\*:\s*N/A',
+                r"##\s*Data Not Available",
+                r"No sources available",
+                r"Unable to generate content",
+                r"\*\*Revenue\*\*:\s*N/A",
+                r"\*\*Market Share\*\*:\s*N/A",
             ]
             for pattern in empty_patterns:
                 if re.search(pattern, content, re.IGNORECASE):
@@ -246,7 +250,6 @@ Format as markdown with:
 - Any trends or insights from the data
 
 Keep it factual and cite the source for each data point.""",
-
             "competitive_landscape": f"""Generate a Market Share analysis for {company_name} using this extracted data:
 
 {chr(10).join(values_text)}
@@ -255,7 +258,6 @@ Format as markdown with:
 - Market position summary
 - Market share figures with sources
 - Competitive dynamics""",
-
             "market_intelligence": f"""Generate a Market Size section for {company_name} using this extracted data:
 
 {chr(10).join(values_text)}
@@ -266,11 +268,14 @@ Format as markdown with:
 - Market trends""",
         }
 
-        prompt = prompts.get(section_name, f"""Generate content for the {section_name} section of {company_name} research using this extracted data:
+        prompt = prompts.get(
+            section_name,
+            f"""Generate content for the {section_name} section of {company_name} research using this extracted data:
 
 {chr(10).join(values_text)}
 
-Format as markdown with clear sections and source citations.""")
+Format as markdown with clear sections and source citations.""",
+        )
 
         try:
             response = await ai_client.generate(
@@ -364,7 +369,9 @@ Format as markdown with clear sections and source citations.""")
 
         # Count total extracted values
         total_values = sum(len(s.extracted_values) for s in sections_data.values())
-        logger.info(f"Extracted {total_values} values across {len(sections_data)} sections")
+        logger.info(
+            f"Extracted {total_values} values across {len(sections_data)} sections"
+        )
 
         # Get section-to-file mapping
         section_files = self._map_section_to_files(company_dir)
@@ -380,7 +387,9 @@ Format as markdown with clear sections and source citations.""")
                 continue
 
             # Record what data types we found
-            data_types = list(set(v.data_type.value for v in section_data.extracted_values))
+            data_types = list(
+                set(v.data_type.value for v in section_data.extracted_values)
+            )
             sections_with_data[section_name] = data_types
 
             # Get target files for this section
@@ -439,8 +448,10 @@ Format as markdown with clear sections and source citations.""")
         if company_names is None:
             # Find all company directories
             company_names = [
-                d.name for d in self.base_dir.iterdir()
-                if d.is_dir() and not d.name.startswith("_")
+                d.name
+                for d in self.base_dir.iterdir()
+                if d.is_dir()
+                and not d.name.startswith("_")
                 and (d / "99-Sources" / "raw").exists()
             ]
 
@@ -497,12 +508,14 @@ def format_reprocess_results(results: Dict[str, ReprocessResult]) -> str:
         total_values += result.values_extracted
         total_updated += result.sections_updated
 
-    lines.extend([
-        f"| **Total** | **{total_sources}** | **{total_values}** | **{total_updated}** |",
-        "",
-        "## Data Types Found",
-        "",
-    ])
+    lines.extend(
+        [
+            f"| **Total** | **{total_sources}** | **{total_values}** | **{total_updated}** |",
+            "",
+            "## Data Types Found",
+            "",
+        ]
+    )
 
     for company, result in sorted(results.items()):
         if result.sections_with_data:
@@ -518,11 +531,13 @@ def format_reprocess_results(results: Dict[str, ReprocessResult]) -> str:
             all_errors.append(f"- [{company}] {error}")
 
     if all_errors:
-        lines.extend([
-            "## Errors",
-            "",
-            *all_errors,
-        ])
+        lines.extend(
+            [
+                "## Errors",
+                "",
+                *all_errors,
+            ]
+        )
 
     return "\n".join(lines)
 

@@ -1,0 +1,171 @@
+You are an expert research strategist. Your task is to create a Research Intelligence Brief for researching "{{ company.name }}" before any web scraping begins.
+
+COMPANY INFORMATION:
+- Name: {{ company.name }}
+- Website: {{ company.website or "Not provided" }}
+- Industry: {{ company.industry or "Unknown" }}
+- Country: {{ company.country or "Unknown" }}
+- Description: {{ company.description or "Not provided" }}
+{% if company.competitors %}
+- Known Competitors: {{ company.competitors | join(", ") }}
+{% endif %}
+
+YOUR TASK:
+Based ONLY on the company name, website URL, and any provided context, create a comprehensive research brief that will guide all subsequent web research. Think carefully about:
+
+1. What can you infer about this company from its name and URL?
+2. What are the most important questions to answer?
+3. What search queries will yield the best results?
+4. How do we avoid confusing this company with others?
+5. What information will be hard to find?
+
+Return a JSON object with this EXACT structure:
+
+{
+    "company_hypothesis": {
+        "business_description": "What this company likely does based on name/URL analysis",
+        "company_type": "public|private|government|subsidiary|nonprofit",
+        "ownership_hypothesis": "Likely parent company or ownership structure if detectable",
+        "key_products_services": ["Likely product 1", "Likely product 2"],
+        "target_markets": ["Consumer", "Enterprise", "Government", etc.],
+        "geographic_focus": "Primary geographic markets based on URL TLD and name",
+        "industry_position": "leader|challenger|niche|emerging|unknown",
+        "notable_characteristics": ["Key characteristic 1", "Key characteristic 2"]
+    },
+    "priority_queries": {
+        "market": [
+            {
+                "query": "\"{{ company.name }}\" market share {{ company.industry }} {{ company.country }}",
+                "priority": 1,
+                "rationale": "Why this query is important",
+                "language": "en",
+                "target_sources": ["industry reports", "news"]
+            }
+        ],
+        "financial": [
+            {
+                "query": "Financial query here",
+                "priority": 1,
+                "rationale": "Why this query matters",
+                "language": "en",
+                "target_sources": []
+            }
+        ],
+        "competitor": [
+            {
+                "query": "Competitor query here",
+                "priority": 1,
+                "rationale": "Why this query matters",
+                "language": "en",
+                "target_sources": []
+            }
+        ],
+        "brand": [
+            {
+                "query": "Brand query here",
+                "priority": 1,
+                "rationale": "Why this query matters",
+                "language": "en",
+                "target_sources": []
+            }
+        ],
+        "sales": [
+            {
+                "query": "Sales query here",
+                "priority": 1,
+                "rationale": "Why this query matters",
+                "language": "en",
+                "target_sources": []
+            }
+        ]
+    },
+    "target_domains": [
+        "High-value domains to prioritize (e.g., industry-specific sites, regulators, news)"
+    ],
+    "language_hints": ["Primary language codes to search in based on country"],
+    "entity_identifiers": [
+        {
+            "identifier_type": "headquarters|founding_year|ticker|industry|full_name",
+            "value": "The identifier value",
+            "confidence": "high|medium|low"
+        }
+    ],
+    "exclusion_patterns": [
+        {
+            "pattern": "Text pattern indicating WRONG company",
+            "reason": "Why this indicates wrong entity"
+        }
+    ],
+    "relevance_keywords": [
+        "Keywords that strongly indicate content is about this company"
+    ],
+    "irrelevance_keywords": [
+        "Keywords that indicate content is NOT about this company"
+    ],
+    "recency_importance": "high|medium|low",
+    "min_date_preference": "YYYY-MM-DD or null",
+    "predicted_gaps": [
+        {
+            "topic": "What information will likely be hard to find",
+            "importance": "high|medium|low",
+            "mitigation": "How to work around this gap"
+        }
+    ],
+    "alternative_sources": [
+        {
+            "information_type": "What info is needed",
+            "primary_sources": ["Primary places to look"],
+            "fallback_strategy": "What to do if primary fails"
+        }
+    ],
+    "key_questions": [
+        "Most important question 1 to answer about this company",
+        "Most important question 2"
+    ],
+    "research_priorities": {
+        "market": 1,
+        "financial": 2,
+        "competitor": 3,
+        "brand": 4,
+        "sales": 5
+    },
+    "confidence_score": 0.7,
+    "reasoning": "Brief explanation of your reasoning and any uncertainties"
+}
+
+IMPORTANT GUIDELINES:
+
+1. QUERIES: Generate 3-5 queries per research type, prioritized by importance
+   - Use quotes around company name for exact matching
+   - Include local language queries if the country is non-English
+   - Target specific authoritative sources when possible
+   - Example for Paraguay: include Spanish queries like "{{ company.name }} Paraguay telecomunicaciones"
+
+2. ENTITY DISAMBIGUATION: Think carefully about:
+   - Other companies with similar names
+   - Companies in different industries with same name
+   - Regional vs global versions of the company
+   - Parent companies vs subsidiaries
+
+3. EXCLUSION PATTERNS: Common false positives to exclude:
+   - Dictionary/translation sites
+   - Different companies with similar names
+   - Irrelevant industries
+
+4. PREDICTED GAPS: Be realistic about:
+   - Private company financials are often unavailable
+   - Small companies may have limited press coverage
+   - Local language sources may be needed for non-US companies
+   - Recent events may not be well-documented
+
+5. LANGUAGE: For non-English countries:
+   - Include both English and local language queries
+   - Prioritize local news sources
+   - Consider regulatory bodies in local language
+
+6. PRIORITY: Adjust research_priorities based on:
+   - Company type (public vs private affects financial priority)
+   - Industry (B2B vs B2C affects brand/sales priority)
+   - Available information
+
+Return ONLY valid JSON, no explanations outside the JSON structure.

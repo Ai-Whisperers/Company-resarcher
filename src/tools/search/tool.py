@@ -24,7 +24,7 @@ from typing import List, Dict, Any, Optional
 from src.core.config import get_settings
 from src.core.logging import setup_logger
 from src.core.types.base import ResearchSource
-from src.core.models.base import SearchResults
+from src.domain.models.base import SearchResults
 from src.core.result import Result, Ok, Err
 from src.core.result import SearchError as ResultSearchError
 
@@ -33,14 +33,16 @@ from .manager import SearchManager, get_search_manager
 from .base import SearchError as ProviderSearchError, RateLimitError
 
 # Import fallback manager for query retry
-from src.core.resilience.search_fallback import get_fallback_queries
+from src.lib.resilience.search_fallback import get_fallback_queries
 
 # Import adaptive timeout manager
-from src.core.resilience.adaptive_timeout import (
+from src.lib.resilience.adaptive_timeout import (
     get_adaptive_timeout_manager,
     get_adaptive_search_timeout,
     AdaptiveTimeoutManager,
 )
+from langchain_core.tools import Tool, StructuredTool
+from pydantic import BaseModel, Field
 
 logger = setup_logger("search_tool")
 settings = get_settings()
@@ -58,20 +60,71 @@ MAX_FALLBACK_QUERIES = int(os.getenv("MAX_FALLBACK_QUERIES", "2"))
 # Maximum query length to prevent abuse
 MAX_QUERY_LENGTH = 500
 
+# Whitelisted search operators for unsafe mode (safe to use for research)
+# These operators help with targeted research without exposing internal data
+ALLOWED_OPERATORS = frozenset(
+    {
+        "site:",  # Restrict to specific domain
+        "filetype:",  # Restrict to specific file type (pdf, doc, etc.)
+        "-",  # Exclude terms
+        '"',  # Exact phrase matching
+    }
+)
+
+# Dangerous operators that should always be removed
+# These can leak internal data or be abused for SSRF/injection
+DANGEROUS_OPERATORS = frozenset(
+    {
+        "cache:",  # Access Google's cached version - can expose old content
+        "related:",  # Find related sites - limited use, can be abused
+        "inurl:",  # Match URL patterns - can be used for path enumeration
+        "intext:",  # Search page content - too broad, potential for abuse
+        "intitle:",  # Search titles - too broad, potential for abuse
+        "link:",  # Find linking pages - deprecated, unreliable
+        "info:",  # Get info about URL - can expose metadata
+        "define:",  # Dictionary lookup - not useful for research
+    }
+)
+
+
+def _validate_operator_values(query: str) -> str:
+    """
+    Validate operator values to prevent injection.
+
+    Ensures operator values don't contain shell metacharacters or
+    other potentially dangerous patterns.
+    """
+    # Pattern to find operator:value pairs
+    operator_pattern = re.compile(r"(\w+:)([^\s]+)")
+
+    def sanitize_value(match):
+        operator = match.group(1)
+        value = match.group(2)
+
+        # Remove shell metacharacters from values
+        # Allow only alphanumeric, dots, hyphens, underscores, and slashes for URLs
+        safe_value = re.sub(r"[;&|`$(){}[\]<>\\]", "", value)
+
+        return f"{operator}{safe_value}"
+
+    return operator_pattern.sub(sanitize_value, query)
+
 
 def sanitize_search_query(query: str, safe_mode: bool = True) -> str:
     """
     Sanitize search query to prevent injection and abuse.
 
     - Limits length to prevent DoS
-    - Removes search operator keywords that could be abused (if safe_mode=True)
+    - Removes search operator keywords that could be abused
+    - In safe_mode: removes ALL operators
+    - In unsafe_mode: only allows whitelisted operators (site:, filetype:, -, ")
     - Normalizes whitespace
     - Removes control characters
 
     Args:
         query: Raw search query string
-        safe_mode: If True (default), removes advanced search operators.
-                   If False, allows operators like site:, filetype:, etc.
+        safe_mode: If True (default), removes ALL advanced search operators.
+                   If False, allows only whitelisted operators (site:, filetype:, -, ").
                    Only trusted agents (e.g., DeepResearchAgent) should use safe_mode=False.
 
     Returns:
@@ -81,17 +134,24 @@ def sanitize_search_query(query: str, safe_mode: bool = True) -> str:
     query = query[:MAX_QUERY_LENGTH]
 
     # Remove control characters
-    query = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', query)
+    query = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", query)
 
-    # Remove common search operators that could be abused (unless safe_mode is disabled)
-    # These can leak internal data or manipulate results
     if safe_mode:
-        operators = ['site:', 'inurl:', 'filetype:', 'intitle:', 'intext:', 'cache:', 'related:']
-        for op in operators:
-            query = re.sub(re.escape(op), '', query, flags=re.IGNORECASE)
+        # Remove ALL search operators in safe mode
+        all_operators = list(ALLOWED_OPERATORS) + list(DANGEROUS_OPERATORS)
+        for op in all_operators:
+            if op in ('"', "-"):
+                continue  # These are common characters, only remove as operators
+            query = re.sub(re.escape(op), "", query, flags=re.IGNORECASE)
+    else:
+        # In unsafe mode, remove only dangerous operators but validate values
+        for op in DANGEROUS_OPERATORS:
+            query = re.sub(re.escape(op), "", query, flags=re.IGNORECASE)
+        # Validate remaining operator values to prevent injection
+        query = _validate_operator_values(query)
 
     # Normalize whitespace
-    query = ' '.join(query.split())
+    query = " ".join(query.split())
 
     return query
 
@@ -199,6 +259,7 @@ class SearchTool:
             List of search result dictionaries
         """
         import time
+
         start_time = time.time()
 
         # Handle None and empty string safely
@@ -227,7 +288,7 @@ class SearchTool:
                     max_results=max_results,
                     preferred_provider=self.preferred_provider,
                 ),
-                timeout=timeout
+                timeout=timeout,
             )
 
             # If no results and fallback is enabled, try alternative queries
@@ -249,7 +310,7 @@ class SearchTool:
                                 max_results=max_results,
                                 preferred_provider=self.preferred_provider,
                             ),
-                            timeout=fallback_timeout
+                            timeout=fallback_timeout,
                         )
                         if results:
                             logger.info(f"Fallback query succeeded: '{fallback_query}'")
@@ -261,15 +322,17 @@ class SearchTool:
             # Convert SearchResult objects to dictionaries for backward compatibility
             dict_results = []
             for r in results:
-                dict_results.append({
-                    "url": r.url,
-                    "title": r.title,
-                    "content": r.snippet,  # Map snippet to content for compatibility
-                    "snippet": r.snippet,
-                    "source": r.source,
-                    "published_date": r.published_date,
-                    "score": r.score,
-                })
+                dict_results.append(
+                    {
+                        "url": r.url,
+                        "title": r.title,
+                        "content": r.snippet,  # Map snippet to content for compatibility
+                        "snippet": r.snippet,
+                        "source": r.source,
+                        "published_date": r.published_date,
+                        "score": r.score,
+                    }
+                )
 
             # Record success with adaptive timeout manager
             elapsed = time.time() - start_time
@@ -283,13 +346,17 @@ class SearchTool:
                         query, self.section, is_empty=True
                     )
 
-            logger.info(f"Found {len(dict_results)} results for '{query}' (provider: {results[0].source if results else 'none'}, timeout: {timeout}s)")
+            logger.info(
+                f"Found {len(dict_results)} results for '{query}' (provider: {results[0].source if results else 'none'}, timeout: {timeout}s)"
+            )
             return dict_results
 
         except asyncio.TimeoutError:
             # Record timeout with adaptive timeout manager
             if self.enable_adaptive_timeout:
-                self.timeout_manager.record_failure(query, self.section, is_timeout=True)
+                self.timeout_manager.record_failure(
+                    query, self.section, is_timeout=True
+                )
             logger.error(f"Search timed out after {timeout}s for '{query}'")
             return []
         except ProviderSearchError as e:
@@ -345,12 +412,16 @@ class SearchTool:
         """
         # Handle None and empty string safely
         if not query or not isinstance(query, str) or not query.strip():
-            return Err(ResultSearchError.invalid_query(query or "", "Empty or invalid query"))
+            return Err(
+                ResultSearchError.invalid_query(query or "", "Empty or invalid query")
+            )
 
         # Sanitize query to prevent injection
         query = sanitize_search_query(query, safe_mode=self.safe_mode)
         if not query:
-            return Err(ResultSearchError.invalid_query(query, "Query empty after sanitization"))
+            return Err(
+                ResultSearchError.invalid_query(query, "Query empty after sanitization")
+            )
 
         if max_results < 1 or max_results > 20:
             logger.warning(f"Invalid max_results: {max_results}. Clamping to 1-20.")
@@ -363,7 +434,7 @@ class SearchTool:
                     max_results=max_results,
                     preferred_provider=self.preferred_provider,
                 ),
-                timeout=SEARCH_TIMEOUT_SECONDS
+                timeout=SEARCH_TIMEOUT_SECONDS,
             )
 
             if not results:
@@ -384,7 +455,9 @@ class SearchTool:
             return Ok(dict_results)
 
         except asyncio.TimeoutError:
-            logger.error(f"Search timed out after {SEARCH_TIMEOUT_SECONDS}s for '{query}'")
+            logger.error(
+                f"Search timed out after {SEARCH_TIMEOUT_SECONDS}s for '{query}'"
+            )
             return Err(ResultSearchError.timeout(query))
         except RateLimitError as e:
             logger.error(f"All providers rate limited for '{query}'")
@@ -457,23 +530,28 @@ class SearchTool:
                     preferred_provider=self.preferred_provider,
                     deduplicate=deduplicate,
                 ),
-                timeout=SEARCH_TIMEOUT_SECONDS * max_pages  # Longer timeout for multiple pages
+                timeout=SEARCH_TIMEOUT_SECONDS
+                * max_pages,  # Longer timeout for multiple pages
             )
 
             # Convert to dictionaries for backward compatibility
             dict_results = []
             for r in results:
-                dict_results.append({
-                    "url": r.url,
-                    "title": r.title,
-                    "content": r.snippet,
-                    "snippet": r.snippet,
-                    "source": r.source,
-                    "published_date": r.published_date,
-                    "score": r.score,
-                })
+                dict_results.append(
+                    {
+                        "url": r.url,
+                        "title": r.title,
+                        "content": r.snippet,
+                        "snippet": r.snippet,
+                        "source": r.source,
+                        "published_date": r.published_date,
+                        "score": r.score,
+                    }
+                )
 
-            logger.info(f"Paginated search found {len(dict_results)} total results for '{query}'")
+            logger.info(
+                f"Paginated search found {len(dict_results)} total results for '{query}'"
+            )
             return dict_results
 
         except asyncio.TimeoutError:
@@ -494,6 +572,7 @@ class SearchTool:
     def get_status(self) -> Dict[str, Any]:
         """Get status of all search providers."""
         return self.manager.get_status()
+
     async def search_parallel(
         self,
         query: str,
@@ -544,17 +623,21 @@ class SearchTool:
             # Convert to dictionaries for backward compatibility
             dict_results = []
             for r in results:
-                dict_results.append({
-                    "url": r.url,
-                    "title": r.title,
-                    "content": r.snippet,
-                    "snippet": r.snippet,
-                    "source": r.source,
-                    "published_date": r.published_date,
-                    "score": r.score,
-                })
+                dict_results.append(
+                    {
+                        "url": r.url,
+                        "title": r.title,
+                        "content": r.snippet,
+                        "snippet": r.snippet,
+                        "source": r.source,
+                        "published_date": r.published_date,
+                        "score": r.score,
+                    }
+                )
 
-            logger.info(f"Parallel search found {len(dict_results)} results for '{query}'")
+            logger.info(
+                f"Parallel search found {len(dict_results)} results for '{query}'"
+            )
             return dict_results
 
         except Exception as e:
@@ -635,3 +718,49 @@ class SearchTool:
         except Exception as e:
             logger.error(f"Distributed search error: {e}")
             return {}
+
+    def to_langchain_tool(self) -> Tool:
+        """
+        Convert this tool to a LangChain-compatible Tool.
+
+        Returns:
+            Tool: A LangChain Tool instance that wraps this SearchTool.
+        """
+
+        class SearchInput(BaseModel):
+            query: str = Field(description="The search query to execute.")
+
+        async def _asearch(query: str) -> str:
+            """Async search wrapper that returns a string representation of results."""
+            results = await self.search(query)
+            if not results:
+                return "No results found."
+
+            # Format results as a string
+            output = []
+            for i, res in enumerate(results, 1):
+                output.append(
+                    f"{i}. {res.get('title', 'No Title')}\n   URL: {res.get('url', 'No URL')}\n   Snippet: {res.get('snippet', 'No snippet')}\n"
+                )
+
+            return "\n".join(output)
+
+        def _search(query: str) -> str:
+            """Sync search wrapper (not recommended, but required by BaseTool)."""
+            import asyncio
+
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            return loop.run_until_complete(_asearch(query))
+
+        return Tool(
+            name="web_search",
+            description="Useful for searching the internet for current events, company data, and general information.",
+            func=_search,
+            coroutine=_asearch,
+            args_schema=SearchInput,
+        )

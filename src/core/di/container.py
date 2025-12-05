@@ -337,13 +337,13 @@ def _register_default_services(container: Container) -> None:
     Services are registered lazily - they're only created when first resolved.
     """
     # Import here to avoid circular imports
-    from ..config import Settings, get_settings
-    from .cache import AICache
-    from .ai import AIClientManager
-    from .template_renderer import TemplateRenderer
-    from ..tools.search import SearchTool
-    from ..tools.browser import BrowserTool
-    from ..tools.specialized.local_search import LocalSearchTool
+    from src.core.config import Settings, get_settings
+    from src.infrastructure.cache import AICache
+    from src.infrastructure.ai import AIClientManager
+    from src.lib.output.template_renderer import TemplateRenderer
+    from src.tools.search import SearchTool
+    from src.tools.browser import BrowserTool
+    from src.tools.specialized.local_search import LocalSearchTool
 
     # Settings - use existing singleton
     container.register_factory(

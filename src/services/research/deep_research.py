@@ -15,14 +15,14 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from ...core.types import ResearchSource, CompanyProfile
-from ...core.logging import setup_logger
+from src.core.types import ResearchSource, CompanyProfile
+from src.core.logging import setup_logger
 
-from ...core.logging import setup_logger
-from ..ai.query_expander import QueryExpander
-from ..quality.source_quality_scorer import score_source
-from ..quality.fact_verifier import FactVerifier
-from ..quality.contradiction_detector import ContradictionDetector
+from src.core.logging import setup_logger
+from src.services.ai.query_expander import QueryExpander
+from src.services.quality.source_quality_scorer import score_source
+from src.services.quality.fact_verifier import FactVerifier
+from src.services.quality.contradiction_detector import ContradictionDetector
 
 logger = setup_logger("deep_research")
 
@@ -413,7 +413,7 @@ class DeepResearchService:
                 temperature=0.3,
             )
 
-            from ..content.json_parser_helper import robust_json_parse
+            from src.infrastructure.content.json_parser_helper import robust_json_parse
 
             result = robust_json_parse(response)
 
@@ -492,7 +492,7 @@ class DeepResearchService:
                 temperature=0.2,
             )
 
-            from ..content.json_parser_helper import robust_json_parse
+            from src.infrastructure.content.json_parser_helper import robust_json_parse
 
             result = robust_json_parse(response)
 
@@ -544,7 +544,7 @@ class DeepResearchService:
                 temperature=0.5,
             )
 
-            from ..content.json_parser_helper import robust_json_parse
+            from src.infrastructure.content.json_parser_helper import robust_json_parse
 
             result = robust_json_parse(response)
 

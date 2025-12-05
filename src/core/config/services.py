@@ -29,6 +29,12 @@ class SearchConfig(BaseModel):
     max_pages: int = 3
     page_delay_seconds: float = 1.0
 
+    # Manager settings (CQ-132, CQ-133, CQ-134, CQ-135)
+    max_backoff_seconds: float = 30.0  # Maximum backoff time
+    sleep_duration_seconds: float = 0.5  # Sleep between operations
+    acquire_timeout_seconds: float = 10.0  # Timeout for acquiring resources
+    retry_timeout_seconds: float = 5.0  # Timeout for retry operations
+
 
 class BrowserConfig(BaseModel):
     """Browser/scraping configuration settings (ARCH-004)."""

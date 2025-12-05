@@ -5,11 +5,11 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional, Set
 
 from .base_agent import BaseAgent
-from ..core.ai import BaseAIClient
-from ..core.types import CompanyProfile, ResearchPhaseResult, ResearchSource
-from ..core.output import ReportGenerator
-from ..tools.browser import BrowserTool
-from ..tools.search import SearchTool
+from src.infrastructure.ai import BaseAIClient
+from src.core.types import CompanyProfile, ResearchPhaseResult, ResearchSource
+from src.lib.output import ReportGenerator
+from src.tools.browser import BrowserTool
+from src.tools.search import SearchTool
 
 logger = logging.getLogger(__name__)
 
@@ -71,10 +71,14 @@ class DeepResearchAgent(BaseAgent):
         depth: int = DEFAULT_DEPTH,
         concurrency_limit: int = DEFAULT_CONCURRENCY,
         tone: str = "Objective",
-    ):
-        super().__init__(ai_client, name="Deep Research Agent")
-        self.browser_tool = browser_tool
-        self.search_tool = search_tool
+    ) -> None:
+        # CQ-075: Fix super().__init__() to use correct keyword arguments
+        super().__init__(
+            client=ai_client,
+            search_tool=search_tool,
+            browser_tool=browser_tool,
+            name="Deep Research Agent",
+        )
         self.local_search_tool = local_search_tool
         self.breadth = breadth
         self.depth = depth
@@ -186,6 +190,20 @@ Format each question on a new line starting with 'Question: '"""
                     )
                     if url_match:
                         url = url_match.group(0)
+                        # Validate URL structure to prevent malformed URL issues (CQ-034)
+                        try:
+                            from urllib.parse import urlparse
+
+                            parsed = urlparse(url)
+                            if not parsed.netloc:
+                                # Invalid URL - skip citation
+                                learnings.append(line.replace("Learning:", "").strip())
+                                continue
+                        except Exception:
+                            # URL parsing failed - skip citation
+                            learnings.append(line.replace("Learning:", "").strip())
+                            continue
+
                         learning = (
                             line.replace(url, "").split("):", 1)[-1].strip()
                             if "):" in line
@@ -270,7 +288,40 @@ Format each question on a new line starting with 'Question: '"""
         visited_urls: Set[str] = None,
         on_progress=None,
     ) -> Dict[str, Any]:
-        """Conduct deep iterative research"""
+        """
+        Perform deep iterative research on a query.
+
+        This method implements a breadth-first search strategy, generating
+        sub-queries at each depth level, executing searches, scraping content,
+        and extracting learnings. At each level, it generates follow-up
+        questions and recursively researches them.
+
+        Args:
+            query: The research query or topic to investigate
+            breadth: Number of sub-queries to generate at each level
+            depth: Maximum depth of recursive research iterations
+            learnings: Accumulated learnings from previous iterations
+            citations: Dict mapping learning text to source URLs
+            visited_urls: Set of already-visited URLs to avoid duplicates
+            on_progress: Optional callback for progress updates
+
+        Returns:
+            Dict containing:
+                - learnings: List[str] of key insights discovered
+                - visited_urls: List[str] of URLs consulted
+                - citations: Dict[str, str] mapping learnings to source URLs
+                - context: List[str] of scraped content (trimmed to word limit)
+                - sources: List of source metadata
+
+        Example:
+            result = await agent.deep_research(
+                query="What is the market size for electric vehicles?",
+                breadth=4,
+                depth=2,
+            )
+            for learning in result["learnings"]:
+                print(f"- {learning}")
+        """
         logger.info(
             f"DEEP RESEARCH: depth={depth}, breadth={breadth}, query={query[:100]}..."
         )
@@ -303,6 +354,16 @@ Format each question on a new line starting with 'Question: '"""
         semaphore = asyncio.Semaphore(self.concurrency_limit)
 
         async def process_query(serp_query: Dict[str, str]) -> Optional[Dict[str, Any]]:
+            """
+            Process a single search query: search, scrape, and extract learnings.
+
+            Args:
+                serp_query: Dict with 'query' and optional 'researchGoal' keys
+
+            Returns:
+                Dict with learnings, follow-up questions, citations, and context,
+                or None if processing fails.
+            """
             async with semaphore:
                 try:
                     progress.current_query = serp_query["query"]
@@ -347,14 +408,18 @@ Format each question on a new line starting with 'Question: '"""
         failed_count = 0
         for query, result in zip(serp_queries, raw_results):
             if isinstance(result, Exception):
-                logger.error(f"Query '{query.get('query', 'unknown')}' raised exception: {result}")
+                logger.error(
+                    f"Query '{query.get('query', 'unknown')}' raised exception: {result}"
+                )
                 failed_count += 1
             elif result is not None:
                 results.append(result)
 
         # Log summary
         success_count = len(serp_queries) - failed_count
-        logger.info(f"Processed {success_count}/{len(serp_queries)} queries successfully")
+        logger.info(
+            f"Processed {success_count}/{len(serp_queries)} queries successfully"
+        )
         if failed_count > 0:
             logger.warning(f"{failed_count} queries failed during deep research")
 

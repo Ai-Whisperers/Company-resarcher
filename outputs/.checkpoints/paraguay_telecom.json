@@ -1,56 +1,57 @@
 {
   "version": "1.0",
   "batch_path": "data/research_targets/paraguay_telecom",
-  "started_at": "2025-12-03T17:44:49.167477",
-  "last_updated": "2025-12-03T20:05:04.454689",
-  "status": "in_progress",
+  "started_at": "2025-12-04T14:57:04.402474",
+  "last_updated": "2025-12-04T17:14:50.068684",
+  "status": "completed",
   "companies": {
     "Claro Paraguay": {
       "name": "Claro Paraguay",
-      "status": "error",
-      "started_at": "2025-12-03T19:41:03.021032",
+      "status": "completed",
+      "started_at": "2025-12-04T14:57:04.405593",
+      "completed_at": "2025-12-04T15:01:38.197911",
       "sources_count": 0,
-      "files_generated": 0,
-      "error_message": "Comprehensive: 'list' object has no attribute 'section'; Fallback: No module named 'src.core.utils'"
+      "files_generated": 0
     },
     "COPACO": {
       "name": "COPACO",
-      "status": "error",
-      "started_at": "2025-12-03T19:45:52.013726",
+      "status": "completed",
+      "started_at": "2025-12-04T15:01:43.202280",
+      "completed_at": "2025-12-04T15:05:36.880982",
       "sources_count": 0,
-      "files_generated": 0,
-      "error_message": "Comprehensive: 'list' object has no attribute 'section'; Fallback: No module named 'src.core.utils'"
+      "files_generated": 430
     },
     "Personal Paraguay": {
       "name": "Personal Paraguay",
-      "status": "error",
-      "started_at": "2025-12-03T19:50:40.336923",
+      "status": "completed",
+      "started_at": "2025-12-04T15:05:41.895661",
+      "completed_at": "2025-12-04T15:09:30.247167",
       "sources_count": 0,
-      "files_generated": 0,
-      "error_message": "Comprehensive: 'list' object has no attribute 'section'; Fallback: No module named 'src.core.utils'"
+      "files_generated": 0
     },
     "Telecom Argentina": {
       "name": "Telecom Argentina",
-      "status": "error",
-      "started_at": "2025-12-03T19:55:18.321126",
+      "status": "completed",
+      "started_at": "2025-12-04T15:09:35.251493",
+      "completed_at": "2025-12-04T15:14:01.090800",
       "sources_count": 0,
-      "files_generated": 0,
-      "error_message": "Comprehensive: 'list' object has no attribute 'section'; Fallback: No module named 'src.core.utils'"
+      "files_generated": 0
     },
     "Tigo Paraguay": {
       "name": "Tigo Paraguay",
-      "status": "error",
-      "started_at": "2025-12-03T20:00:12.228103",
+      "status": "completed",
+      "started_at": "2025-12-04T17:05:51.191660",
+      "completed_at": "2025-12-04T17:10:34.676522",
       "sources_count": 0,
-      "files_generated": 0,
-      "error_message": "Comprehensive: 'list' object has no attribute 'section'; Fallback: No module named 'src.core.utils'"
+      "files_generated": 40
     },
     "Vox Paraguay": {
       "name": "Vox Paraguay",
-      "status": "in_progress",
-      "started_at": "2025-12-03T20:05:04.454450",
+      "status": "completed",
+      "started_at": "2025-12-04T17:10:39.690111",
+      "completed_at": "2025-12-04T17:14:50.068520",
       "sources_count": 0,
-      "files_generated": 0
+      "files_generated": 40
     }
   },
   "config": {

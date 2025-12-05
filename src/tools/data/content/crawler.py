@@ -19,7 +19,7 @@ from typing import Dict, Any, Optional, List, Set, Callable
 from urllib.parse import urljoin, urlparse
 import hashlib
 
-from ....core.logging import setup_logger
+from src.core.logging import setup_logger
 
 logger = setup_logger("crawl4ai_tool")
 
@@ -411,8 +411,9 @@ class Crawl4AITool:
         self.clusterer = SemanticClusterer()
 
     async def _get_crawler(self):
-        """Get or create the async web crawler."""
+        """Get or create the async web crawler (CQ-104: ensure complete initialization)."""
         if self._crawler is None:
+            crawler = None
             try:
                 from crawl4ai import AsyncWebCrawler
                 from crawl4ai.async_configs import BrowserConfig
@@ -422,10 +423,22 @@ class Crawl4AITool:
                     user_agent=self.user_agent,
                 )
 
-                self._crawler = AsyncWebCrawler(config=browser_config)
-                await self._crawler.__aenter__()
+                # Create crawler but don't assign to self._crawler until fully initialized
+                crawler = AsyncWebCrawler(config=browser_config)
+                await crawler.__aenter__()
+                # Only assign after successful initialization
+                self._crawler = crawler
             except ImportError:
                 logger.error("crawl4ai not installed. Run: pip install crawl4ai")
+                raise
+            except Exception as e:
+                # Cleanup partially initialized crawler
+                if crawler is not None:
+                    try:
+                        await crawler.__aexit__(None, None, None)
+                    except Exception:
+                        pass  # Ignore cleanup errors
+                logger.error(f"Failed to initialize crawler: {e}")
                 raise
         return self._crawler
 
